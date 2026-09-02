@@ -3,6 +3,7 @@ import { getCurrentCoupleData } from "@/lib/current-couple";
 import Card from "@/components/ui/Card";
 import SignOutButton from "@/components/auth/SignOutButton";
 import DeleteAccountButton from "@/components/auth/DeleteAccountButton";
+import LeaveCoupleButton from "@/components/auth/LeaveCoupleButton";
 import ProfileEditForm from "@/components/profilo/ProfileEditForm";
 
 export default async function ProfiloPage() {
@@ -53,6 +54,7 @@ export default async function ProfiloPage() {
         <a href="/privacy" className="text-center text-sm text-ink-soft underline">
           Privacy policy
         </a>
+        {data.partner && <LeaveCoupleButton />}
         <DeleteAccountButton />
       </div>
     </div>

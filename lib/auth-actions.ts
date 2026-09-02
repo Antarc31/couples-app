@@ -92,6 +92,19 @@ export async function deleteOwnAccount(): Promise<{ error: string } | { success:
   return { success: true };
 }
 
+/**
+ * Scioglie la coppia corrente (RPC `leave_couple`, vedi
+ * 20260902010000_leave_couple.sql): a differenza di deleteOwnAccount, il
+ * proprio account/login resta valido, quindi qui NON si fa signOut() — chi
+ * lascia la coppia resta loggato e torna alla schermata di pairing.
+ */
+export async function leaveCouple(): Promise<{ error: string } | { success: true }> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("leave_couple");
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
 /** Sessione + profilo (display_name, couple_id) dell'utente corrente, o null se non loggato. */
 export async function getSession(): Promise<Session | null> {
   const supabase = createClient();

@@ -99,6 +99,7 @@ import {
   createPairingInvite,
   acceptPairingInvite,
   deleteOwnAccount,
+  leaveCouple,
 } from "@/lib/auth-actions";
 
 beforeEach(() => {
@@ -249,6 +250,29 @@ describe("deleteOwnAccount", () => {
 
     expect(result).toEqual({ error: "Errore imprevisto" });
     expect(mockSupabase.auth.signOut).not.toHaveBeenCalled();
+  });
+});
+
+describe("leaveCouple", () => {
+  it("chiama la RPC leave_couple e NON fa signOut() su successo", async () => {
+    mockSupabase.rpc.mockResolvedValue({ data: null, error: null });
+
+    const result = await leaveCouple();
+
+    expect(mockSupabase.rpc).toHaveBeenCalledWith("leave_couple");
+    expect(mockSupabase.auth.signOut).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: true });
+  });
+
+  it("propaga l'errore della RPC (es. non accoppiato/a)", async () => {
+    mockSupabase.rpc.mockResolvedValue({
+      data: null,
+      error: { message: "Non sei accoppiato/a con nessuno" },
+    });
+
+    const result = await leaveCouple();
+
+    expect(result).toEqual({ error: "Non sei accoppiato/a con nessuno" });
   });
 });
 
