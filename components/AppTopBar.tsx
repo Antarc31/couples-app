@@ -19,6 +19,8 @@ const TYPE_ICON: Record<NotificationType, string> = {
   evento_coppia: "📅",
   appuntamento: "🗓️",
   wishlist: "🎁",
+  quiz: "🧠",
+  mood_checkin: "💛",
 };
 
 /** Dove porta il tap su una notifica, per tipo — vedi handleRowTap. */
@@ -27,6 +29,8 @@ const TYPE_DESTINATION: Record<NotificationType, string> = {
   evento_coppia: "/calendario",
   appuntamento: "/appuntamenti",
   wishlist: "/wishlist",
+  quiz: "/home",
+  mood_checkin: "/home",
 };
 
 function mapRowToNotification(row: NotificationRow): AppNotification {

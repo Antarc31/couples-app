@@ -6,6 +6,8 @@ import CountdownHeader from "@/components/home/CountdownHeader";
 import MilestoneBadge from "@/components/home/MilestoneBadge";
 import MemoriesDeck from "@/components/home/MemoriesDeck";
 import ThrowbackCard from "@/components/home/ThrowbackCard";
+import QuizCard from "@/components/home/QuizCard";
+import MoodCheckInCard from "@/components/home/MoodCheckInCard";
 import UpcomingEventsCard from "@/components/home/UpcomingEventsCard";
 import WishlistPreviewCard from "@/components/home/WishlistPreviewCard";
 
@@ -69,6 +71,8 @@ export default async function HomePage() {
       <MilestoneBadge nextMilestone={nextMilestoneDisplay} />
       <MemoriesDeck partnerName={data.partner?.displayName ?? "il tuo partner"} selfId={data.userId} />
       <ThrowbackCard selfId={data.userId} />
+      <QuizCard partnerName={data.partner?.displayName ?? "il tuo partner"} />
+      <MoodCheckInCard partnerName={data.partner?.displayName ?? "il tuo partner"} />
       <UpcomingEventsCard events={upcoming ?? []} colorCtx={colorCtx} />
       <WishlistPreviewCard
         items={wishlistPreview ?? []}

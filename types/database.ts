@@ -40,7 +40,14 @@ export type WishlistCategory = "regalo" | "attivita";
 export type WishlistTarget = "self" | "partner" | "entrambi";
 export type WishlistPriority = "bassa" | "media" | "alta";
 export type WishlistStatus = "attivo" | "completato";
-export type NotificationType = "reazione" | "evento_coppia" | "appuntamento" | "wishlist";
+export type NotificationType =
+  | "reazione"
+  | "evento_coppia"
+  | "appuntamento"
+  | "wishlist"
+  | "quiz"
+  | "mood_checkin";
+export type MoodType = "felice" | "sereno" | "stanco" | "stressato" | "triste" | "innamorato";
 
 export interface Database {
   public: {
@@ -512,6 +519,98 @@ export interface Database {
           },
         ];
       };
+      quiz_questions: {
+        // Pool statico, seedato via migration. Nessuna scrittura dal client.
+        Row: {
+          id: string;
+          prompt: string;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      quiz_answers: {
+        // Immutabile: nessun update/delete (come messages).
+        Row: {
+          id: string;
+          couple_id: string;
+          profile_id: string;
+          answer_date: string;
+          question_id: string;
+          answer: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          couple_id: string;
+          profile_id: string;
+          answer_date: string;
+          question_id: string;
+          answer: string;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "quiz_answers_couple_id_fkey";
+            columns: ["couple_id"];
+            isOneToOne: false;
+            referencedRelation: "couples";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "quiz_answers_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "quiz_answers_question_id_fkey";
+            columns: ["question_id"];
+            isOneToOne: false;
+            referencedRelation: "quiz_questions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      mood_checkins: {
+        // Immutabile: nessun update/delete.
+        Row: {
+          id: string;
+          couple_id: string;
+          profile_id: string;
+          checkin_date: string;
+          mood: MoodType;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          couple_id: string;
+          profile_id: string;
+          checkin_date: string;
+          mood: MoodType;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "mood_checkins_couple_id_fkey";
+            columns: ["couple_id"];
+            isOneToOne: false;
+            referencedRelation: "couples";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "mood_checkins_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       push_subscriptions: {
         Row: {
           id: string;
@@ -640,6 +739,7 @@ export interface Database {
       wishlist_priority: WishlistPriority;
       wishlist_status: WishlistStatus;
       notification_type: NotificationType;
+      mood_type: MoodType;
     };
     CompositeTypes: Record<string, never>;
   };
