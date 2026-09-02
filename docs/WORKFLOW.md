@@ -76,7 +76,14 @@ identico ma con database vuoto.
    dati reali.
 4. Se la modifica richiede una migration, applicarla prima al Supabase di
    test (vedi sopra) prima di aprire/testare il Preview.
-5. Quando l'utente conferma che è pronto: merge in `main`
-   (`git checkout main && git pull && git merge dev`), applicare
-   l'eventuale migration anche al Supabase di produzione, poi
-   `git push origin main` → deploy automatico su Production.
+5. Quando l'utente conferma che è pronto:
+   - Se si lavorava su un branch feature separato (non direttamente su
+     `dev`): prima mergiarlo dentro `dev`
+     (`git checkout dev && git merge <nome-feature> && git push origin dev`).
+   - Poi, solo da `dev` verso `main`
+     (`git checkout main && git pull && git merge dev`), applicare
+     l'eventuale migration anche al Supabase di produzione, e infine
+     `git push origin main` → deploy automatico su Production.
+   Le migration non seguono mai i branch git automaticamente: applicarle al
+   progetto Supabase giusto è sempre un passo manuale ed esplicito, nel
+   giusto ordine (test prima, produzione poi, mai il contrario).
