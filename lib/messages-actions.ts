@@ -12,6 +12,7 @@
  */
 
 import { createClient } from "@/lib/supabase/client";
+import { sameDayLastYear } from "@/lib/calendar-dates";
 import type { MessageType } from "@/types/database";
 
 /** Bucket Storage privato per le foto (supabase/migrations/20260901050000_couple_photos_storage.sql). */
@@ -278,6 +279,62 @@ export async function sendPhotoThought(file: File, caption?: string): Promise<Th
     photoUrl: signed?.signedUrl ?? null,
     createdAt: data.created_at,
     likedByMe: false,
+  };
+}
+
+export interface Throwback {
+  thoughts: Thought[];
+  /** Titoli dei regali (wishlist) completati esattamente un anno fa oggi — già filtrati dalle sorprese non ancora rivelabili. */
+  giftTitles: string[];
+}
+
+/**
+ * "Un anno fa oggi": pensieri/foto inviati e regali completati esattamente
+ * un anno prima della data odierna (stesso giorno esatto, non una finestra
+ * — vedi sameDayLastYear). Nessuna nuova tabella: pura query in lettura,
+ * calcolata al momento (Fase C del piano, nessun cron nel progetto).
+ * Ritorna liste vuote se non c'è nulla quel giorno — il chiamante
+ * (ThrowbackCard) decide di non renderizzare nulla in quel caso.
+ */
+export async function getThrowbackForToday(): Promise<Throwback | ActionError> {
+  const supabase = createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const myId = userData?.user?.id;
+  if (!myId) return { error: "Utente non autenticato" };
+
+  const { start, end } = sameDayLastYear();
+  const startIso = start.toISOString();
+  const endIso = end.toISOString();
+
+  const [messagesResult, giftsResult] = await Promise.all([
+    supabase
+      .from("messages")
+      .select(MESSAGE_ROW_COLUMNS)
+      .gte("created_at", startIso)
+      .lt("created_at", endIso)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("wishlist_feed")
+      .select("title, is_hidden_surprise")
+      .eq("status", "completato")
+      .gte("completed_at", startIso)
+      .lt("completed_at", endIso),
+  ]);
+
+  if (messagesResult.error) return { error: messagesResult.error.message };
+  if (giftsResult.error) return { error: giftsResult.error.message };
+
+  const rows = (messagesResult.data ?? []) as unknown as MessageRow[];
+  const signedUrlByPath = await resolveSignedPhotoUrls(
+    supabase,
+    rows.filter((row) => row.type === "photo" && row.photo_url).map((row) => row.photo_url as string),
+  );
+
+  return {
+    thoughts: rows.map((row) => mapRowToThought(row, myId, signedUrlByPath)),
+    giftTitles: (giftsResult.data ?? [])
+      .filter((g) => !g.is_hidden_surprise && g.title)
+      .map((g) => g.title as string),
   };
 }
 

@@ -5,6 +5,7 @@ import { daysBetween, nextOccurrence, nextMilestone } from "@/lib/calendar-dates
 import CountdownHeader from "@/components/home/CountdownHeader";
 import MilestoneBadge from "@/components/home/MilestoneBadge";
 import MemoriesDeck from "@/components/home/MemoriesDeck";
+import ThrowbackCard from "@/components/home/ThrowbackCard";
 import UpcomingEventsCard from "@/components/home/UpcomingEventsCard";
 import WishlistPreviewCard from "@/components/home/WishlistPreviewCard";
 
@@ -67,6 +68,7 @@ export default async function HomePage() {
       <CountdownHeader nextSpecial={nextSpecial} />
       <MilestoneBadge nextMilestone={nextMilestoneDisplay} />
       <MemoriesDeck partnerName={data.partner?.displayName ?? "il tuo partner"} selfId={data.userId} />
+      <ThrowbackCard selfId={data.userId} />
       <UpcomingEventsCard events={upcoming ?? []} colorCtx={colorCtx} />
       <WishlistPreviewCard
         items={wishlistPreview ?? []}

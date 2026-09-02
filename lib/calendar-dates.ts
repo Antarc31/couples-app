@@ -169,6 +169,16 @@ export function nextMilestone(startDate: string, today: Date = new Date()): { da
 }
 
 /**
+ * Intervallo [inizio, fine) del giorno esatto un anno prima di `today`
+ * (stesso mese/giorno) — usato dal throwback "un anno fa oggi" per filtrare
+ * messaggi/regali completati quella data esatta, non una finestra.
+ */
+export function sameDayLastYear(today: Date = new Date()): { start: Date; end: Date } {
+  const start = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+  return { start, end: addDays(start, 1) };
+}
+
+/**
  * Tutte le occorrenze proiettate di un evento (eventualmente ricorrente) che
  * cadono in `[rangeStart, rangeEnd]` (bordi inclusi, confrontati a livello di
  * giorno — non di millisecondi). A differenza di `nextOccurrence` (una sola

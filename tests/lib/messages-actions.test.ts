@@ -60,7 +60,9 @@ type FromReturn =
   | ReturnType<typeof makeQueryBuilderMock>
   | ReturnType<typeof makeSelectOrderLimitMock>
   | ReturnType<typeof makePhotoQueryMock>
-  | ReturnType<typeof makeInsertSelectSingleMock>;
+  | ReturnType<typeof makeInsertSelectSingleMock>
+  | ReturnType<typeof makeThrowbackMessagesMock>
+  | ReturnType<typeof makeThrowbackGiftsMock>;
 
 type SignedUrlResponse = { data: { signedUrl: string } | null; error: { message: string } | null };
 type UploadResponse = { data: { path: string } | null; error: { message: string } | null };
@@ -121,7 +123,26 @@ import {
   sendThought,
   sendPhotoThought,
   toggleThoughtReaction,
+  getThrowbackForToday,
 } from "@/lib/messages-actions";
+
+/** Mock della catena `.from("messages").select(...).gte(...).lt(...).order(...)` usata da getThrowbackForToday. */
+function makeThrowbackMessagesMock(response: { data: unknown[] | null; error: { message: string } | null }) {
+  const order = jest.fn<Promise<typeof response>, [string, unknown?]>().mockResolvedValue(response);
+  const lt = jest.fn<{ order: typeof order }, [string, string]>().mockReturnValue({ order });
+  const gte = jest.fn<{ lt: typeof lt }, [string, string]>().mockReturnValue({ lt });
+  const select = jest.fn<{ gte: typeof gte }, [string]>().mockReturnValue({ gte });
+  return { select, gte, lt, order };
+}
+
+/** Mock della catena `.from("wishlist_feed").select(...).eq(...).gte(...).lt(...)` usata da getThrowbackForToday. */
+function makeThrowbackGiftsMock(response: { data: unknown[] | null; error: { message: string } | null }) {
+  const lt = jest.fn<Promise<typeof response>, [string, string]>().mockResolvedValue(response);
+  const gte = jest.fn<{ lt: typeof lt }, [string, string]>().mockReturnValue({ lt });
+  const eq = jest.fn<{ gte: typeof gte }, [string, string]>().mockReturnValue({ gte });
+  const select = jest.fn<{ eq: typeof eq }, [string]>().mockReturnValue({ eq });
+  return { select, eq, gte, lt };
+}
 
 beforeEach(() => {
   mockSupabase = makeMockSupabase();
@@ -571,6 +592,95 @@ describe("sendPhotoThought", () => {
     expect(bucket.remove).toHaveBeenCalledTimes(1);
     expect(bucket.remove.mock.calls[0][0]).toHaveLength(1);
     expect(bucket.remove.mock.calls[0][0][0]).toMatch(/^c1\/[0-9a-f-]+\.jpg$/);
+  });
+});
+
+describe("getThrowbackForToday", () => {
+  it("ritorna errore se l'utente non è autenticato", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+    const result = await getThrowbackForToday();
+    expect(result).toEqual({ error: "Utente non autenticato" });
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it("mappa pensieri e regali di un anno fa, filtrando i regali sorpresa non ancora rivelabili", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "messages") {
+        return makeThrowbackMessagesMock({
+          data: [
+            {
+              id: "m1",
+              sender_id: "partner-1",
+              type: "text",
+              content: "Un anno fa qui",
+              photo_url: null,
+              liked_by: [],
+              created_at: "2025-08-30T08:00:00.000Z",
+              profiles: { display_name: "Sam" },
+            },
+          ],
+          error: null,
+        });
+      }
+      if (table === "wishlist_feed") {
+        return makeThrowbackGiftsMock({
+          data: [
+            { title: "Un anello", is_hidden_surprise: false },
+            { title: "Sorpresa nascosta", is_hidden_surprise: true },
+          ],
+          error: null,
+        });
+      }
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    const result = await getThrowbackForToday();
+
+    expect(mockSupabase.from).toHaveBeenCalledWith("messages");
+    expect(mockSupabase.from).toHaveBeenCalledWith("wishlist_feed");
+    expect(result).toEqual({
+      thoughts: [
+        expect.objectContaining({ id: "m1", content: "Un anno fa qui", senderName: "Sam" }),
+      ],
+      giftTitles: ["Un anello"],
+    });
+  });
+
+  it("ritorna liste vuote se non c'è nulla quel giorno, senza errore", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "messages") return makeThrowbackMessagesMock({ data: [], error: null });
+      if (table === "wishlist_feed") return makeThrowbackGiftsMock({ data: [], error: null });
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    const result = await getThrowbackForToday();
+    expect(result).toEqual({ thoughts: [], giftTitles: [] });
+  });
+
+  it("propaga l'errore della query messages", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "messages") return makeThrowbackMessagesMock({ data: null, error: { message: "Errore messages" } });
+      if (table === "wishlist_feed") return makeThrowbackGiftsMock({ data: [], error: null });
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    const result = await getThrowbackForToday();
+    expect(result).toEqual({ error: "Errore messages" });
+  });
+
+  it("propaga l'errore della query wishlist_feed", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "messages") return makeThrowbackMessagesMock({ data: [], error: null });
+      if (table === "wishlist_feed") return makeThrowbackGiftsMock({ data: null, error: { message: "Errore wishlist" } });
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    const result = await getThrowbackForToday();
+    expect(result).toEqual({ error: "Errore wishlist" });
   });
 });
 
