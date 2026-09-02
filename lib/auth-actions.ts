@@ -76,6 +76,22 @@ export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
 }
 
+/**
+ * Cancellazione account self-service (RPC `delete_own_account`, vedi
+ * 20260902000000_delete_own_account.sql): cancella auth.users + tutti i dati
+ * applicativi collegati via cascata. Fa anche signOut() dopo, perché la
+ * sessione locale resterebbe altrimenti valida finché non scade (l'utente
+ * non esiste più lato server, ma il client non lo saprebbe finché non prova
+ * una richiesta autenticata).
+ */
+export async function deleteOwnAccount(): Promise<{ error: string } | { success: true }> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("delete_own_account");
+  if (error) return { error: error.message };
+  await supabase.auth.signOut();
+  return { success: true };
+}
+
 /** Sessione + profilo (display_name, couple_id) dell'utente corrente, o null se non loggato. */
 export async function getSession(): Promise<Session | null> {
   const supabase = createClient();

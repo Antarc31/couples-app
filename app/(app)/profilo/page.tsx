@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentCoupleData } from "@/lib/current-couple";
 import Card from "@/components/ui/Card";
 import SignOutButton from "@/components/auth/SignOutButton";
+import DeleteAccountButton from "@/components/auth/DeleteAccountButton";
 import ProfileEditForm from "@/components/profilo/ProfileEditForm";
 
 export default async function ProfiloPage() {
@@ -47,6 +48,13 @@ export default async function ProfiloPage() {
       />
 
       <SignOutButton />
+
+      <div className="mt-2 flex flex-col gap-2 border-t border-border pt-4">
+        <a href="/privacy" className="text-center text-sm text-ink-soft underline">
+          Privacy policy
+        </a>
+        <DeleteAccountButton />
+      </div>
     </div>
   );
 }

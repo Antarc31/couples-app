@@ -98,6 +98,7 @@ import {
   getSession,
   createPairingInvite,
   acceptPairingInvite,
+  deleteOwnAccount,
 } from "@/lib/auth-actions";
 
 beforeEach(() => {
@@ -223,6 +224,31 @@ describe("getSession", () => {
 
     const session = await getSession();
     expect(session?.coupleId).toBeNull();
+  });
+});
+
+describe("deleteOwnAccount", () => {
+  it("chiama la RPC delete_own_account e poi signOut() su successo", async () => {
+    mockSupabase.rpc.mockResolvedValue({ data: null, error: null });
+    mockSupabase.auth.signOut.mockResolvedValue({ error: null });
+
+    const result = await deleteOwnAccount();
+
+    expect(mockSupabase.rpc).toHaveBeenCalledWith("delete_own_account");
+    expect(mockSupabase.auth.signOut).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("propaga l'errore della RPC senza chiamare signOut()", async () => {
+    mockSupabase.rpc.mockResolvedValue({
+      data: null,
+      error: { message: "Errore imprevisto" },
+    });
+
+    const result = await deleteOwnAccount();
+
+    expect(result).toEqual({ error: "Errore imprevisto" });
+    expect(mockSupabase.auth.signOut).not.toHaveBeenCalled();
   });
 });
 

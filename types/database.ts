@@ -621,6 +621,10 @@ export interface Database {
         Args: Record<PropertyKey, never>;
         Returns: undefined;
       };
+      delete_own_account: {
+        Args: Record<PropertyKey, never>;
+        Returns: undefined;
+      };
     };
     Enums: {
       event_category: EventCategory;
