@@ -67,7 +67,7 @@ describe("QuizCard", () => {
     expect(screen.getByRole("button", { name: "Rispondi" })).toBeDisabled();
   });
 
-  it("mostra il punteggio in testa alla card", async () => {
+  it("mostra il punteggio in testa alla card, con il trofeo sul lato in vantaggio", async () => {
     mockGetTodaysQuiz.mockResolvedValue({
       questionId: "q1",
       prompt: "Domanda",
@@ -77,7 +77,25 @@ describe("QuizCard", () => {
     });
     renderCard();
 
-    expect(await screen.findByText("Tu 1 — 2 Sam")).toBeInTheDocument();
+    expect(await screen.findByText("1")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("Sam")).toBeInTheDocument();
+    expect(screen.getByText("🏆")).toBeInTheDocument(); // scores.partner (2) > scores.mine (1)
+  });
+
+  it("non mostra il blocco punteggio se entrambi sono a zero", async () => {
+    mockGetTodaysQuiz.mockResolvedValue({
+      questionId: "q1",
+      prompt: "Domanda",
+      mine: null,
+      partner: null,
+      revealed: false,
+    });
+    mockGetQuizScores.mockResolvedValue({ mine: 0, partner: 0 });
+    renderCard();
+
+    await screen.findByText("Domanda");
+    expect(screen.queryByText("🏆")).not.toBeInTheDocument();
   });
 
   it("mostra 'in attesa' quando ho scritto ma il partner no", async () => {

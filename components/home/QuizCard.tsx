@@ -93,14 +93,23 @@ export default function QuizCard({ partnerName, partnerId, coupleId }: QuizCardP
 
   return (
     <Card className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold text-ink">🧠 Quiz: indovina il partner</h2>
-        {scores && (
-          <span className="text-xs font-semibold text-ink-soft">
-            Tu {scores.mine} — {scores.partner} {partnerName}
-          </span>
-        )}
-      </div>
+      <h2 className="text-sm font-bold text-ink">🧠 Quiz: indovina il partner</h2>
+
+      {scores && (scores.mine > 0 || scores.partner > 0) && (
+        <div className="flex items-center justify-center gap-5 rounded-2xl bg-couple-soft px-4 py-3">
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="h-5 text-base leading-none">{scores.mine > scores.partner ? "🏆" : ""}</span>
+            <span className="text-2xl font-extrabold text-couple">{scores.mine}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Tu</span>
+          </div>
+          <span className="text-base font-bold text-ink-soft">—</span>
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="h-5 text-base leading-none">{scores.partner > scores.mine ? "🏆" : ""}</span>
+            <span className="text-2xl font-extrabold text-couple">{scores.partner}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">{partnerName}</span>
+          </div>
+        </div>
+      )}
 
       {loadError ? (
         <p className="text-xs text-danger">{loadError}</p>

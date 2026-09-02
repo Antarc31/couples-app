@@ -78,15 +78,15 @@ export default async function HomePage() {
           coupleId={data.couple.id}
         />
       )}
-      {data.couple.moodCheckinEnabled && data.partner && (
-        <MoodCheckIn partnerName={data.partner.displayName ?? "il tuo partner"} coupleId={data.couple.id} />
-      )}
       <UpcomingEventsCard events={upcoming ?? []} colorCtx={colorCtx} />
       <WishlistPreviewCard
         items={wishlistPreview ?? []}
         selfId={data.userId}
         partnerName={data.partner?.displayName ?? "il tuo partner"}
       />
+      {data.couple.moodCheckinEnabled && data.partner && (
+        <MoodCheckIn partnerName={data.partner.displayName ?? "il tuo partner"} coupleId={data.couple.id} />
+      )}
     </div>
   );
 }

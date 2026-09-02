@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Card from "@/components/ui/Card";
+import Toast from "@/components/ui/Toast";
 import { createClient } from "@/lib/supabase/client";
 import { getTodaysMood, logTodaysMood, type TodaysMood } from "@/lib/mood-actions";
 import { toDateKey } from "@/lib/calendar-dates";
@@ -54,12 +55,13 @@ interface MoodCheckInProps {
 }
 
 /**
- * Check-in emotivo quotidiano (Fase B, redesign): appare come overlay
- * bottom-sheet in primo piano appena la Home monta questo componente, se non
- * hai ancora risposto oggi e non l'hai "rimandato" — non una card scrollabile
- * come nella prima versione. Sottoscrizione realtime su mood_checkins:
- * se il partner risponde mentre hai l'app aperta, la rivelazione arriva
- * senza refresh.
+ * Check-in emotivo quotidiano (in fondo alla Home, non più un overlay in
+ * primo piano — su richiesta esplicita dell'utente). Appena rispondi la
+ * card sparisce: resta solo un Toast temporaneo ("in attesa del partner",
+ * poi "svelato" quando risponde anche lui/lei via realtime) invece di una
+ * card persistente che occupa spazio. Nessun toast al primo caricamento
+ * della pagina, solo sulle transizioni di stato effettive (vedi
+ * `applyMood`), per non "spammare" un evento che in realtà è già noto.
  */
 export default function MoodCheckIn({ partnerName, coupleId }: MoodCheckInProps) {
   const [mood, setMood] = useState<TodaysMood | null>(null);
@@ -67,11 +69,26 @@ export default function MoodCheckIn({ partnerName, coupleId }: MoodCheckInProps)
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const previousMoodRef = useRef<TodaysMood | null>(null);
+
+  function applyMood(next: TodaysMood) {
+    const previous = previousMoodRef.current;
+    if (previous) {
+      if (previous.myMood === null && next.myMood !== null && !next.revealed) {
+        setToast(`In attesa della risposta di ${partnerName}…`);
+      } else if (!previous.revealed && next.revealed && next.myMood && next.partnerMood) {
+        setToast(`${MOOD_EMOJI[next.myMood]} Tu — ${MOOD_EMOJI[next.partnerMood]} ${partnerName}`);
+      }
+    }
+    previousMoodRef.current = next;
+    setMood(next);
+  }
 
   function refetch() {
     getTodaysMood().then((result) => {
       if ("error" in result) setLoadError(result.error);
-      else setMood(result);
+      else applyMood(result);
     });
   }
 
@@ -106,7 +123,7 @@ export default function MoodCheckIn({ partnerName, coupleId }: MoodCheckInProps)
       setSubmitError(result.error);
       return;
     }
-    setMood(result);
+    applyMood(result);
   }
 
   function handleDismiss() {
@@ -114,43 +131,21 @@ export default function MoodCheckIn({ partnerName, coupleId }: MoodCheckInProps)
     setDismissed(true);
   }
 
-  // Ancora nessuno stato noto (fetch in corso) o errore: niente overlay
-  // fastidioso per un bonus non critico, semplicemente non si mostra nulla.
-  if (loadError || !mood) return null;
+  const activeToast = toast && <Toast message={toast} onDismiss={() => setToast(null)} />;
 
-  if (mood.myMood !== null) {
-    return (
-      <Card className="flex flex-col gap-2">
-        <h2 className="text-sm font-bold text-ink">💛 Come ti senti oggi?</h2>
-        {mood.revealed && mood.partnerMood ? (
-          <div className="flex items-center justify-around">
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-3xl">{MOOD_EMOJI[mood.myMood]}</span>
-              <span className="text-xs text-ink-soft">Tu</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-3xl">{MOOD_EMOJI[mood.partnerMood]}</span>
-              <span className="text-xs text-ink-soft">{partnerName}</span>
-            </div>
-          </div>
-        ) : (
-          <p className="rounded-2xl bg-base px-3 py-3 text-center text-xs text-ink-soft">
-            {MOOD_EMOJI[mood.myMood]} Registrato! Appena fa il check-in anche {partnerName} vedrete entrambi.
-          </p>
-        )}
-      </Card>
-    );
-  }
+  // Ancora nessuno stato noto (fetch in corso) o errore: niente card per un
+  // bonus non critico — solo l'eventuale toast in coda da una transizione precedente.
+  if (loadError || !mood) return activeToast;
 
-  if (dismissed) return null;
+  // Già risposto oggi: nessuna card persistente, solo l'eventuale toast.
+  if (mood.myMood !== null) return activeToast;
+
+  if (dismissed) return activeToast;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-ink/30 backdrop-blur-sm" onClick={handleDismiss}>
-      <div
-        className="flex w-full flex-col gap-3 rounded-t-[28px] bg-surface p-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-base font-bold text-ink">Come ti senti oggi?</h2>
+    <>
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-sm font-bold text-ink">💛 Come ti senti oggi?</h2>
         {submitError && <p className="text-xs text-danger">{submitError}</p>}
         <div className="flex flex-wrap justify-center gap-2">
           {MOOD_VALUES.map((value) => (
@@ -160,7 +155,7 @@ export default function MoodCheckIn({ partnerName, coupleId }: MoodCheckInProps)
               disabled={saving}
               onClick={() => handlePick(value)}
               aria-label={MOOD_LABEL[value]}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-base text-3xl transition active:scale-90 disabled:opacity-50"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-base text-2xl transition active:scale-90 disabled:opacity-50"
             >
               {MOOD_EMOJI[value]}
             </button>
@@ -169,7 +164,8 @@ export default function MoodCheckIn({ partnerName, coupleId }: MoodCheckInProps)
         <button type="button" onClick={handleDismiss} className="text-center text-xs text-ink-soft underline">
           Più tardi
         </button>
-      </div>
-    </div>
+      </Card>
+      {activeToast}
+    </>
   );
 }
