@@ -1592,6 +1592,26 @@ né `loadEvents` in `CalendarView.tsx`).
   test** al momento di questa nota — include anche il lavoro degli altri
   agenti in parallelo sullo stesso run).
 
+## Ambienti: produzione vs sviluppo/test (2026-09-02)
+
+- **Git**: `main` = produzione (deploy Vercel Production). `dev` = lavoro di
+  sviluppo/test, creato da `main`. Le nuove funzionalità si sviluppano su
+  `dev` (o branch dedicati per singola feature), mai direttamente su `main`.
+- **Supabase**: due progetti separati, stesso schema (applicato via
+  `supabase db push` con le stesse migration di `supabase/migrations/`,
+  nessun dump/restore manuale — vedi sotto).
+  - Produzione: progetto Supabase reale, usato da `main`.
+  - Test: nuovo progetto Supabase gratuito (`ecembbtyqpseelbgmufo`), schema
+    identico ma **zero dati reali** (nessuna migration inserisce dati, solo
+    DDL/RLS/funzioni/trigger — un progetto nuovo con le stesse migration
+    applicate parte sempre vuoto).
+- **Vercel**: `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  configurate due volte ciascuna (stesso nome, ambito diverso): scope
+  "Production" → progetto Supabase reale; scope "Preview" → progetto
+  Supabase di test. Ogni push su un branch diverso da `main` genera
+  automaticamente un URL di anteprima Vercel collegato al Supabase di test;
+  il merge in `main` aggiorna la produzione vera.
+
 ## Come riprendere in una nuova sessione
 
 1. Leggi questo file per lo stato attuale e le decisioni prese.
