@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentCoupleData } from "@/lib/current-couple";
 import { createClient } from "@/lib/supabase/server";
-import { daysBetween, nextOccurrence } from "@/lib/calendar-dates";
+import { daysBetween, nextOccurrence, nextMilestone } from "@/lib/calendar-dates";
 import CountdownHeader from "@/components/home/CountdownHeader";
+import MilestoneBadge from "@/components/home/MilestoneBadge";
 import MemoriesDeck from "@/components/home/MemoriesDeck";
 import UpcomingEventsCard from "@/components/home/UpcomingEventsCard";
 import WishlistPreviewCard from "@/components/home/WishlistPreviewCard";
@@ -42,6 +43,18 @@ export default async function HomePage() {
     nextSpecial = { label: next.ev.title, daysUntil: daysBetween(new Date(), next.occurrence) };
   }
 
+  let nextMilestoneDisplay: { label: string; daysUntil: number } | null = null;
+  if (data.couple.relationshipStartDate) {
+    const milestone = nextMilestone(data.couple.relationshipStartDate);
+    if (milestone) {
+      const label =
+        milestone.days % 365 === 0
+          ? `${milestone.days / 365} ${milestone.days === 365 ? "anno" : "anni"} insieme`
+          : `${milestone.days} giorni insieme`;
+      nextMilestoneDisplay = { label, daysUntil: daysBetween(new Date(), milestone.occursOn) };
+    }
+  }
+
   const colorCtx = {
     selfId: data.userId,
     selfColor: data.color,
@@ -52,6 +65,7 @@ export default async function HomePage() {
   return (
     <div className="flex flex-1 flex-col gap-4 px-4 pt-5 pb-24">
       <CountdownHeader nextSpecial={nextSpecial} />
+      <MilestoneBadge nextMilestone={nextMilestoneDisplay} />
       <MemoriesDeck partnerName={data.partner?.displayName ?? "il tuo partner"} selfId={data.userId} />
       <UpcomingEventsCard events={upcoming ?? []} colorCtx={colorCtx} />
       <WishlistPreviewCard

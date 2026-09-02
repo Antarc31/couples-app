@@ -142,6 +142,32 @@ export function nextOccurrence(startsAtIso: string, recurrence: EventRecurrence,
   return original;
 }
 
+// Soglie fisse per i "traguardi giorni insieme": dopo l'ultima, si continua
+// di anno in anno (365*n) — vedi nextMilestone sotto.
+const MILESTONE_DAYS = [7, 30, 100, 365, 500, 730, 1000, 1500, 2000, 2500, 3000, 3650];
+
+/**
+ * Prossimo traguardo cumulativo ("100 giorni insieme", "1 anno insieme", ...)
+ * a partire da `startDate` (couples.relationship_start_date). Ritorna il
+ * numero di giorni della soglia e la data in cui cade — il chiamante
+ * (Home) calcola poi `daysUntil` con `daysBetween`, stesso schema già usato
+ * per `nextSpecial` in app/(app)/home/page.tsx. `null` se `startDate` è nel
+ * futuro (dato incoerente) o non fornita.
+ */
+export function nextMilestone(startDate: string, today: Date = new Date()): { days: number; occursOn: Date } | null {
+  const start = startOfDay(new Date(startDate));
+  const elapsed = daysBetween(start, today);
+  if (elapsed < 0) return null;
+
+  let target = MILESTONE_DAYS.find((d) => d >= elapsed);
+  if (target === undefined) {
+    // Oltre l'ultima soglia fissa: prossimo multiplo di un anno (365 giorni).
+    target = Math.ceil(elapsed / 365) * 365;
+  }
+
+  return { days: target, occursOn: addDays(start, target) };
+}
+
 /**
  * Tutte le occorrenze proiettate di un evento (eventualmente ricorrente) che
  * cadono in `[rangeStart, rangeEnd]` (bordi inclusi, confrontati a livello di

@@ -13,6 +13,7 @@ import {
   daysBetween,
   isSameDay,
   monthGrid,
+  nextMilestone,
   nextOccurrence,
   projectOccurrences,
   startOfDay,
@@ -279,5 +280,35 @@ describe("projectOccurrences", () => {
       new Date(2026, 5, 5),
     );
     expect(result).toHaveLength(0);
+  });
+});
+
+describe("nextMilestone", () => {
+  it("ritorna la prima soglia fissa non ancora raggiunta", () => {
+    // Relazione iniziata 10 giorni fa -> prossima soglia è 30 giorni.
+    const start = addDays(new Date(2026, 0, 1), 0).toISOString();
+    const result = nextMilestone(start, new Date(2026, 0, 11));
+    expect(result).toEqual({ days: 30, occursOn: new Date(2026, 0, 31) });
+  });
+
+  it("ritorna la soglia stessa quando cade esattamente oggi (daysUntil 0 dal chiamante)", () => {
+    const start = new Date(2026, 0, 1).toISOString();
+    const result = nextMilestone(start, new Date(2026, 0, 8)); // esattamente 7 giorni dopo
+    expect(result).toEqual({ days: 7, occursOn: new Date(2026, 0, 8) });
+  });
+
+  it("oltre l'ultima soglia fissa, continua di anno in anno (365*n)", () => {
+    const start = new Date(2010, 0, 1).toISOString();
+    // 2026-06-01 è ben oltre 3650 giorni (~16 anni) dopo l'inizio.
+    const result = nextMilestone(start, new Date(2026, 5, 1));
+    expect(result?.days).toBeGreaterThan(3650);
+    expect(result?.days).toBeDefined();
+    expect((result?.days ?? 0) % 365).toBe(0);
+  });
+
+  it("ritorna null se la data di inizio è nel futuro", () => {
+    const start = new Date(2027, 0, 1).toISOString();
+    const result = nextMilestone(start, new Date(2026, 0, 1));
+    expect(result).toBeNull();
   });
 });
