@@ -1,0 +1,19 @@
+-- =============================================================================
+-- Aggiunge il valore enum 'mensile' a public.event_recurrence (mesiversario).
+-- =============================================================================
+-- Piano approvato:
+-- /Users/antonioarcucci/.claude/plans/ho-notato-delle-cose-mossy-sketch.md
+-- -> "3. Fix proiezione ricorrenze nel Calendario + mesiversario".
+--
+-- Migration DELIBERATAMENTE separata dal resto (nuova colonna
+-- couples.monthly_anniversary_event_id + trigger esteso, vedi
+-- 20260901070100_monthly_anniversary_and_recurrence_part2.sql): un valore
+-- appena aggiunto con `ALTER TYPE ... ADD VALUE` non può essere USATO
+-- (es. in un INSERT/UPDATE che lo referenzia come letterale) nella STESSA
+-- transazione in cui è stato aggiunto (limite noto di Postgres, tuttora
+-- valido anche nelle versioni recenti che permettono di eseguire
+-- ALTER TYPE ADD VALUE dentro un blocco transazionale). Splittando qui,
+-- la migration successiva -- che scrive 'mensile' dentro la nuova funzione
+-- trigger -- gira in una transazione separata e successiva, senza rischiare
+-- l'errore "unsafe use of new value of enum type" a schema-push.
+alter type public.event_recurrence add value 'mensile';

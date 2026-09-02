@@ -1,0 +1,202 @@
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { createWishlistItem } from "@/lib/wishlist-actions";
+import type { WishlistCategory, WishlistPriority, WishlistTarget } from "@/types/database";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+
+const CATEGORY_OPTIONS: { value: WishlistCategory; label: string }[] = [
+  { value: "regalo", label: "Regalo" },
+  { value: "attivita", label: "Attività di coppia" },
+];
+
+const PRIORITY_OPTIONS: { value: WishlistPriority; label: string }[] = [
+  { value: "bassa", label: "Bassa" },
+  { value: "media", label: "Media" },
+  { value: "alta", label: "Alta" },
+];
+
+const TARGET_OPTIONS: { value: WishlistTarget; label: string }[] = [
+  { value: "self", label: "Per me" },
+  { value: "partner", label: "Per il partner" },
+  { value: "entrambi", label: "Per entrambi" },
+];
+
+interface WishlistFormModalProps {
+  onClose: () => void;
+  /** Chiamato a successo salvataggio: il chiamante ricarica la lista e chiude. */
+  onSaved: () => void;
+}
+
+/**
+ * Form nuovo elemento wishlist (docs/PLAN.md sezione "Wishlist"). Collegato
+ * a lib/wishlist-actions.ts (dati reali, tabella `wishlist_items` live dal
+ * 2026-09-01).
+ *
+ * Modalità sorpresa: il checkbox compare per target "partner" O "entrambi"
+ * (vincolo DB reale `wishlist_items_surprise_requires_partner_target`: solo
+ * target "self" la esclude, non solo "partner" come si potrebbe pensare a
+ * naso). Il filtro dei dettagli per il destinatario avviene lato server
+ * (view `wishlist_feed`, vedi WishlistView.tsx) — questo form si limita a
+ * impostare il flag, non decide chi vede cosa.
+ */
+export default function WishlistFormModal({ onClose, onSaved }: WishlistFormModalProps) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<WishlistCategory>("regalo");
+  const [priority, setPriority] = useState<WishlistPriority>("media");
+  const [price, setPrice] = useState("");
+  const [link, setLink] = useState("");
+  const [target, setTarget] = useState<WishlistTarget>("self");
+  const [isSurprise, setIsSurprise] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canSurprise = target === "partner" || target === "entrambi";
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setSaving(true);
+    setError(null);
+
+    const result = await createWishlistItem({
+      category,
+      target,
+      title: title.trim(),
+      description: description.trim() || undefined,
+      price: price.trim() ? Number(price) : undefined,
+      link: link.trim() || undefined,
+      priority,
+      isSurprise: canSurprise && isSurprise,
+    });
+
+    setSaving(false);
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
+    onSaved();
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink/30 backdrop-blur-sm sm:items-center" onClick={onClose}>
+      <div
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-border sm:hidden" />
+        <h2 className="mb-4 text-lg font-extrabold text-ink">Nuovo desiderio</h2>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <Input
+            type="text"
+            placeholder="Titolo (es. Cuffie wireless)"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            autoFocus
+          />
+
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-ink-soft">Categoria</p>
+            <div className="flex gap-2">
+              {CATEGORY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setCategory(opt.value)}
+                  className={`flex-1 rounded-2xl border px-2 py-2 text-xs font-semibold transition ${
+                    category === opt.value ? "border-transparent bg-couple text-white" : "border-border text-ink-soft"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-ink-soft">Per chi</p>
+            <div className="flex gap-2">
+              {TARGET_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    setTarget(opt.value);
+                    if (opt.value === "self") setIsSurprise(false);
+                  }}
+                  className={`flex-1 rounded-2xl border px-2 py-2 text-xs font-semibold transition ${
+                    target === opt.value ? "border-transparent bg-couple text-white" : "border-border text-ink-soft"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {canSurprise && (
+            <label className="flex items-center gap-2 text-sm font-medium text-ink">
+              <input
+                type="checkbox"
+                checked={isSurprise}
+                onChange={(e) => setIsSurprise(e.target.checked)}
+                className="h-4 w-4 rounded accent-[var(--color-couple)]"
+              />
+              🎁 Modalità sorpresa (nascondi i dettagli fino al completamento)
+            </label>
+          )}
+
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-ink-soft">Priorità</p>
+            <div className="flex gap-2">
+              {PRIORITY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setPriority(opt.value)}
+                  className={`flex-1 rounded-2xl border px-2 py-2 text-xs font-semibold transition ${
+                    priority === opt.value ? "border-transparent bg-couple text-white" : "border-border text-ink-soft"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="Prezzo indicativo in € (opzionale)"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+          />
+          <Input type="url" placeholder="Link (opzionale)" value={link} onChange={(e) => setLink(e.target.value)} />
+          <textarea
+            placeholder="Descrizione (opzionale)"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={2}
+            className="w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] text-ink placeholder:text-ink-soft outline-none focus:border-partner-a focus:ring-2 focus:ring-partner-a-soft"
+          />
+
+          {error && <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
+              Annulla
+            </Button>
+            <Button type="submit" className="flex-1" disabled={saving || !title.trim()}>
+              {saving ? "Salvo…" : "Aggiungi"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

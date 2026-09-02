@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens — Couples App
+ * Vedi docs/PLAN.md "Design system" per il riferimento.
+ * I colori partner (rosa/azzurro) sono DEFAULT personalizzabili in Profilo,
+ * non vincolati al genere: nel codice si parla sempre di "partner A/B".
+ */
+:root {
+  /* base */
+  --color-base: #fff8f6;
+  --color-surface: #ffffff;
+  --color-ink: #3a2c30;
+  --color-ink-soft: #7a6b6f;
+  --color-border: #f0e2e0;
+
+  /* palette funzionale (vedi PLAN.md) */
+  --color-partner-a: #f7a6c4; /* rosa tenue — default */
+  --color-partner-a-soft: #fde3ee;
+  --color-partner-b: #a6c8f0; /* azzurro tenue — default */
+  --color-partner-b-soft: #e5eefb;
+  --color-couple: #e8677d; /* corallo — eventi di coppia */
+  --color-couple-soft: #fbdde3;
+  --color-special: #e8b86d; /* oro — date speciali */
+  --color-special-soft: #fbecd6;
+  --color-cycle: #c9b6e4; /* lavanda — ciclo (privacy) */
+  --color-cycle-soft: #f0e9f8;
+
+  --color-success: #7fb88f;
+  --color-danger: #e0687a;
+
+  --radius-app: 20px;
+  --shadow-soft: 0 8px 24px -8px rgb(58 44 48 / 0.12);
+}
+
+@theme inline {
+  --color-base: var(--color-base);
+  --color-surface: var(--color-surface);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-border: var(--color-border);
+
+  --color-partner-a: var(--color-partner-a);
+  --color-partner-a-soft: var(--color-partner-a-soft);
+  --color-partner-b: var(--color-partner-b);
+  --color-partner-b-soft: var(--color-partner-b-soft);
+  --color-couple: var(--color-couple);
+  --color-couple-soft: var(--color-couple-soft);
+  --color-special: var(--color-special);
+  --color-special-soft: var(--color-special-soft);
+  --color-cycle: var(--color-cycle);
+  --color-cycle-soft: var(--color-cycle-soft);
+
+  --color-success: var(--color-success);
+  --color-danger: var(--color-danger);
+
+  --radius-app: var(--radius-app);
+  --shadow-soft: var(--shadow-soft);
+
+  --font-sans: var(--font-nunito);
+}
+
+body {
+  background: var(--color-base);
+  color: var(--color-ink);
+}
+
+/* utility: nasconde la scrollbar per gli strip orizzontali (foto, impegni) */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* snap scroll orizzontale per il carosello "pensiero del giorno" */
+.snap-x-strict {
+  scroll-snap-type: x mandatory;
+}
+.snap-item {
+  scroll-snap-align: start;
+}
+
+/* pop di conferma sul pulsante cuore (MemoriesDeck) — prima animazione CSS
+   del progetto, tenuta volutamente minimale (solo scale, il passaggio da
+   contorno a riempito rosso è già di per sé il "cambio colore"). */
+@keyframes heart-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.35);
+  }
+  60% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-heart-pop {
+  animation: heart-pop 380ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-heart-pop {
+    animation: none;
+  }
+}
+
+/* toast di conferma salvataggio (components/ui/Toast.tsx) — toast-in per
+   entrambe le varianti, toast-pop aggiunta solo per l'"eco emotivo" degli
+   eventi di coppia. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes toast-pop {
+  0% {
+    transform: scale(0.9);
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-toast-in {
+  animation: toast-in 220ms ease-out;
+}
+.animate-toast-pop {
+  animation:
+    toast-in 220ms ease-out,
+    toast-pop 320ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-toast-in,
+  .animate-toast-pop {
+    animation: none;
+  }
+}

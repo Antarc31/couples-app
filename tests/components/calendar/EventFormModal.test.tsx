@@ -1,0 +1,383 @@
+/**
+ * Unit test per components/calendar/EventFormModal.tsx — piano UX "Gruppo
+ * Calendario/Appuntamenti", punti 3 e 4:
+ *
+ * - Punto 3: `mode`/`initial` per riusare lo stesso form in creazione e
+ *   modifica (prima esisteva solo la creazione).
+ * - Punto 4 (unificazione Calendario -> Appuntamenti): in creazione,
+ *   categoria "coppia" mostra i campi Luogo/Costo e chiama
+ *   `createConfirmedAppointment()` invece dell'insert diretto — così
+ *   l'evento compare anche in Appuntamenti → Confermati. In modifica invece
+ *   il salvataggio tocca SEMPRE E SOLO `calendar_events` via
+ *   `updateCalendarEvent()`, qualunque sia la categoria selezionata (scelta
+ *   di scope esplicita nel piano: niente collegamento/scollegamento
+ *   retroattivo dell'appuntamento durante una modifica).
+ *
+ * lib/calendar-actions.ts e lib/appointments-actions.ts sono mockati: qui
+ * non testiamo Supabase/RLS (vedi tests/lib/calendar-actions.test.ts e
+ * tests/lib/appointments-actions.test.ts per quello), solo l'orchestrazione
+ * della UI attorno a queste funzioni.
+ *
+ * Vedi tests/lib/auth-actions.test.ts per il perché si usa il `jest`
+ * globale ambient, e tests/components/home/ThoughtsSection.test.tsx per la
+ * convenzione sui nomi `mock*` richiesta dall'hoisting di jest.mock.
+ */
+
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import type { Database } from "@/types/database";
+import type { CreateCalendarEventInput, UpdateCalendarEventInput } from "@/lib/calendar-actions";
+import type { Appointment, CreateIdeaInput, ConfirmAppointmentEventInput } from "@/lib/appointments-actions";
+
+type CalendarEventRow = Database["public"]["Tables"]["calendar_events"]["Row"];
+type CalendarActionError = { error: string };
+
+const mockCreateCalendarEvent = jest.fn<Promise<CalendarEventRow | CalendarActionError>, [CreateCalendarEventInput]>();
+const mockUpdateCalendarEvent = jest.fn<
+  Promise<CalendarEventRow | CalendarActionError>,
+  [string, UpdateCalendarEventInput]
+>();
+
+jest.mock("@/lib/calendar-actions", () => ({
+  createCalendarEvent: (...args: [CreateCalendarEventInput]) => mockCreateCalendarEvent(...args),
+  updateCalendarEvent: (...args: [string, UpdateCalendarEventInput]) => mockUpdateCalendarEvent(...args),
+}));
+
+const mockCreateConfirmedAppointment = jest.fn<
+  Promise<Appointment | CalendarActionError>,
+  [CreateIdeaInput, ConfirmAppointmentEventInput]
+>();
+
+jest.mock("@/lib/appointments-actions", () => ({
+  createConfirmedAppointment: (...args: [CreateIdeaInput, ConfirmAppointmentEventInput]) =>
+    mockCreateConfirmedAppointment(...args),
+}));
+
+import EventFormModal from "@/components/calendar/EventFormModal";
+
+function makeEventRow(overrides: Partial<CalendarEventRow> = {}): CalendarEventRow {
+  return {
+    id: "ev1",
+    couple_id: "c1",
+    created_by: "me",
+    title: "Palestra",
+    tag: null,
+    notes: null,
+    category: "personale",
+    starts_at: "2026-09-10T09:00:00.000Z",
+    ends_at: "2026-09-10T10:00:00.000Z",
+    all_day: false,
+    recurrence: "nessuna",
+    is_shared_with_partner: false,
+    created_at: "2026-09-01T00:00:00.000Z",
+    updated_at: "2026-09-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function makeAppointment(overrides: Partial<Appointment> = {}): Appointment {
+  return {
+    id: "ap1",
+    coupleId: "c1",
+    createdBy: "me",
+    title: "Cena romantica",
+    location: "Trattoria da Gino",
+    cost: 45,
+    notes: "portare il vino",
+    photoUrl: null,
+    tag: "ristorante",
+    status: "confermato",
+    calendarEventId: "ev1",
+    createdAt: "2026-09-01T00:00:00.000Z",
+    updatedAt: "2026-09-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  mockCreateCalendarEvent.mockReset();
+  mockUpdateCalendarEvent.mockReset();
+  mockCreateConfirmedAppointment.mockReset();
+});
+
+describe("EventFormModal — creazione, categoria 'personale' (invariato)", () => {
+  it("'Speciale' non è più tra le categorie selezionabili (piano: sparisce dal creatore/modificatore eventi)", () => {
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date()} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Data speciale" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Personale" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Di coppia" })).toBeInTheDocument();
+  });
+
+  it("crea un evento chiamando createCalendarEvent, non createConfirmedAppointment", async () => {
+    mockCreateCalendarEvent.mockResolvedValue(makeEventRow());
+    const user = userEvent.setup();
+    const onSaved = jest.fn();
+    render(
+      <EventFormModal
+        coupleId="c1"
+        createdBy="me"
+        defaultDate={new Date("2026-09-10T00:00:00")}
+        onClose={jest.fn()}
+        onSaved={onSaved}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText("Titolo (es. Cena da Marco)"), "Palestra");
+    await user.click(screen.getByRole("button", { name: "Crea evento" }));
+
+    await waitFor(() => expect(mockCreateCalendarEvent).toHaveBeenCalledTimes(1));
+    expect(mockCreateCalendarEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ coupleId: "c1", createdBy: "me", title: "Palestra", category: "personale" }),
+    );
+    expect(mockCreateConfirmedAppointment).not.toHaveBeenCalled();
+    expect(onSaved).toHaveBeenCalledWith("personale");
+  });
+
+  it("non chiama Supabase se il titolo è vuoto (submit disabilitato dal required nativo)", async () => {
+    const user = userEvent.setup();
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date()} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Crea evento" }));
+
+    expect(mockCreateCalendarEvent).not.toHaveBeenCalled();
+  });
+
+  it("mostra l'errore e non chiama onSaved se createCalendarEvent fallisce", async () => {
+    mockCreateCalendarEvent.mockResolvedValue({ error: "RLS violation" });
+    const user = userEvent.setup();
+    const onSaved = jest.fn();
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date()} onClose={jest.fn()} onSaved={onSaved} />,
+    );
+
+    await user.type(screen.getByPlaceholderText("Titolo (es. Cena da Marco)"), "Palestra");
+    await user.click(screen.getByRole("button", { name: "Crea evento" }));
+
+    expect(await screen.findByText("RLS violation")).toBeInTheDocument();
+    expect(onSaved).not.toHaveBeenCalled();
+  });
+});
+
+describe("EventFormModal — creazione, categoria 'coppia' (piano punto 4, unificazione con Appuntamenti)", () => {
+  it("selezionando 'Di coppia' compaiono i campi Luogo e Costo, assenti per le altre categorie", async () => {
+    const user = userEvent.setup();
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date()} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    expect(screen.queryByPlaceholderText("Luogo (opzionale)")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Costo indicativo in € (opzionale)")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Di coppia" }));
+
+    expect(screen.getByPlaceholderText("Luogo (opzionale)")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Costo indicativo in € (opzionale)")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Personale" }));
+    expect(screen.queryByPlaceholderText("Luogo (opzionale)")).not.toBeInTheDocument();
+  });
+
+  it("il submit chiama createConfirmedAppointment (non createCalendarEvent) con luogo/costo/tag/note propagati", async () => {
+    mockCreateConfirmedAppointment.mockResolvedValue(makeAppointment());
+    const user = userEvent.setup();
+    const onSaved = jest.fn();
+    render(
+      <EventFormModal
+        coupleId="c1"
+        createdBy="me"
+        defaultDate={new Date("2026-09-10T00:00:00")}
+        onClose={jest.fn()}
+        onSaved={onSaved}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText("Titolo (es. Cena da Marco)"), "Cena romantica");
+    await user.click(screen.getByRole("button", { name: "Di coppia" }));
+    await user.type(screen.getByPlaceholderText("es. amici, sport…"), "ristorante");
+    await user.type(screen.getByPlaceholderText("Luogo (opzionale)"), "Trattoria da Gino");
+    await user.type(screen.getByPlaceholderText("Costo indicativo in € (opzionale)"), "45");
+    await user.type(screen.getByPlaceholderText("Note (opzionale)"), "portare il vino");
+    await user.click(screen.getByRole("button", { name: "Crea evento" }));
+
+    await waitFor(() => expect(mockCreateConfirmedAppointment).toHaveBeenCalledTimes(1));
+    expect(mockCreateCalendarEvent).not.toHaveBeenCalled();
+
+    const [ideaInput, eventInput] = mockCreateConfirmedAppointment.mock.calls[0];
+    expect(ideaInput).toEqual(
+      expect.objectContaining({
+        title: "Cena romantica",
+        location: "Trattoria da Gino",
+        cost: 45,
+        notes: "portare il vino",
+        tag: "ristorante",
+      }),
+    );
+    expect(eventInput).toEqual(
+      expect.objectContaining({ category: "coppia", tag: "ristorante", notes: "portare il vino" }),
+    );
+    expect(onSaved).toHaveBeenCalledWith("coppia");
+  });
+
+  it("Luogo/Costo restano opzionali: submit senza compilarli passa undefined, non stringhe vuote", async () => {
+    mockCreateConfirmedAppointment.mockResolvedValue(makeAppointment());
+    const user = userEvent.setup();
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date()} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    await user.type(screen.getByPlaceholderText("Titolo (es. Cena da Marco)"), "Cena romantica");
+    await user.click(screen.getByRole("button", { name: "Di coppia" }));
+    await user.click(screen.getByRole("button", { name: "Crea evento" }));
+
+    await waitFor(() => expect(mockCreateConfirmedAppointment).toHaveBeenCalledTimes(1));
+    const [ideaInput] = mockCreateConfirmedAppointment.mock.calls[0];
+    expect(ideaInput.location).toBeUndefined();
+    expect(ideaInput.cost).toBeUndefined();
+  });
+});
+
+describe("EventFormModal — modifica (mode='edit')", () => {
+  it("precompila i campi da 'initial' e mostra 'Modifica evento'/'Salva modifiche'", () => {
+    const initial = makeEventRow({ title: "Cena da Marco", tag: "ristorante", notes: "nota", category: "personale" });
+    render(
+      <EventFormModal
+        coupleId="c1"
+        createdBy="me"
+        defaultDate={new Date()}
+        mode="edit"
+        initial={initial}
+        onClose={jest.fn()}
+        onSaved={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Modifica evento")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Cena da Marco")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("ristorante")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("nota")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Salva modifiche" })).toBeInTheDocument();
+  });
+
+  it("il salvataggio chiama updateCalendarEvent(id, ...), mai createCalendarEvent/createConfirmedAppointment", async () => {
+    mockUpdateCalendarEvent.mockResolvedValue(makeEventRow({ id: "ev9" }));
+    const user = userEvent.setup();
+    const onSaved = jest.fn();
+    const initial = makeEventRow({ id: "ev9", title: "Palestra" });
+    render(
+      <EventFormModal
+        coupleId="c1"
+        createdBy="me"
+        defaultDate={new Date()}
+        mode="edit"
+        initial={initial}
+        onClose={jest.fn()}
+        onSaved={onSaved}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Salva modifiche" }));
+
+    await waitFor(() => expect(mockUpdateCalendarEvent).toHaveBeenCalledTimes(1));
+    expect(mockUpdateCalendarEvent).toHaveBeenCalledWith("ev9", expect.objectContaining({ title: "Palestra" }));
+    expect(mockCreateCalendarEvent).not.toHaveBeenCalled();
+    expect(mockCreateConfirmedAppointment).not.toHaveBeenCalled();
+    expect(onSaved).toHaveBeenCalledWith("personale");
+  });
+
+  it("scegliere categoria 'coppia' in modifica NON mostra Luogo/Costo e mostra l'hint, e il salvataggio resta updateCalendarEvent (nessun collegamento retroattivo ad Appuntamenti)", async () => {
+    mockUpdateCalendarEvent.mockResolvedValue(makeEventRow());
+    const user = userEvent.setup();
+    const onSaved = jest.fn();
+    const initial = makeEventRow({ id: "ev9", category: "personale" });
+    render(
+      <EventFormModal
+        coupleId="c1"
+        createdBy="me"
+        defaultDate={new Date()}
+        mode="edit"
+        initial={initial}
+        onClose={jest.fn()}
+        onSaved={onSaved}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Di coppia" }));
+
+    expect(screen.queryByPlaceholderText("Luogo (opzionale)")).not.toBeInTheDocument();
+    expect(screen.getByText(/Luogo e costo si modificano da Appuntamenti/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Vai/ })).toHaveAttribute("href", "/appuntamenti");
+
+    await user.click(screen.getByRole("button", { name: "Salva modifiche" }));
+
+    await waitFor(() => expect(mockUpdateCalendarEvent).toHaveBeenCalledTimes(1));
+    expect(mockUpdateCalendarEvent).toHaveBeenCalledWith("ev9", expect.objectContaining({ category: "coppia" }));
+    expect(mockCreateConfirmedAppointment).not.toHaveBeenCalled();
+    expect(onSaved).toHaveBeenCalledWith("coppia");
+  });
+
+  it("aprire in modifica un evento 'speciale' auto-generato mostra la categoria come 'Personale' (stesso rimappaggio già in uso per 'ciclo')", () => {
+    const initial = makeEventRow({ id: "ev-special", title: "Compleanno di Asia", category: "speciale" });
+    render(
+      <EventFormModal
+        coupleId="c1"
+        createdBy="me"
+        defaultDate={new Date()}
+        mode="edit"
+        initial={initial}
+        onClose={jest.fn()}
+        onSaved={jest.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Data speciale" })).not.toBeInTheDocument();
+    const personaleButton = screen.getByRole("button", { name: "Personale" });
+    expect(personaleButton.className).toContain("text-white");
+  });
+
+  it("salvare un evento 'speciale' aperto in modifica invia category: 'personale' a updateCalendarEvent", async () => {
+    mockUpdateCalendarEvent.mockResolvedValue(makeEventRow({ id: "ev-special", category: "personale" }));
+    const user = userEvent.setup();
+    const onSaved = jest.fn();
+    const initial = makeEventRow({ id: "ev-special", title: "Compleanno di Asia", category: "speciale" });
+    render(
+      <EventFormModal
+        coupleId="c1"
+        createdBy="me"
+        defaultDate={new Date()}
+        mode="edit"
+        initial={initial}
+        onClose={jest.fn()}
+        onSaved={onSaved}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Salva modifiche" }));
+
+    await waitFor(() => expect(mockUpdateCalendarEvent).toHaveBeenCalledTimes(1));
+    expect(mockUpdateCalendarEvent).toHaveBeenCalledWith("ev-special", expect.objectContaining({ category: "personale" }));
+    expect(onSaved).toHaveBeenCalledWith("personale");
+  });
+
+  it("un evento già 'coppia' in modifica mostra subito l'hint, senza dover ri-selezionare la categoria", () => {
+    const initial = makeEventRow({ id: "ev9", category: "coppia" });
+    render(
+      <EventFormModal
+        coupleId="c1"
+        createdBy="me"
+        defaultDate={new Date()}
+        mode="edit"
+        initial={initial}
+        onClose={jest.fn()}
+        onSaved={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/Luogo e costo si modificano da Appuntamenti/)).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Luogo (opzionale)")).not.toBeInTheDocument();
+  });
+});

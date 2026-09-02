@@ -1,0 +1,69 @@
+import Link from "next/link";
+import Card from "@/components/ui/Card";
+import type { WishlistCategory } from "@/types/database";
+
+const CATEGORY_EMOJI: Record<WishlistCategory, string> = {
+  regalo: "🎁",
+  attivita: "🎯",
+};
+
+function formatPrice(price: number | null): string | null {
+  if (price == null) return null;
+  return Number.isInteger(price) ? `~${price}€` : `~${price.toFixed(2)}€`;
+}
+
+export interface WishlistPreviewItem {
+  id: string;
+  created_by: string;
+  category: WishlistCategory;
+  is_hidden_surprise: boolean;
+  title: string | null;
+  price: number | null;
+  is_surprise: boolean;
+}
+
+interface WishlistPreviewCardProps {
+  items: WishlistPreviewItem[];
+  selfId: string;
+  partnerName: string;
+}
+
+/**
+ * Anteprima wishlist in Home — legge la view `wishlist_feed` (già mascherata
+ * lato server per le sorprese attive del partner), stessa fonte dati e
+ * stessa logica di visualizzazione di WishlistView.tsx.
+ */
+export default function WishlistPreviewCard({ items, selfId, partnerName }: WishlistPreviewCardProps) {
+  return (
+    <Card className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold text-ink">Wishlist</h2>
+        <Link href="/wishlist" className="text-xs font-semibold text-couple">
+          vedi tutta
+        </Link>
+      </div>
+      {items.length === 0 ? (
+        <p className="rounded-2xl bg-base px-3 py-3 text-center text-xs text-ink-soft">
+          Ancora nulla in wishlist. Aggiungine una dalla schermata Wishlist!
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {items.map((item) => (
+            <li key={item.id} className="flex items-center gap-3 rounded-2xl bg-base px-3 py-2">
+              <span className="text-xl">{item.is_hidden_surprise ? "🎁" : CATEGORY_EMOJI[item.category]}</span>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-ink">
+                  {item.is_hidden_surprise ? "Sorpresa in arrivo…" : item.title}
+                </p>
+                <p className="text-xs text-ink-soft">
+                  aggiunto da {item.created_by === selfId ? "te" : partnerName}
+                  {!item.is_hidden_surprise && formatPrice(item.price) ? ` · ${formatPrice(item.price)}` : ""}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
