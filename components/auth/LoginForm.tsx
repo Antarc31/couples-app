@@ -31,12 +31,16 @@ export default function LoginForm() {
         setError(result.error);
         return;
       }
-      // Se il progetto Supabase richiede conferma email non c'è ancora una
-      // sessione attiva: non assumiamo login automatico, mandiamo l'utente
-      // sulla tab "Accedi" con un avviso.
+      // needsEmailConfirmation lo sappiamo per certo da Supabase (nessuna
+      // sessione creata dalla signUp), non lo indoviniamo più con un "se
+      // richiesto": messaggio diverso e inequivocabile nei due casi.
       setMode("login");
       setPassword("");
-      setNotice("Registrazione completata. Se richiesto, conferma l'email ricevuta, poi accedi qui sotto.");
+      setNotice(
+        result.needsEmailConfirmation
+          ? `Ti abbiamo mandato un'email di conferma a ${email}. Apri il link ricevuto (controlla anche lo spam) prima di accedere: senza quello il login non funzionerà.`
+          : "Registrazione completata! Accedi qui sotto.",
+      );
       return;
     }
 

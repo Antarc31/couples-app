@@ -20,6 +20,8 @@ export interface AuthResult {
   userId: string;
   email: string;
   displayName: string | null;
+  /** true se serve confermare l'email prima di poter accedere (nessuna sessione creata dalla signUp) — false se si è già loggati. */
+  needsEmailConfirmation: boolean;
 }
 
 export interface AuthError {
@@ -33,6 +35,33 @@ export interface Session {
   coupleId: string | null;
 }
 
+/**
+ * Traduce i messaggi grezzi di Supabase Auth (sempre in inglese, spesso
+ * tecnici — es. l'elenco letterale dei set di caratteri richiesti dalla
+ * password) in un messaggio breve e comprensibile in italiano. Match sul
+ * testo (l'SDK non espone sempre un codice errore stabile su ogni versione):
+ * fallback al messaggio originale per qualunque errore non riconosciuto, mai
+ * un buco silenzioso.
+ */
+function friendlyAuthErrorMessage(message: string): string {
+  if (message.includes("Password should contain at least one character of each")) {
+    return "La password deve contenere lettere maiuscole, minuscole e numeri (minimo 8 caratteri).";
+  }
+  if (message.includes("Password should be at least") || message.includes("Password should have at least")) {
+    return "La password deve essere di almeno 8 caratteri.";
+  }
+  if (message.includes("Email not confirmed")) {
+    return "Devi prima confermare la tua email: controlla la posta (anche lo spam) e apri il link di conferma, poi riprova ad accedere.";
+  }
+  if (message.includes("Invalid login credentials")) {
+    return "Email o password non corretti.";
+  }
+  if (message.includes("User already registered")) {
+    return "Esiste già un account con questa email.";
+  }
+  return message;
+}
+
 export async function signUp(params: {
   email: string;
   password: string;
@@ -44,12 +73,14 @@ export async function signUp(params: {
     password: params.password,
     options: { data: { display_name: params.displayName } },
   });
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyAuthErrorMessage(error.message) };
   if (!data.user) return { error: "Registrazione non riuscita, riprova." };
   return {
     userId: data.user.id,
     email: data.user.email ?? params.email,
     displayName: params.displayName,
+    // Nessuna sessione creata = il progetto richiede conferma email prima del login.
+    needsEmailConfirmation: !data.session,
   };
 }
 
@@ -62,12 +93,13 @@ export async function signIn(params: {
     email: params.email,
     password: params.password,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyAuthErrorMessage(error.message) };
   if (!data.user) return { error: "Accesso non riuscito, riprova." };
   return {
     userId: data.user.id,
     email: data.user.email ?? params.email,
     displayName: (data.user.user_metadata?.display_name as string | undefined) ?? null,
+    needsEmailConfirmation: false,
   };
 }
 

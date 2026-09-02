@@ -42,7 +42,7 @@ type MockAuthUser = {
 };
 
 type MockAuthResponse = {
-  data: { user: MockAuthUser | null };
+  data: { user: MockAuthUser | null; session?: Record<string, unknown> | null };
   error: { message: string } | null;
 };
 
@@ -107,9 +107,9 @@ beforeEach(() => {
 });
 
 describe("signUp", () => {
-  it("ritorna AuthResult con i dati utente quando Supabase ha successo", async () => {
+  it("needsEmailConfirmation=true quando Supabase non crea una sessione (progetto con conferma email obbligatoria)", async () => {
     mockSupabase.auth.signUp.mockResolvedValue({
-      data: { user: { id: "u1", email: "a@b.com" } },
+      data: { user: { id: "u1", email: "a@b.com" }, session: null },
       error: null,
     });
 
@@ -123,12 +123,24 @@ describe("signUp", () => {
       userId: "u1",
       email: "a@b.com",
       displayName: "Anna",
+      needsEmailConfirmation: true,
     });
     expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
       email: "a@b.com",
       password: "secret123",
       options: { data: { display_name: "Anna" } },
     });
+  });
+
+  it("needsEmailConfirmation=false quando Supabase crea subito una sessione", async () => {
+    mockSupabase.auth.signUp.mockResolvedValue({
+      data: { user: { id: "u1", email: "a@b.com" }, session: { access_token: "t" } },
+      error: null,
+    });
+
+    const result = await signUp({ email: "a@b.com", password: "secret123", displayName: "Anna" });
+
+    expect(result).toEqual(expect.objectContaining({ needsEmailConfirmation: false }));
   });
 
   it("propaga il messaggio di errore di Supabase come AuthError", async () => {
@@ -145,10 +157,37 @@ describe("signUp", () => {
 
     expect(result).toEqual({ error: "Email già registrata" });
   });
+
+  it("traduce l'elenco tecnico dei requisiti password in un messaggio comprensibile", async () => {
+    mockSupabase.auth.signUp.mockResolvedValue({
+      data: { user: null },
+      error: {
+        message:
+          "Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789",
+      },
+    });
+
+    const result = await signUp({ email: "a@b.com", password: "debole", displayName: "Anna" });
+
+    expect(result).toEqual({
+      error: "La password deve contenere lettere maiuscole, minuscole e numeri (minimo 8 caratteri).",
+    });
+  });
+
+  it("traduce 'User already registered' in un messaggio in italiano", async () => {
+    mockSupabase.auth.signUp.mockResolvedValue({
+      data: { user: null },
+      error: { message: "User already registered" },
+    });
+
+    const result = await signUp({ email: "a@b.com", password: "secret123", displayName: "Anna" });
+
+    expect(result).toEqual({ error: "Esiste già un account con questa email." });
+  });
 });
 
 describe("signIn", () => {
-  it("ritorna AuthResult con displayName preso da user_metadata", async () => {
+  it("ritorna AuthResult con displayName preso da user_metadata e needsEmailConfirmation=false", async () => {
     mockSupabase.auth.signInWithPassword.mockResolvedValue({
       data: {
         user: {
@@ -166,6 +205,7 @@ describe("signIn", () => {
       userId: "u1",
       email: "a@b.com",
       displayName: "Anna",
+      needsEmailConfirmation: false,
     });
   });
 
@@ -178,6 +218,31 @@ describe("signIn", () => {
     const result = await signIn({ email: "a@b.com", password: "wrong" });
 
     expect(result).toEqual({ error: "Credenziali non valide" });
+  });
+
+  it("traduce 'Invalid login credentials' in un messaggio in italiano", async () => {
+    mockSupabase.auth.signInWithPassword.mockResolvedValue({
+      data: { user: null },
+      error: { message: "Invalid login credentials" },
+    });
+
+    const result = await signIn({ email: "a@b.com", password: "wrong" });
+
+    expect(result).toEqual({ error: "Email o password non corretti." });
+  });
+
+  it("traduce 'Email not confirmed' in un messaggio azionabile in italiano", async () => {
+    mockSupabase.auth.signInWithPassword.mockResolvedValue({
+      data: { user: null },
+      error: { message: "Email not confirmed" },
+    });
+
+    const result = await signIn({ email: "a@b.com", password: "secret123" });
+
+    expect(result).toEqual({
+      error:
+        "Devi prima confermare la tua email: controlla la posta (anche lo spam) e apri il link di conferma, poi riprova ad accedere.",
+    });
   });
 });
 
