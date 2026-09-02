@@ -17,10 +17,13 @@ interface QuizCardProps {
   partnerName: string;
   partnerId: string;
   coupleId: string;
+  /** Stesso colore usato nel Calendario per distinguere i due partner (profiles.color) — riusato qui per il punteggio invece del corallo generico "di coppia". */
+  selfColor: string;
+  partnerColor: string;
 }
 
 /** Quiz giornaliero "indovina il partner" (Fase B, redesign). Self-fetch client-side + realtime su quiz_answers per rivelazione/conferma senza refresh. */
-export default function QuizCard({ partnerName, partnerId, coupleId }: QuizCardProps) {
+export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, partnerColor }: QuizCardProps) {
   const [quiz, setQuiz] = useState<TodaysQuiz | null>(null);
   const [scores, setScores] = useState<QuizScores | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -96,16 +99,20 @@ export default function QuizCard({ partnerName, partnerId, coupleId }: QuizCardP
       <h2 className="text-sm font-bold text-ink">🧠 Quiz: indovina il partner</h2>
 
       {scores && (scores.mine > 0 || scores.partner > 0) && (
-        <div className="flex items-center justify-center gap-5 rounded-2xl bg-couple-soft px-4 py-3">
+        <div className="flex items-center justify-center gap-5 rounded-2xl bg-base px-4 py-3">
           <div className="flex flex-col items-center gap-0.5">
             <span className="h-5 text-base leading-none">{scores.mine > scores.partner ? "🏆" : ""}</span>
-            <span className="text-2xl font-extrabold text-couple">{scores.mine}</span>
+            <span className="text-2xl font-extrabold" style={{ color: selfColor }}>
+              {scores.mine}
+            </span>
             <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Tu</span>
           </div>
           <span className="text-base font-bold text-ink-soft">—</span>
           <div className="flex flex-col items-center gap-0.5">
             <span className="h-5 text-base leading-none">{scores.partner > scores.mine ? "🏆" : ""}</span>
-            <span className="text-2xl font-extrabold text-couple">{scores.partner}</span>
+            <span className="text-2xl font-extrabold" style={{ color: partnerColor }}>
+              {scores.partner}
+            </span>
             <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">{partnerName}</span>
           </div>
         </div>

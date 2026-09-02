@@ -76,6 +76,8 @@ export default async function HomePage() {
           partnerName={data.partner.displayName ?? "il tuo partner"}
           partnerId={data.partner.id}
           coupleId={data.couple.id}
+          selfColor={data.color}
+          partnerColor={data.partner.color}
         />
       )}
       <UpcomingEventsCard events={upcoming ?? []} colorCtx={colorCtx} />

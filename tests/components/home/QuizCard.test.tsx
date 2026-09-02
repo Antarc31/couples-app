@@ -47,7 +47,9 @@ beforeEach(() => {
 });
 
 function renderCard() {
-  return render(<QuizCard partnerName="Sam" partnerId="partner-1" coupleId="c1" />);
+  return render(
+    <QuizCard partnerName="Sam" partnerId="partner-1" coupleId="c1" selfColor="#a6c8f0" partnerColor="#f7a6c4" />,
+  );
 }
 
 describe("QuizCard", () => {
