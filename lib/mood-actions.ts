@@ -1,10 +1,17 @@
 "use client";
 
 /**
- * Azioni per il check-in emotivo quotidiano (Fase B del piano approvato).
- * Stessa forma esatta di lib/quiz-actions.ts (stesso pattern di rivelazione
- * reciproca RLS): la mia riga sempre visibile, quella del partner solo se ha
- * fatto anche lui/lei il check-in oggi.
+ * Azioni per il check-in emotivo quotidiano (Fase B). Stessa forma di
+ * lib/quiz-actions.ts (stesso pattern di rivelazione reciproca RLS): la mia
+ * riga sempre visibile, quella del partner solo se ha fatto anche lui/lei
+ * il check-in quel giorno.
+ *
+ * getMoodForDate/getMoodRevealForNotification servono al tap sulla notifica
+ * "check-in svelato" (components/MoodRevealSheet.tsx): la card in Home
+ * sparisce appena rispondi (su richiesta esplicita dell'utente, nessun
+ * messaggio persistente lì), quindi l'unico modo per vedere il risultato è
+ * riaprirlo dalla notifica — che riferisce una data/riga specifica, non
+ * necessariamente "oggi" (l'utente potrebbe aprirla il giorno dopo).
  */
 
 import { createClient } from "@/lib/supabase/client";
@@ -18,10 +25,23 @@ export interface ActionError {
 export interface TodaysMood {
   myMood: MoodType | null;
   partnerMood: MoodType | null;
+  /** Valorizzato solo se partnerMood è visibile (revealed) — RLS lo garantisce comunque. */
+  partnerName: string | null;
   revealed: boolean;
 }
 
-export async function getTodaysMood(): Promise<TodaysMood | ActionError> {
+interface MoodRow {
+  profile_id: string;
+  mood: MoodType;
+  profiles: unknown;
+}
+
+function partnerDisplayName(row: MoodRow): string | null {
+  return (row.profiles as unknown as { display_name: string | null } | null)?.display_name ?? "Partner";
+}
+
+/** Stato del check-in per una data specifica (self-riga sempre visibile, partner solo se rivelato — RLS). */
+export async function getMoodForDate(checkinDate: string): Promise<TodaysMood | ActionError> {
   const supabase = createClient();
   const { data: userData } = await supabase.auth.getUser();
   const myId = userData?.user?.id;
@@ -29,19 +49,25 @@ export async function getTodaysMood(): Promise<TodaysMood | ActionError> {
 
   const { data, error } = await supabase
     .from("mood_checkins")
-    .select("profile_id, mood")
-    .eq("checkin_date", toDateKey(new Date()));
+    .select("profile_id, mood, profiles!mood_checkins_profile_id_fkey(display_name)")
+    .eq("checkin_date", checkinDate);
   if (error) return { error: error.message };
 
-  const rows = data ?? [];
-  const mine = rows.find((row) => row.profile_id === myId);
+  const rows = (data ?? []) as unknown as MoodRow[];
+  const mineRow = rows.find((row) => row.profile_id === myId);
   const partnerRow = rows.find((row) => row.profile_id !== myId);
 
   return {
-    myMood: mine?.mood ?? null,
+    myMood: mineRow?.mood ?? null,
     partnerMood: partnerRow?.mood ?? null,
-    revealed: Boolean(mine && partnerRow),
+    partnerName: partnerRow ? partnerDisplayName(partnerRow) : null,
+    revealed: Boolean(mineRow && partnerRow),
   };
+}
+
+/** Stato del check-in di oggi. */
+export async function getTodaysMood(): Promise<TodaysMood | ActionError> {
+  return getMoodForDate(toDateKey(new Date()));
 }
 
 /** Registra il mood di oggi (uno solo, immutabile) e ritorna lo stato aggiornato. */
@@ -67,4 +93,35 @@ export async function logTodaysMood(mood: MoodType): Promise<TodaysMood | Action
   if (error) return { error: error.message };
 
   return getTodaysMood();
+}
+
+export interface MoodReveal extends TodaysMood {
+  checkinDate: string;
+}
+
+/**
+ * Risolve la data del check-in a partire dal source_id di una notifica
+ * "check-in svelato"/"tocca a te" (mood_checkins.id), poi ne ritorna lo
+ * stato completo. Se la riga non è (ancora) leggibile per il chiamante — la
+ * notifica era un nudge "tocca a te", non la rivelazione — la query per id
+ * ritorna semplicemente nessuna riga (RLS la nasconde, nessun errore): il
+ * chiamante (MoodRevealSheet) interpreta "not found" come "non ancora
+ * pronto" e reindirizza al check-in invece di mostrare un dettaglio vuoto.
+ */
+export async function getMoodRevealForNotification(sourceId: string): Promise<MoodReveal | ActionError> {
+  const supabase = createClient();
+
+  const { data: sourceRow, error: sourceError } = await supabase
+    .from("mood_checkins")
+    .select("checkin_date")
+    .eq("id", sourceId)
+    .maybeSingle();
+  if (sourceError) return { error: sourceError.message };
+  if (!sourceRow) return { error: "not_ready" };
+
+  const result = await getMoodForDate(sourceRow.checkin_date);
+  if ("error" in result) return result;
+  if (!result.revealed) return { error: "not_ready" };
+
+  return { ...result, checkinDate: sourceRow.checkin_date };
 }

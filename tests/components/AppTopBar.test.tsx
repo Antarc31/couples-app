@@ -61,6 +61,16 @@ jest.mock("@/lib/supabase/client", () => ({
   }),
 }));
 
+/** Usato da MoodRevealSheet (montato dal tap su una notifica mood_checkin), non da AppTopBar direttamente. */
+const mockGetMoodRevealForNotification = jest.fn<
+  Promise<{ error: string } | { myMood: string; partnerMood: string; partnerName: string; revealed: true; checkinDate: string }>,
+  [string]
+>();
+
+jest.mock("@/lib/mood-actions", () => ({
+  getMoodRevealForNotification: (sourceId: string) => mockGetMoodRevealForNotification(sourceId),
+}));
+
 import AppTopBar from "@/components/AppTopBar";
 
 const unreadReaction: AppNotification = {
@@ -70,6 +80,17 @@ const unreadReaction: AppNotification = {
   body: "Sam ha messo un cuore a un tuo pensiero",
   sourceTable: "messages",
   sourceId: "m1",
+  readAt: null,
+  createdAt: new Date().toISOString(),
+};
+
+const unreadMoodCheckin: AppNotification = {
+  id: "n3",
+  type: "mood_checkin",
+  title: "Check-in di oggi svelato",
+  body: "Avete fatto entrambi il check-in: guarda come sta Sam",
+  sourceTable: "mood_checkins",
+  sourceId: "mc1",
   readAt: null,
   createdAt: new Date().toISOString(),
 };
@@ -92,6 +113,7 @@ beforeEach(() => {
   mockMarkNotificationRead.mockReset();
   mockMarkAllNotificationsRead.mockReset();
   mockRemoveChannel.mockReset();
+  mockGetMoodRevealForNotification.mockReset();
   capturedHandler = null;
 });
 
@@ -157,6 +179,44 @@ describe("AppTopBar", () => {
 
     expect(mockMarkNotificationRead).not.toHaveBeenCalled();
     expect(mockPush).toHaveBeenCalledWith("/wishlist");
+  });
+
+  it("il tap su una notifica mood_checkin apre il dettaglio invece di navigare, e non chiama router.push", async () => {
+    const user = userEvent.setup();
+    mockGetUnreadNotificationsCount.mockResolvedValue(1);
+    mockListNotifications.mockResolvedValue([unreadMoodCheckin]);
+    mockMarkNotificationRead.mockResolvedValue(true);
+    mockGetMoodRevealForNotification.mockResolvedValue({
+      myMood: "felice",
+      partnerMood: "stanco",
+      partnerName: "Sam",
+      revealed: true,
+      checkinDate: "2026-08-20",
+    });
+
+    render(<AppTopBar userId="me" />);
+    await user.click(await screen.findByRole("button", { name: /Notifiche/ }));
+    await user.click(await screen.findByText("Check-in di oggi svelato"));
+
+    expect(mockMarkNotificationRead).toHaveBeenCalledWith("n3");
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockGetMoodRevealForNotification).toHaveBeenCalledWith("mc1");
+    expect(await screen.findByText("😊")).toBeInTheDocument();
+    expect(screen.getByText("😴")).toBeInTheDocument();
+  });
+
+  it("se il dettaglio mood_checkin non è ancora pronto (nudge), naviga a /home come fallback", async () => {
+    const user = userEvent.setup();
+    mockGetUnreadNotificationsCount.mockResolvedValue(1);
+    mockListNotifications.mockResolvedValue([unreadMoodCheckin]);
+    mockMarkNotificationRead.mockResolvedValue(true);
+    mockGetMoodRevealForNotification.mockResolvedValue({ error: "not_ready" });
+
+    render(<AppTopBar userId="me" />);
+    await user.click(await screen.findByRole("button", { name: /Notifiche/ }));
+    await user.click(await screen.findByText("Check-in di oggi svelato"));
+
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/home"));
   });
 
   it("'Segna tutte come lette' chiama markAllNotificationsRead e azzera il badge", async () => {

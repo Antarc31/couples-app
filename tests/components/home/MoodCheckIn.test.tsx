@@ -41,7 +41,7 @@ describe("MoodCheckIn", () => {
   });
 
   it("mostra la card con le 6 emoji se non ho ancora risposto oggi", async () => {
-    mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, revealed: false });
+    mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, partnerName: null, revealed: false });
     render(<MoodCheckIn />);
 
     expect(await screen.findByText("💛 Come ti senti oggi?")).toBeInTheDocument();
@@ -50,7 +50,7 @@ describe("MoodCheckIn", () => {
   });
 
   it("non mostra nulla se ho già risposto oggi (nessun messaggio in Home, solo la notifica)", async () => {
-    mockGetTodaysMood.mockResolvedValue({ myMood: "felice", partnerMood: null, revealed: false });
+    mockGetTodaysMood.mockResolvedValue({ myMood: "felice", partnerMood: null, partnerName: null, revealed: false });
     const { container } = render(<MoodCheckIn />);
 
     await waitFor(() => expect(mockGetTodaysMood).toHaveBeenCalled());
@@ -58,7 +58,7 @@ describe("MoodCheckIn", () => {
   });
 
   it("non mostra nulla se già rivelato (nessun messaggio in Home, solo la notifica)", async () => {
-    mockGetTodaysMood.mockResolvedValue({ myMood: "felice", partnerMood: "stanco", revealed: true });
+    mockGetTodaysMood.mockResolvedValue({ myMood: "felice", partnerMood: "stanco", partnerName: null, revealed: true });
     const { container } = render(<MoodCheckIn />);
 
     await waitFor(() => expect(mockGetTodaysMood).toHaveBeenCalled());
@@ -66,8 +66,8 @@ describe("MoodCheckIn", () => {
   });
 
   it("tap su un'emoji invia il mood e la card sparisce, senza nessun messaggio in Home", async () => {
-    mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, revealed: false });
-    mockLogTodaysMood.mockResolvedValue({ myMood: "felice", partnerMood: null, revealed: false });
+    mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, partnerName: null, revealed: false });
+    mockLogTodaysMood.mockResolvedValue({ myMood: "felice", partnerMood: null, partnerName: null, revealed: false });
     const user = userEvent.setup();
     const { container } = render(<MoodCheckIn />);
 
@@ -78,7 +78,7 @@ describe("MoodCheckIn", () => {
   });
 
   it("tap su 'Più tardi' nasconde la card senza inviare nulla", async () => {
-    mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, revealed: false });
+    mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, partnerName: null, revealed: false });
     const user = userEvent.setup();
     render(<MoodCheckIn />);
 
@@ -89,13 +89,13 @@ describe("MoodCheckIn", () => {
   });
 
   it("non mostra la card al mount successivo nello stesso giorno se già rimandata", async () => {
-    mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, revealed: false });
+    mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, partnerName: null, revealed: false });
     const user = userEvent.setup();
     const { unmount } = render(<MoodCheckIn />);
     await user.click(await screen.findByText("Più tardi"));
     unmount();
 
-    mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, revealed: false });
+    mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, partnerName: null, revealed: false });
     render(<MoodCheckIn />);
 
     await waitFor(() => expect(mockGetTodaysMood).toHaveBeenCalledTimes(2));

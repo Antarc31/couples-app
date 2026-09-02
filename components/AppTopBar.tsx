@@ -10,6 +10,7 @@ import {
   markAllNotificationsRead,
   type AppNotification,
 } from "@/lib/notifications-actions";
+import MoodRevealSheet from "@/components/MoodRevealSheet";
 import type { Database, NotificationType } from "@/types/database";
 
 type NotificationRow = Database["public"]["Tables"]["notifications"]["Row"];
@@ -74,6 +75,7 @@ export default function AppTopBar({ userId }: { userId: string }) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loadingPanel, setLoadingPanel] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [moodRevealSourceId, setMoodRevealSourceId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,6 +129,18 @@ export default function AppTopBar({ userId }: { userId: string }) {
       await markNotificationRead(n.id);
     }
     setPanelOpen(false);
+
+    // Il check-in in Home sparisce appena rispondi (nessun messaggio
+    // persistente lì, su richiesta esplicita dell'utente): la notifica
+    // "svelato" è l'unico punto d'accesso al risultato, quindi qui si apre
+    // un dettaglio invece di limitarsi a un router.push generico. Se il tap
+    // era su un nudge "tocca a te" (non ancora rivelato), MoodRevealSheet
+    // stesso lo rileva (source_id non ancora leggibile) e ricade su
+    // onNotReady, che fa lo stesso router.push("/home") di prima.
+    if (n.type === "mood_checkin" && n.sourceId) {
+      setMoodRevealSourceId(n.sourceId);
+      return;
+    }
     router.push(TYPE_DESTINATION[n.type]);
   }
 
@@ -227,6 +241,17 @@ export default function AppTopBar({ userId }: { userId: string }) {
             </div>
           </div>
         </div>
+      )}
+
+      {moodRevealSourceId && (
+        <MoodRevealSheet
+          sourceId={moodRevealSourceId}
+          onClose={() => setMoodRevealSourceId(null)}
+          onNotReady={() => {
+            setMoodRevealSourceId(null);
+            router.push("/home");
+          }}
+        />
       )}
     </>
   );

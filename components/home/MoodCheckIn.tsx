@@ -3,28 +3,9 @@
 import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
 import { getTodaysMood, logTodaysMood, type TodaysMood } from "@/lib/mood-actions";
+import { MOOD_EMOJI, MOOD_LABEL, MOOD_VALUES } from "@/lib/mood-display";
 import { toDateKey } from "@/lib/calendar-dates";
 import type { MoodType } from "@/types/database";
-
-const MOOD_EMOJI: Record<MoodType, string> = {
-  felice: "😊",
-  sereno: "😌",
-  stanco: "😴",
-  stressato: "😣",
-  triste: "😢",
-  innamorato: "🥰",
-};
-
-const MOOD_LABEL: Record<MoodType, string> = {
-  felice: "Felice",
-  sereno: "Sereno/a",
-  stanco: "Stanco/a",
-  stressato: "Stressato/a",
-  triste: "Triste",
-  innamorato: "Innamorato/a",
-};
-
-const MOOD_VALUES = Object.keys(MOOD_EMOJI) as MoodType[];
 
 /** Chiave localStorage per "rimandato oggi": stato di comodo per-dispositivo, non serve sincronizzarlo lato server. */
 function dismissedTodayKey(): string {
