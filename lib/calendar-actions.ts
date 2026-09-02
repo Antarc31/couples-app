@@ -136,3 +136,42 @@ export async function deleteCalendarEvent(id: string): Promise<true | ActionErro
   if (error) return { error: error.message };
   return true;
 }
+
+export interface UpcomingEventOption {
+  id: string;
+  title: string;
+  startsAt: string;
+}
+
+/**
+ * Eventi futuri della coppia, per il selettore "collega a un evento" di
+ * WishlistFormModal (Fase D). A differenza del resto di questo modulo,
+ * deriva couple_id da sé (auth.getUser() + profiles) invece di riceverlo
+ * come prop: il chiamante (Wishlist) non ha già a disposizione coupleId
+ * come invece l'ha CalendarView — stesso pattern di derivazione già usato
+ * in lib/wishlist-actions.ts.
+ */
+export async function listUpcomingCoupleEvents(): Promise<UpcomingEventOption[] | ActionError> {
+  const supabase = createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData?.user;
+  if (!user) return { error: "Utente non autenticato" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("couple_id")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!profile?.couple_id) return { error: "Non sei accoppiato/a con un partner." };
+
+  const { data, error } = await supabase
+    .from("calendar_events")
+    .select("id, title, starts_at")
+    .eq("couple_id", profile.couple_id)
+    .gte("starts_at", new Date().toISOString())
+    .order("starts_at", { ascending: true })
+    .limit(20);
+
+  if (error) return { error: error.message };
+  return (data ?? []).map((row) => ({ id: row.id, title: row.title, startsAt: row.starts_at }));
+}

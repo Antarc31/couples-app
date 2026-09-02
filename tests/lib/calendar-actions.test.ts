@@ -43,18 +43,31 @@ function makeDeleteEqMock(response: { error: { message: string } | null }) {
   return { delete: del, eq };
 }
 
+/** Mock della catena `.from("calendar_events").select(cols).eq(col,val).gte(col,val).order(col,opts).limit(n)` — usata da listUpcomingCoupleEvents. */
+function makeUpcomingEventsMock(response: QueryResponse<unknown[] | null>) {
+  const limit = jest.fn<Promise<typeof response>, [number]>().mockResolvedValue(response);
+  const order = jest.fn<{ limit: typeof limit }, [string, unknown?]>().mockReturnValue({ limit });
+  const gte = jest.fn<{ order: typeof order }, [string, string]>().mockReturnValue({ order });
+  const eq = jest.fn<{ gte: typeof gte }, [string, string]>().mockReturnValue({ gte });
+  const select = jest.fn<{ eq: typeof eq }, [string]>().mockReturnValue({ eq });
+  return { select, eq, gte, order, limit };
+}
+
 type FromReturn =
   | ReturnType<typeof makeQueryBuilderMock>
   | ReturnType<typeof makeInsertSelectSingleMock>
   | ReturnType<typeof makeUpdateEqSelectSingleMock>
-  | ReturnType<typeof makeDeleteEqMock>;
+  | ReturnType<typeof makeDeleteEqMock>
+  | ReturnType<typeof makeUpcomingEventsMock>;
 
 type MockSupabase = {
+  auth: { getUser: jest.Mock<Promise<{ data: { user: { id: string } | null } }>, []> };
   from: jest.Mock<FromReturn, [table: string]>;
 };
 
 function makeMockSupabase(): MockSupabase {
   return {
+    auth: { getUser: jest.fn<Promise<{ data: { user: { id: string } | null } }>, []>() },
     from: jest.fn<FromReturn, [table: string]>(),
   };
 }
@@ -65,7 +78,12 @@ jest.mock("@/lib/supabase/client", () => ({
   createClient: () => mockSupabase,
 }));
 
-import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "@/lib/calendar-actions";
+import {
+  createCalendarEvent,
+  updateCalendarEvent,
+  deleteCalendarEvent,
+  listUpcomingCoupleEvents,
+} from "@/lib/calendar-actions";
 
 beforeEach(() => {
   mockSupabase = makeMockSupabase();
@@ -228,5 +246,65 @@ describe("deleteCalendarEvent", () => {
     mockSupabase.from.mockReturnValue(makeDeleteEqMock({ error: { message: "Non autorizzato" } }));
     const result = await deleteCalendarEvent("ev1");
     expect(result).toEqual({ error: "Non autorizzato" });
+  });
+});
+
+describe("listUpcomingCoupleEvents", () => {
+  it("ritorna errore se l'utente non è autenticato", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+    const result = await listUpcomingCoupleEvents();
+    expect(result).toEqual({ error: "Utente non autenticato" });
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it("ritorna errore se l'utente non è accoppiato", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    mockSupabase.from.mockReturnValue(makeQueryBuilderMock({ couple_id: null }));
+
+    const result = await listUpcomingCoupleEvents();
+    expect(result).toEqual({ error: "Non sei accoppiato/a con un partner." });
+  });
+
+  it("filtra per couple_id e da 'ora' in poi, ordinati per data crescente", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    const eventsMock = makeUpcomingEventsMock({
+      data: [{ id: "ev1", title: "Cena", starts_at: "2026-09-10T20:00:00.000Z" }],
+      error: null,
+    });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "profiles") return makeQueryBuilderMock({ couple_id: "c1" });
+      if (table === "calendar_events") return eventsMock;
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    const result = await listUpcomingCoupleEvents();
+
+    expect(eventsMock.eq).toHaveBeenCalledWith("couple_id", "c1");
+    expect(eventsMock.order).toHaveBeenCalledWith("starts_at", { ascending: true });
+    expect(result).toEqual([{ id: "ev1", title: "Cena", startsAt: "2026-09-10T20:00:00.000Z" }]);
+  });
+
+  it("propaga l'errore della query", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "profiles") return makeQueryBuilderMock({ couple_id: "c1" });
+      if (table === "calendar_events") return makeUpcomingEventsMock({ data: null, error: { message: "Errore di rete" } });
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    const result = await listUpcomingCoupleEvents();
+    expect(result).toEqual({ error: "Errore di rete" });
+  });
+
+  it("ritorna array vuoto se data è null senza errore", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "profiles") return makeQueryBuilderMock({ couple_id: "c1" });
+      if (table === "calendar_events") return makeUpcomingEventsMock({ data: null, error: null });
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    const result = await listUpcomingCoupleEvents();
+    expect(result).toEqual([]);
   });
 });

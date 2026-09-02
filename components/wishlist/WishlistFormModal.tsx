@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { createWishlistItem } from "@/lib/wishlist-actions";
+import { listUpcomingCoupleEvents, type UpcomingEventOption } from "@/lib/calendar-actions";
+import { formatDateShort } from "@/lib/calendar-dates";
 import type { WishlistCategory, WishlistPriority, WishlistTarget } from "@/types/database";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -50,10 +52,21 @@ export default function WishlistFormModal({ onClose, onSaved }: WishlistFormModa
   const [link, setLink] = useState("");
   const [target, setTarget] = useState<WishlistTarget>("self");
   const [isSurprise, setIsSurprise] = useState(false);
+  const [linkedEventId, setLinkedEventId] = useState<string>("");
+  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEventOption[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const canSurprise = target === "partner" || target === "entrambi";
+
+  // Caricati solo quando servono davvero (si apre la modalità sorpresa), non
+  // ad ogni apertura del form: il selettore è opzionale e poco usato.
+  useEffect(() => {
+    if (!canSurprise || !isSurprise || upcomingEvents.length > 0) return;
+    listUpcomingCoupleEvents().then((result) => {
+      if (!("error" in result)) setUpcomingEvents(result);
+    });
+  }, [canSurprise, isSurprise, upcomingEvents.length]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -70,6 +83,7 @@ export default function WishlistFormModal({ onClose, onSaved }: WishlistFormModa
       link: link.trim() || undefined,
       priority,
       isSurprise: canSurprise && isSurprise,
+      linkedCalendarEventId: canSurprise && isSurprise && linkedEventId ? linkedEventId : undefined,
     });
 
     setSaving(false);
@@ -148,6 +162,26 @@ export default function WishlistFormModal({ onClose, onSaved }: WishlistFormModa
               />
               🎁 Modalità sorpresa (nascondi i dettagli fino al completamento)
             </label>
+          )}
+
+          {canSurprise && isSurprise && (
+            <div>
+              <p className="mb-1.5 text-xs font-semibold text-ink-soft">
+                Collega a un evento del calendario (opzionale)
+              </p>
+              <select
+                value={linkedEventId}
+                onChange={(e) => setLinkedEventId(e.target.value)}
+                className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] text-ink outline-none focus:border-partner-a focus:ring-2 focus:ring-partner-a-soft"
+              >
+                <option value="">Nessun evento collegato</option>
+                {upcomingEvents.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.title} — {formatDateShort(ev.startsAt)}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
 
           <div>

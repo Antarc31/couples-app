@@ -63,11 +63,22 @@ function makeUpdateEqSelectSingleMock(response: QueryResponse<unknown>) {
   return { update, eq, select, single };
 }
 
+/** Mock della catena `.from("wishlist_feed").select(cols).eq(a).eq(b).limit(1).maybeSingle()` — usata da getLinkedSurprise. */
+function makeSelectEqEqLimitMaybeSingleMock(response: QueryResponse<{ created_by: string } | null>) {
+  const maybeSingle = jest.fn<Promise<typeof response>, []>().mockResolvedValue(response);
+  const limit = jest.fn<{ maybeSingle: typeof maybeSingle }, [number]>().mockReturnValue({ maybeSingle });
+  const eq2 = jest.fn<{ limit: typeof limit }, [string, string]>().mockReturnValue({ limit });
+  const eq1 = jest.fn<{ eq: typeof eq2 }, [string, string]>().mockReturnValue({ eq: eq2 });
+  const select = jest.fn<{ eq: typeof eq1 }, [string]>().mockReturnValue({ eq: eq1 });
+  return { select, eq1, eq2, limit, maybeSingle };
+}
+
 type FromReturn =
   | ReturnType<typeof makeQueryBuilderMock>
   | ReturnType<typeof makeSelectOrderMock>
   | ReturnType<typeof makeInsertSelectSingleMock>
-  | ReturnType<typeof makeUpdateEqSelectSingleMock>;
+  | ReturnType<typeof makeUpdateEqSelectSingleMock>
+  | ReturnType<typeof makeSelectEqEqLimitMaybeSingleMock>;
 
 type MockSupabase = {
   auth: { getUser: jest.Mock<Promise<MockGetUserResponse>, []> };
@@ -93,6 +104,7 @@ import {
   updateWishlistItem,
   completeWishlistItem,
   reopenWishlistItem,
+  getLinkedSurprise,
 } from "@/lib/wishlist-actions";
 
 beforeEach(() => {
@@ -384,6 +396,48 @@ describe("createWishlistItem", () => {
     const result = await createWishlistItem({ category: "regalo", target: "self", title: "Cuffie" });
     expect(result).toEqual({ error: "RLS violation" });
   });
+
+  it("FASE D — passa linkedCalendarEventId all'insert quando fornito", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    const wishlistMock = makeInsertSelectSingleMock({
+      data: { ...wishlistWriteRow, is_surprise: true, target: "partner", linked_calendar_event_id: "ev1" },
+      error: null,
+    });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "profiles") return makeQueryBuilderMock({ couple_id: "c1" });
+      if (table === "wishlist_items") return wishlistMock;
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    const result = await createWishlistItem({
+      category: "regalo",
+      target: "partner",
+      title: "Sorpresa",
+      isSurprise: true,
+      linkedCalendarEventId: "ev1",
+    });
+
+    expect(wishlistMock.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ linked_calendar_event_id: "ev1" }),
+    );
+    expect(result).toEqual(expect.objectContaining({ linkedCalendarEventId: "ev1" }));
+  });
+
+  it("FASE D — invia linked_calendar_event_id: null quando non fornito (nessun collegamento è la norma)", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    const wishlistMock = makeInsertSelectSingleMock({ data: wishlistWriteRow, error: null });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "profiles") return makeQueryBuilderMock({ couple_id: "c1" });
+      if (table === "wishlist_items") return wishlistMock;
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    await createWishlistItem({ category: "regalo", target: "self", title: "Cuffie" });
+
+    expect(wishlistMock.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ linked_calendar_event_id: null }),
+    );
+  });
 });
 
 const wishlistWriteRow = {
@@ -485,6 +539,50 @@ describe("reopenWishlistItem", () => {
     );
     const result = await reopenWishlistItem("wl1");
     expect(result).toEqual({ error: "Non autorizzato" });
+  });
+});
+
+describe("getLinkedSurprise", () => {
+  it("ritorna null se nessuna sorpresa attiva è collegata all'evento", async () => {
+    mockSupabase.from.mockReturnValue(makeSelectEqEqLimitMaybeSingleMock({ data: null, error: null }));
+
+    const result = await getLinkedSurprise("ev1");
+    expect(result).toBeNull();
+  });
+
+  it("propaga l'errore della query di lookup", async () => {
+    mockSupabase.from.mockReturnValue(
+      makeSelectEqEqLimitMaybeSingleMock({ data: null, error: { message: "Errore di rete" } }),
+    );
+
+    const result = await getLinkedSurprise("ev1");
+    expect(result).toEqual({ error: "Errore di rete" });
+  });
+
+  it("risolve created_by e il nome del creatore in una seconda query", async () => {
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "wishlist_feed") {
+        return makeSelectEqEqLimitMaybeSingleMock({ data: { created_by: "partner-1" }, error: null });
+      }
+      if (table === "profiles") return makeQueryBuilderMock({ display_name: "Sam" });
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    const result = await getLinkedSurprise("ev1");
+    expect(result).toEqual({ createdBy: "partner-1", creatorName: "Sam" });
+  });
+
+  it("creatorName è null se il profilo non ha un display_name", async () => {
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "wishlist_feed") {
+        return makeSelectEqEqLimitMaybeSingleMock({ data: { created_by: "partner-1" }, error: null });
+      }
+      if (table === "profiles") return makeQueryBuilderMock(null);
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    const result = await getLinkedSurprise("ev1");
+    expect(result).toEqual({ createdBy: "partner-1", creatorName: null });
   });
 });
 

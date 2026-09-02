@@ -62,6 +62,8 @@ export interface WishlistFeedItem {
   completedBy: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Evento calendario a cui questa sorpresa è (opzionalmente) collegata — mai obbligatorio. Non mascherato dalla view: il punto della feature è anticipare "a quale giorno è legata", non il contenuto. */
+  linkedCalendarEventId: string | null;
 }
 
 export interface ActionError {
@@ -69,7 +71,11 @@ export interface ActionError {
 }
 
 const FEED_SELECT_COLUMNS =
-  "id, couple_id, created_by, category, target, priority, is_surprise, status, is_hidden_surprise, title, description, price, link, photo_url, completed_at, completed_by, created_at, updated_at";
+  "id, couple_id, created_by, category, target, priority, is_surprise, status, is_hidden_surprise, title, description, price, link, photo_url, completed_at, completed_by, created_at, updated_at, linked_calendar_event_id";
+
+/** Colonne della tabella base riusate da create/update/complete/reopen (tutte ritornano lo stato aggiornato letto direttamente, mai dalla view — vedi commento su mapFeedRow più sotto). */
+const BASE_SELECT_COLUMNS =
+  "id, couple_id, created_by, category, target, priority, is_surprise, status, title, description, price, link, photo_url, completed_at, completed_by, created_at, updated_at, linked_calendar_event_id";
 
 function mapFeedRow(row: {
   id: string;
@@ -90,6 +96,7 @@ function mapFeedRow(row: {
   completed_by: string | null;
   created_at: string;
   updated_at: string;
+  linked_calendar_event_id: string | null;
 }): WishlistFeedItem {
   return {
     id: row.id,
@@ -110,6 +117,7 @@ function mapFeedRow(row: {
     completedBy: row.completed_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    linkedCalendarEventId: row.linked_calendar_event_id,
   };
 }
 
@@ -139,6 +147,8 @@ export interface CreateWishlistItemInput {
   priority?: WishlistPriority;
   /** Richiede target 'partner' o 'entrambi' (vincolo DB), vedi commento in testa al file. */
   isSurprise?: boolean;
+  /** Collegamento opzionale a un evento calendario esistente della coppia — mai obbligatorio. */
+  linkedCalendarEventId?: string;
 }
 
 /**
@@ -181,10 +191,9 @@ export async function createWishlistItem(
       photo_url: input.photoUrl ?? null,
       priority: input.priority ?? "media",
       is_surprise: input.isSurprise ?? false,
+      linked_calendar_event_id: input.linkedCalendarEventId ?? null,
     })
-    .select(
-      "id, couple_id, created_by, category, target, priority, is_surprise, status, title, description, price, link, photo_url, completed_at, completed_by, created_at, updated_at",
-    )
+    .select(BASE_SELECT_COLUMNS)
     .single();
 
   if (error) return { error: error.message };
@@ -203,6 +212,8 @@ export interface UpdateWishlistItemInput {
   photoUrl?: string | null;
   priority?: WishlistPriority;
   isSurprise?: boolean;
+  /** null per scollegare l'evento, undefined per non toccare il campo. */
+  linkedCalendarEventId?: string | null;
 }
 
 /**
@@ -225,14 +236,13 @@ export async function updateWishlistItem(
   if (input.photoUrl !== undefined) patch.photo_url = input.photoUrl;
   if (input.priority !== undefined) patch.priority = input.priority;
   if (input.isSurprise !== undefined) patch.is_surprise = input.isSurprise;
+  if (input.linkedCalendarEventId !== undefined) patch.linked_calendar_event_id = input.linkedCalendarEventId;
 
   const { data, error } = await supabase
     .from("wishlist_items")
     .update(patch)
     .eq("id", id)
-    .select(
-      "id, couple_id, created_by, category, target, priority, is_surprise, status, title, description, price, link, photo_url, completed_at, completed_by, created_at, updated_at",
-    )
+    .select(BASE_SELECT_COLUMNS)
     .single();
 
   if (error) return { error: error.message };
@@ -259,9 +269,7 @@ export async function completeWishlistItem(id: string): Promise<WishlistFeedItem
       completed_by: user.id,
     })
     .eq("id", id)
-    .select(
-      "id, couple_id, created_by, category, target, priority, is_surprise, status, title, description, price, link, photo_url, completed_at, completed_by, created_at, updated_at",
-    )
+    .select(BASE_SELECT_COLUMNS)
     .single();
 
   if (error) return { error: error.message };
@@ -275,9 +283,7 @@ export async function reopenWishlistItem(id: string): Promise<WishlistFeedItem |
     .from("wishlist_items")
     .update({ status: "attivo", completed_at: null, completed_by: null })
     .eq("id", id)
-    .select(
-      "id, couple_id, created_by, category, target, priority, is_surprise, status, title, description, price, link, photo_url, completed_at, completed_by, created_at, updated_at",
-    )
+    .select(BASE_SELECT_COLUMNS)
     .single();
 
   if (error) return { error: error.message };
@@ -288,3 +294,39 @@ export async function reopenWishlistItem(id: string): Promise<WishlistFeedItem |
 // grant DELETE su wishlist_items (vedi migration) — "MAI delete secco" è
 // imposto anche qui lato client, non solo lato DB, per non offrire in UI
 // un'azione che fallirebbe sempre.
+
+export interface LinkedSurprise {
+  createdBy: string;
+  /** Nome di chi ha creato la sorpresa, per il banner "[Nome] ha una sorpresa per te" — null se il profilo non ha un display_name impostato. */
+  creatorName: string | null;
+}
+
+/**
+ * Sorpresa attiva collegata a un evento calendario (Fase D), se esiste —
+ * usata da EventDetailSheet per il banner "[Nome] ha una sorpresa per te".
+ * `created_by` non è mai mascherato da wishlist_feed (solo i campi
+ * descrittivi lo sono), quindi questa query funziona sia che tu sia il
+ * creatore sia che tu sia il destinatario ancora "al buio". Due query
+ * separate (non un join sulla view: le view non espongono le foreign key a
+ * PostgREST per l'embedding automatico, solo le tabelle base le hanno).
+ */
+export async function getLinkedSurprise(eventId: string): Promise<LinkedSurprise | null | ActionError> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("wishlist_feed")
+    .select("created_by")
+    .eq("linked_calendar_event_id", eventId)
+    .eq("status", "attivo")
+    .limit(1)
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (!data) return null;
+
+  const { data: creatorProfile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", data.created_by)
+    .maybeSingle();
+
+  return { createdBy: data.created_by, creatorName: creatorProfile?.display_name ?? null };
+}

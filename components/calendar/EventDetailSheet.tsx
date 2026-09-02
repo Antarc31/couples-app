@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDayLabel, formatTime } from "@/lib/calendar-dates";
 import { eventColor, CATEGORY_LABELS, type CalendarEventRow, type ColorContext } from "@/lib/calendar-colors";
 import { deleteCalendarEvent } from "@/lib/calendar-actions";
+import { getLinkedSurprise, type LinkedSurprise } from "@/lib/wishlist-actions";
 import Button from "@/components/ui/Button";
 
 interface EventDetailSheetProps {
@@ -26,6 +27,20 @@ export default function EventDetailSheet({ event, selfId, colorCtx, onClose, onE
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [linkedSurprise, setLinkedSurprise] = useState<LinkedSurprise | null>(null);
+
+  // Fase D: se una sorpresa attiva è collegata a questo evento, un banner
+  // discreto lo anticipa senza mai rivelarne il contenuto (getLinkedSurprise
+  // ritorna solo created_by, mai title/price/ecc — vedi lib/wishlist-actions.ts).
+  useEffect(() => {
+    let cancelled = false;
+    getLinkedSurprise(event.id).then((result) => {
+      if (!cancelled && result && !("error" in result)) setLinkedSurprise(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [event.id]);
 
   // Rispecchia lato client la RLS calendar_events_update_own_or_couple_category
   // / _delete_own_or_couple_category (supabase/migrations/20260831120100_calendar_events.sql):
@@ -96,6 +111,15 @@ export default function EventDetailSheet({ event, selfId, colorCtx, onClose, onE
             </p>
           )}
         </div>
+
+        {linkedSurprise && (
+          <p className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-couple-soft px-3 py-1.5 text-xs font-semibold text-ink">
+            🎁{" "}
+            {linkedSurprise.createdBy === selfId
+              ? "Hai una sorpresa in arrivo per questo giorno"
+              : `${linkedSurprise.creatorName ?? "Il tuo partner"} ha una sorpresa per te`}
+          </p>
+        )}
 
         {error && <p className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
 

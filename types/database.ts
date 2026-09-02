@@ -418,6 +418,9 @@ export interface Database {
           completed_by: string | null;
           created_at: string;
           updated_at: string;
+          // Collegamento opzionale a un evento calendario — vedi
+          // supabase/migrations/20260904020000_wishlist_linked_event_and_surprise_notify.sql.
+          linked_calendar_event_id: string | null;
         };
         Insert: {
           id?: string;
@@ -438,6 +441,7 @@ export interface Database {
           status?: WishlistStatus;
           created_at?: string;
           updated_at?: string;
+          linked_calendar_event_id?: string | null;
         };
         Update: {
           category?: WishlistCategory;
@@ -453,6 +457,7 @@ export interface Database {
           completed_at?: string | null;
           completed_by?: string | null;
           updated_at?: string;
+          linked_calendar_event_id?: string | null;
         };
         // Nessun DELETE: mai delete secco (vedi commento nella migration).
         Relationships: [
@@ -475,6 +480,13 @@ export interface Database {
             columns: ["completed_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wishlist_items_linked_calendar_event_id_fkey";
+            columns: ["linked_calendar_event_id"];
+            isOneToOne: false;
+            referencedRelation: "calendar_events";
             referencedColumns: ["id"];
           },
         ];
@@ -689,6 +701,7 @@ export interface Database {
           completed_by: string | null;
           created_at: string;
           updated_at: string;
+          linked_calendar_event_id: string | null;
         };
         Relationships: [
           {

@@ -25,6 +25,7 @@ import userEvent from "@testing-library/user-event";
 import type { ColorContext } from "@/lib/calendar-colors";
 import type { Database } from "@/types/database";
 import type { ActionError } from "@/lib/calendar-actions";
+import type { LinkedSurprise } from "@/lib/wishlist-actions";
 
 type CalendarEventRow = Database["public"]["Tables"]["calendar_events"]["Row"];
 
@@ -32,6 +33,13 @@ const mockDeleteCalendarEvent = jest.fn<Promise<true | ActionError>, [string]>()
 
 jest.mock("@/lib/calendar-actions", () => ({
   deleteCalendarEvent: (...args: [string]) => mockDeleteCalendarEvent(...args),
+}));
+
+/** Fase D: EventDetailSheet self-fetcha se c'è una sorpresa collegata — default "nessuna" per non rompere i test preesistenti che non se ne occupano. */
+const mockGetLinkedSurprise = jest.fn<Promise<LinkedSurprise | null | ActionError>, [string]>();
+
+jest.mock("@/lib/wishlist-actions", () => ({
+  getLinkedSurprise: (...args: [string]) => mockGetLinkedSurprise(...args),
 }));
 
 import EventDetailSheet from "@/components/calendar/EventDetailSheet";
@@ -60,6 +68,8 @@ const ctx: ColorContext = { selfId: "me", selfColor: "#F7A6C4", partnerId: "part
 
 beforeEach(() => {
   mockDeleteCalendarEvent.mockReset();
+  mockGetLinkedSurprise.mockReset();
+  mockGetLinkedSurprise.mockResolvedValue(null);
 });
 
 describe("EventDetailSheet — canEdit", () => {
@@ -205,5 +215,40 @@ describe("EventDetailSheet — dettagli mostrati", () => {
     render(<EventDetailSheet event={event} selfId="me" colorCtx={ctx} onClose={jest.fn()} onEdit={jest.fn()} onDeleted={jest.fn()} />);
 
     expect(screen.getByText(/Si ripete ogni mese/)).toBeInTheDocument();
+  });
+});
+
+describe("EventDetailSheet — Fase D: sorpresa collegata", () => {
+  it("non mostra nessun banner se non c'è una sorpresa collegata", async () => {
+    mockGetLinkedSurprise.mockResolvedValue(null);
+    const event = makeEvent();
+    render(<EventDetailSheet event={event} selfId="me" colorCtx={ctx} onClose={jest.fn()} onEdit={jest.fn()} onDeleted={jest.fn()} />);
+
+    await screen.findByText(event.title);
+    expect(screen.queryByText(/sorpresa/i)).not.toBeInTheDocument();
+  });
+
+  it("mostra il banner dal punto di vista del creatore (io ho la sorpresa in serbo)", async () => {
+    mockGetLinkedSurprise.mockResolvedValue({ createdBy: "me", creatorName: "Antonio" });
+    const event = makeEvent();
+    render(<EventDetailSheet event={event} selfId="me" colorCtx={ctx} onClose={jest.fn()} onEdit={jest.fn()} onDeleted={jest.fn()} />);
+
+    expect(await screen.findByText("🎁 Hai una sorpresa in arrivo per questo giorno")).toBeInTheDocument();
+  });
+
+  it("mostra il banner dal punto di vista del destinatario, con il nome del partner", async () => {
+    mockGetLinkedSurprise.mockResolvedValue({ createdBy: "partner-1", creatorName: "Sam" });
+    const event = makeEvent();
+    render(<EventDetailSheet event={event} selfId="me" colorCtx={ctx} onClose={jest.fn()} onEdit={jest.fn()} onDeleted={jest.fn()} />);
+
+    expect(await screen.findByText("🎁 Sam ha una sorpresa per te")).toBeInTheDocument();
+  });
+
+  it("usa 'Il tuo partner' se il nome non è disponibile", async () => {
+    mockGetLinkedSurprise.mockResolvedValue({ createdBy: "partner-1", creatorName: null });
+    const event = makeEvent();
+    render(<EventDetailSheet event={event} selfId="me" colorCtx={ctx} onClose={jest.fn()} onEdit={jest.fn()} onDeleted={jest.fn()} />);
+
+    expect(await screen.findByText("🎁 Il tuo partner ha una sorpresa per te")).toBeInTheDocument();
   });
 });
