@@ -84,9 +84,7 @@ export default async function HomePage() {
         selfId={data.userId}
         partnerName={data.partner?.displayName ?? "il tuo partner"}
       />
-      {data.couple.moodCheckinEnabled && data.partner && (
-        <MoodCheckIn partnerName={data.partner.displayName ?? "il tuo partner"} coupleId={data.couple.id} />
-      )}
+      {data.couple.moodCheckinEnabled && data.partner && <MoodCheckIn />}
     </div>
   );
 }

@@ -1,11 +1,12 @@
 /**
  * Unit test per components/home/MoodCheckIn.tsx — check-in emotivo
- * quotidiano (in fondo alla Home, non più un overlay: la card sparisce
- * appena rispondi, lasciando solo un Toast temporaneo — su richiesta
- * esplicita dell'utente). lib/mood-actions.ts è mockato (vedi
- * tests/lib/mood-actions.test.ts per la copertura contro Supabase). Il
- * canale Realtime è mockato come in tests/components/home/QuizCard.test.tsx.
- * localStorage è quello reale di jsdom, svuotato a ogni test.
+ * quotidiano (in fondo alla Home). Su richiesta esplicita dell'utente,
+ * nessun messaggio/toast in Home: appena rispondi la card sparisce del
+ * tutto, il segnale "in attesa"/"svelato" arriva solo dalla campanella
+ * notifiche (trigger DB già attivo, indipendente da questo componente) —
+ * quindi niente più sottoscrizione realtime da testare qui.
+ * lib/mood-actions.ts è mockato (vedi tests/lib/mood-actions.test.ts per
+ * la copertura contro Supabase).
  */
 
 import { render, screen, waitFor } from "@testing-library/react";
@@ -22,16 +23,6 @@ jest.mock("@/lib/mood-actions", () => ({
   logTodaysMood: (mood: string) => mockLogTodaysMood(mood),
 }));
 
-jest.mock("@/lib/supabase/client", () => ({
-  createClient: () => ({
-    channel: () => {
-      const channelObj = { on: () => channelObj, subscribe: () => channelObj };
-      return channelObj;
-    },
-    removeChannel: () => {},
-  }),
-}));
-
 import MoodCheckIn from "@/components/home/MoodCheckIn";
 
 beforeEach(() => {
@@ -40,53 +31,56 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-function renderCard() {
-  return render(<MoodCheckIn partnerName="Sam" coupleId="c1" />);
-}
-
 describe("MoodCheckIn", () => {
   it("non renderizza nulla mentre carica o se la chiamata fallisce", async () => {
     mockGetTodaysMood.mockResolvedValue({ error: "Errore di rete" });
-    const { container } = renderCard();
+    const { container } = render(<MoodCheckIn />);
 
     await waitFor(() => expect(mockGetTodaysMood).toHaveBeenCalled());
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("mostra la card con le 6 emoji se non ho ancora risposto oggi (nessun overlay, card inline)", async () => {
+  it("mostra la card con le 6 emoji se non ho ancora risposto oggi", async () => {
     mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, revealed: false });
-    renderCard();
+    render(<MoodCheckIn />);
 
     expect(await screen.findByText("💛 Come ti senti oggi?")).toBeInTheDocument();
     expect(screen.getByLabelText("Felice")).toBeInTheDocument();
     expect(screen.getByLabelText("Innamorato/a")).toBeInTheDocument();
   });
 
-  it("al primo caricamento, se ho già risposto oggi, non mostra nulla (nessun toast per uno stato già noto)", async () => {
+  it("non mostra nulla se ho già risposto oggi (nessun messaggio in Home, solo la notifica)", async () => {
     mockGetTodaysMood.mockResolvedValue({ myMood: "felice", partnerMood: null, revealed: false });
-    const { container } = renderCard();
+    const { container } = render(<MoodCheckIn />);
 
     await waitFor(() => expect(mockGetTodaysMood).toHaveBeenCalled());
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("tap su un'emoji invia il mood, la card sparisce e appare un toast temporaneo 'in attesa'", async () => {
+  it("non mostra nulla se già rivelato (nessun messaggio in Home, solo la notifica)", async () => {
+    mockGetTodaysMood.mockResolvedValue({ myMood: "felice", partnerMood: "stanco", revealed: true });
+    const { container } = render(<MoodCheckIn />);
+
+    await waitFor(() => expect(mockGetTodaysMood).toHaveBeenCalled());
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("tap su un'emoji invia il mood e la card sparisce, senza nessun messaggio in Home", async () => {
     mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, revealed: false });
     mockLogTodaysMood.mockResolvedValue({ myMood: "felice", partnerMood: null, revealed: false });
     const user = userEvent.setup();
-    renderCard();
+    const { container } = render(<MoodCheckIn />);
 
     await user.click(await screen.findByLabelText("Felice"));
 
     await waitFor(() => expect(mockLogTodaysMood).toHaveBeenCalledWith("felice"));
-    expect(await screen.findByText("In attesa della risposta di Sam…")).toBeInTheDocument();
-    expect(screen.queryByText("💛 Come ti senti oggi?")).not.toBeInTheDocument();
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
   });
 
   it("tap su 'Più tardi' nasconde la card senza inviare nulla", async () => {
     mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, revealed: false });
     const user = userEvent.setup();
-    renderCard();
+    render(<MoodCheckIn />);
 
     await user.click(await screen.findByText("Più tardi"));
 
@@ -97,12 +91,12 @@ describe("MoodCheckIn", () => {
   it("non mostra la card al mount successivo nello stesso giorno se già rimandata", async () => {
     mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, revealed: false });
     const user = userEvent.setup();
-    const { unmount } = renderCard();
+    const { unmount } = render(<MoodCheckIn />);
     await user.click(await screen.findByText("Più tardi"));
     unmount();
 
     mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, revealed: false });
-    renderCard();
+    render(<MoodCheckIn />);
 
     await waitFor(() => expect(mockGetTodaysMood).toHaveBeenCalledTimes(2));
     expect(screen.queryByText("💛 Come ti senti oggi?")).not.toBeInTheDocument();
