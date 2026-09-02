@@ -50,7 +50,7 @@ jest.mock("@/lib/supabase/client", () => ({
   createClient: () => mockSupabase,
 }));
 
-import { updateBirthDate, setRelationshipStartDate } from "@/lib/profile-actions";
+import { updateBirthDate, setRelationshipStartDate, setQuizEnabled, setMoodCheckinEnabled } from "@/lib/profile-actions";
 
 beforeEach(() => {
   mockSupabase = makeMockSupabase();
@@ -121,5 +121,43 @@ describe("setRelationshipStartDate", () => {
     const result = await setRelationshipStartDate("2022-05-14");
 
     expect(result).toEqual({ error: "Non sei accoppiato/a con un partner" });
+  });
+});
+
+describe("setQuizEnabled", () => {
+  it("chiama la RPC set_quiz_enabled con p_enabled e ritorna true in caso di successo", async () => {
+    mockSupabase.rpc.mockResolvedValue({ data: null, error: null });
+
+    const result = await setQuizEnabled(true);
+
+    expect(result).toBe(true);
+    expect(mockSupabase.rpc).toHaveBeenCalledWith("set_quiz_enabled", { p_enabled: true });
+  });
+
+  it("propaga l'errore della RPC", async () => {
+    mockSupabase.rpc.mockResolvedValue({ data: null, error: { message: "Non sei accoppiato/a con un partner." } });
+
+    const result = await setQuizEnabled(false);
+
+    expect(result).toEqual({ error: "Non sei accoppiato/a con un partner." });
+  });
+});
+
+describe("setMoodCheckinEnabled", () => {
+  it("chiama la RPC set_mood_checkin_enabled con p_enabled e ritorna true in caso di successo", async () => {
+    mockSupabase.rpc.mockResolvedValue({ data: null, error: null });
+
+    const result = await setMoodCheckinEnabled(true);
+
+    expect(result).toBe(true);
+    expect(mockSupabase.rpc).toHaveBeenCalledWith("set_mood_checkin_enabled", { p_enabled: true });
+  });
+
+  it("propaga l'errore della RPC", async () => {
+    mockSupabase.rpc.mockResolvedValue({ data: null, error: { message: "Non sei accoppiato/a con un partner." } });
+
+    const result = await setMoodCheckinEnabled(false);
+
+    expect(result).toEqual({ error: "Non sei accoppiato/a con un partner." });
   });
 });

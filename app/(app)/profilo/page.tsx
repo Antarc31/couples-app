@@ -5,6 +5,7 @@ import SignOutButton from "@/components/auth/SignOutButton";
 import DeleteAccountButton from "@/components/auth/DeleteAccountButton";
 import LeaveCoupleButton from "@/components/auth/LeaveCoupleButton";
 import ProfileEditForm from "@/components/profilo/ProfileEditForm";
+import CoupleFeatureToggles from "@/components/profilo/CoupleFeatureToggles";
 
 export default async function ProfiloPage() {
   const data = await getCurrentCoupleData();
@@ -47,6 +48,13 @@ export default async function ProfiloPage() {
         isPaired={data.partner !== null}
         relationshipStartDate={data.couple?.relationshipStartDate ?? null}
       />
+
+      {data.partner && data.couple && (
+        <CoupleFeatureToggles
+          quizEnabled={data.couple.quizEnabled}
+          moodCheckinEnabled={data.couple.moodCheckinEnabled}
+        />
+      )}
 
       <SignOutButton />
 

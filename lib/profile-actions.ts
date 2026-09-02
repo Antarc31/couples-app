@@ -61,3 +61,19 @@ export async function setRelationshipStartDate(date: string): Promise<true | Act
   if (error) return { error: error.message };
   return true;
 }
+
+/** Attiva/disattiva il quiz giornaliero per la coppia (RPC set_quiz_enabled, stesso schema di setRelationshipStartDate). */
+export async function setQuizEnabled(enabled: boolean): Promise<true | ActionError> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("set_quiz_enabled", { p_enabled: enabled });
+  if (error) return { error: error.message };
+  return true;
+}
+
+/** Attiva/disattiva il check-in emotivo per la coppia (RPC set_mood_checkin_enabled). */
+export async function setMoodCheckinEnabled(enabled: boolean): Promise<true | ActionError> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("set_mood_checkin_enabled", { p_enabled: enabled });
+  if (error) return { error: error.message };
+  return true;
+}

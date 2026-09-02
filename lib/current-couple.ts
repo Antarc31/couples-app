@@ -18,7 +18,12 @@ export interface CurrentCoupleData {
   /** profiles.birth_date dell'utente corrente (non del partner). Vedi lib/profile-actions.ts per come si modifica. */
   birthDate: string | null;
   partner: { id: string; displayName: string | null; color: string } | null;
-  couple: { id: string; relationshipStartDate: string | null } | null;
+  couple: {
+    id: string;
+    relationshipStartDate: string | null;
+    quizEnabled: boolean;
+    moodCheckinEnabled: boolean;
+  } | null;
 }
 
 export async function getCurrentCoupleData(): Promise<CurrentCoupleData | null> {
@@ -41,12 +46,17 @@ export async function getCurrentCoupleData(): Promise<CurrentCoupleData | null> 
   if (profile.couple_id) {
     const { data: coupleRow } = await supabase
       .from("couples")
-      .select("id, partner_1_id, partner_2_id, relationship_start_date")
+      .select("id, partner_1_id, partner_2_id, relationship_start_date, quiz_enabled, mood_checkin_enabled")
       .eq("id", profile.couple_id)
       .maybeSingle();
 
     if (coupleRow) {
-      couple = { id: coupleRow.id, relationshipStartDate: coupleRow.relationship_start_date };
+      couple = {
+        id: coupleRow.id,
+        relationshipStartDate: coupleRow.relationship_start_date,
+        quizEnabled: coupleRow.quiz_enabled,
+        moodCheckinEnabled: coupleRow.mood_checkin_enabled,
+      };
       const partnerId = coupleRow.partner_1_id === user.id ? coupleRow.partner_2_id : coupleRow.partner_1_id;
       const { data: partnerProfile } = await supabase
         .from("profiles")

@@ -1,119 +1,183 @@
 /**
- * Unit test per components/home/QuizCard.tsx — lib/quiz-actions.ts è
- * mockato (vedi tests/lib/quiz-actions.test.ts per la copertura contro
- * Supabase). Qui solo l'orchestrazione UI: i tre stati (rispondi / in
- * attesa / rivelato) e il submit.
+ * Unit test per components/home/QuizCard.tsx — quiz "indovina il partner"
+ * (Fase B, redesign). lib/quiz-actions.ts è mockato (vedi
+ * tests/lib/quiz-actions.test.ts per la copertura contro Supabase). Il
+ * canale Realtime è mockato qui (stesso pattern di
+ * tests/components/AppTopBar.test.tsx): non serve simularlo attivamente in
+ * questi test, basta che non faccia fallire il mount.
  */
 
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { TodaysQuiz } from "@/lib/quiz-actions";
+import type { TodaysQuiz, QuizScores } from "@/lib/quiz-actions";
 
 type ActionError = { error: string };
 
 const mockGetTodaysQuiz = jest.fn<Promise<TodaysQuiz | ActionError>, []>();
-const mockAnswerTodaysQuiz = jest.fn<Promise<TodaysQuiz | ActionError>, [string, string]>();
+const mockSubmitTodaysQuiz = jest.fn<Promise<TodaysQuiz | ActionError>, [string, string, string]>();
+const mockConfirmQuizGuess = jest.fn<Promise<TodaysQuiz | ActionError>, [string, boolean]>();
+const mockGetQuizScores = jest.fn<Promise<QuizScores | ActionError>, [string]>();
 
 jest.mock("@/lib/quiz-actions", () => ({
   getTodaysQuiz: () => mockGetTodaysQuiz(),
-  answerTodaysQuiz: (questionId: string, answer: string) => mockAnswerTodaysQuiz(questionId, answer),
+  submitTodaysQuiz: (questionId: string, truth: string, guess: string) =>
+    mockSubmitTodaysQuiz(questionId, truth, guess),
+  confirmQuizGuess: (answerId: string, correct: boolean) => mockConfirmQuizGuess(answerId, correct),
+  getQuizScores: (partnerId: string) => mockGetQuizScores(partnerId),
+}));
+
+jest.mock("@/lib/supabase/client", () => ({
+  createClient: () => ({
+    channel: () => {
+      const channelObj = { on: () => channelObj, subscribe: () => channelObj };
+      return channelObj;
+    },
+    removeChannel: () => {},
+  }),
 }));
 
 import QuizCard from "@/components/home/QuizCard";
 
 beforeEach(() => {
   mockGetTodaysQuiz.mockReset();
-  mockAnswerTodaysQuiz.mockReset();
+  mockSubmitTodaysQuiz.mockReset();
+  mockConfirmQuizGuess.mockReset();
+  mockGetQuizScores.mockReset();
+  mockGetQuizScores.mockResolvedValue({ mine: 1, partner: 2 });
 });
 
+function renderCard() {
+  return render(<QuizCard partnerName="Sam" partnerId="partner-1" coupleId="c1" />);
+}
+
 describe("QuizCard", () => {
-  it("mostra il campo di risposta quando non ho ancora risposto", async () => {
+  it("mostra i due campi (verità + ipotesi) quando non ho ancora scritto oggi", async () => {
     mockGetTodaysQuiz.mockResolvedValue({
       questionId: "q1",
       prompt: "Qual è il mio colore preferito?",
-      myAnswer: null,
-      partnerAnswer: null,
+      mine: null,
+      partner: null,
       revealed: false,
     });
-    render(<QuizCard partnerName="Sam" />);
+    renderCard();
 
     expect(await screen.findByText("Qual è il mio colore preferito?")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Scrivi la tua risposta…")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("La verità su di te…")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Cosa risponderebbe Sam?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Rispondi" })).toBeDisabled();
   });
 
-  it("mostra 'in attesa' quando ho risposto ma il partner no", async () => {
+  it("mostra il punteggio in testa alla card", async () => {
     mockGetTodaysQuiz.mockResolvedValue({
       questionId: "q1",
-      prompt: "Qual è il mio colore preferito?",
-      myAnswer: "Rosso",
-      partnerAnswer: null,
+      prompt: "Domanda",
+      mine: null,
+      partner: null,
       revealed: false,
     });
-    render(<QuizCard partnerName="Sam" />);
+    renderCard();
 
-    expect(await screen.findByText("Hai risposto! Appena risponde anche Sam vedrete entrambe le risposte.")).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("Scrivi la tua risposta…")).not.toBeInTheDocument();
+    expect(await screen.findByText("Tu 1 — 2 Sam")).toBeInTheDocument();
   });
 
-  it("mostra entrambe le risposte quando rivelato", async () => {
+  it("mostra 'in attesa' quando ho scritto ma il partner no", async () => {
     mockGetTodaysQuiz.mockResolvedValue({
       questionId: "q1",
-      prompt: "Qual è il mio colore preferito?",
-      myAnswer: "Rosso",
-      partnerAnswer: "Blu",
+      prompt: "Domanda",
+      mine: { answerId: "a1", truth: "Rosso", guess: "Blu", guessCorrect: null },
+      partner: null,
+      revealed: false,
+    });
+    renderCard();
+
+    expect(
+      await screen.findByText("Hai scritto! Appena scrive anche Sam vedrete le ipotesi svelate."),
+    ).toBeInTheDocument();
+  });
+
+  it("da rivelato, mostra entrambi i confronti e i due bottoni di conferma se la mia ipotesi su di me non è ancora confermata", async () => {
+    mockGetTodaysQuiz.mockResolvedValue({
+      questionId: "q1",
+      prompt: "Domanda",
+      mine: { answerId: "a1", truth: "Rosso", guess: "Blu", guessCorrect: true },
+      partner: { answerId: "a2", truth: "Blu", guess: "Rosso", guessCorrect: null },
       revealed: true,
     });
-    render(<QuizCard partnerName="Sam" />);
+    renderCard();
 
-    expect(await screen.findByText("Rosso")).toBeInTheDocument();
-    expect(screen.getByText("Blu")).toBeInTheDocument();
-    expect(screen.getByText("Sam")).toBeInTheDocument();
+    expect(await screen.findByText("✅ Hai indovinato!")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ha indovinato" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "No" })).toBeInTheDocument();
   });
 
-  it("invia la risposta e aggiorna lo stato con il risultato del refetch", async () => {
+  it("tap su 'Ha indovinato' chiama confirmQuizGuess con l'id della riga del partner", async () => {
     mockGetTodaysQuiz.mockResolvedValue({
       questionId: "q1",
-      prompt: "Qual è il mio colore preferito?",
-      myAnswer: null,
-      partnerAnswer: null,
+      prompt: "Domanda",
+      mine: { answerId: "a1", truth: "Rosso", guess: "Blu", guessCorrect: null },
+      partner: { answerId: "a2", truth: "Blu", guess: "Rosso", guessCorrect: null },
+      revealed: true,
+    });
+    mockConfirmQuizGuess.mockResolvedValue({
+      questionId: "q1",
+      prompt: "Domanda",
+      mine: { answerId: "a1", truth: "Rosso", guess: "Blu", guessCorrect: null },
+      partner: { answerId: "a2", truth: "Blu", guess: "Rosso", guessCorrect: true },
+      revealed: true,
+    });
+    const user = userEvent.setup();
+    renderCard();
+
+    await user.click(await screen.findByRole("button", { name: "Ha indovinato" }));
+
+    await waitFor(() => expect(mockConfirmQuizGuess).toHaveBeenCalledWith("a2", true));
+    expect(await screen.findByText("✅ Hai confermato: ha indovinato")).toBeInTheDocument();
+  });
+
+  it("invia verità e ipotesi e aggiorna lo stato con il risultato del refetch", async () => {
+    mockGetTodaysQuiz.mockResolvedValue({
+      questionId: "q1",
+      prompt: "Domanda",
+      mine: null,
+      partner: null,
       revealed: false,
     });
-    mockAnswerTodaysQuiz.mockResolvedValue({
+    mockSubmitTodaysQuiz.mockResolvedValue({
       questionId: "q1",
-      prompt: "Qual è il mio colore preferito?",
-      myAnswer: "Rosso",
-      partnerAnswer: null,
+      prompt: "Domanda",
+      mine: { answerId: "a1", truth: "Rosso", guess: "Blu", guessCorrect: null },
+      partner: null,
       revealed: false,
     });
     const user = userEvent.setup();
-    render(<QuizCard partnerName="Sam" />);
+    renderCard();
 
-    const textarea = await screen.findByPlaceholderText("Scrivi la tua risposta…");
-    await user.type(textarea, "Rosso");
+    await user.type(await screen.findByPlaceholderText("La verità su di te…"), "Rosso");
+    await user.type(screen.getByPlaceholderText("Cosa risponderebbe Sam?"), "Blu");
     await user.click(screen.getByRole("button", { name: "Rispondi" }));
 
-    await waitFor(() => expect(mockAnswerTodaysQuiz).toHaveBeenCalledWith("q1", "Rosso"));
-    expect(await screen.findByText("Hai risposto! Appena risponde anche Sam vedrete entrambe le risposte.")).toBeInTheDocument();
+    await waitFor(() => expect(mockSubmitTodaysQuiz).toHaveBeenCalledWith("q1", "Rosso", "Blu"));
+    expect(
+      await screen.findByText("Hai scritto! Appena scrive anche Sam vedrete le ipotesi svelate."),
+    ).toBeInTheDocument();
   });
 
-  it("mostra l'errore di submit senza perdere il testo scritto", async () => {
+  it("mostra l'errore di submit", async () => {
     mockGetTodaysQuiz.mockResolvedValue({
       questionId: "q1",
-      prompt: "Qual è il mio colore preferito?",
-      myAnswer: null,
-      partnerAnswer: null,
+      prompt: "Domanda",
+      mine: null,
+      partner: null,
       revealed: false,
     });
-    mockAnswerTodaysQuiz.mockResolvedValue({ error: "Hai già risposto oggi" });
+    mockSubmitTodaysQuiz.mockResolvedValue({ error: "Hai già risposto oggi" });
     const user = userEvent.setup();
-    render(<QuizCard partnerName="Sam" />);
+    renderCard();
 
-    const textarea = await screen.findByPlaceholderText("Scrivi la tua risposta…");
-    await user.type(textarea, "Rosso");
+    await user.type(await screen.findByPlaceholderText("La verità su di te…"), "Rosso");
+    await user.type(screen.getByPlaceholderText("Cosa risponderebbe Sam?"), "Blu");
     await user.click(screen.getByRole("button", { name: "Rispondi" }));
 
     expect(await screen.findByText("Hai già risposto oggi")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Scrivi la tua risposta…")).toHaveValue("Rosso");
   });
 });

@@ -1,12 +1,13 @@
 /**
- * Unit test per lib/quiz-actions.ts (getTodaysQuiz, answerTodaysQuiz) — quiz
- * giornaliero "quanto mi conosci" (Fase B del piano approvato).
+ * Unit test per lib/quiz-actions.ts (getTodaysQuiz, submitTodaysQuiz,
+ * confirmQuizGuess, getQuizScores) — quiz "indovina il partner" (Fase B,
+ * redesign).
  *
  * Il client Supabase reale viene mockato: qui non verifichiamo che la RLS di
  * quiz_answers funzioni davvero (quella si verifica applicando la migration
  * al progetto di test, come da prassi del progetto), ma che quiz-actions.ts
  * orchestri correttamente le chiamate — inclusa la rotazione deterministica
- * della domanda del giorno e il refetch dopo l'invio della risposta.
+ * della domanda del giorno e il refetch dopo submit/conferma.
  *
  * Vedi tests/lib/auth-actions.test.ts per il perché si usa il `jest` globale
  * ambient (non `import { jest } from "@jest/globals"`).
@@ -16,10 +17,12 @@ import { makeQueryBuilderMock } from "../helpers/supabase-query-mock";
 
 type QuestionsResponse = { data: { id: string; prompt: string }[] | null; error: { message: string } | null };
 type AnswersResponse = {
-  data: { profile_id: string; answer: string }[] | null;
+  data: { id: string; profile_id: string; my_truth: string; my_guess: string; guess_correct: boolean | null }[] | null;
   error: { message: string } | null;
 };
 type InsertResponse = { error: { message: string } | null };
+type RpcResponse = { error: { message: string } | null };
+type CountResponse = { count: number | null; error: { message: string } | null };
 
 function makeQuestionsMock(response: QuestionsResponse) {
   const order = jest.fn<Promise<QuestionsResponse>, [string, unknown?]>().mockResolvedValue(response);
@@ -27,7 +30,7 @@ function makeQuestionsMock(response: QuestionsResponse) {
   return { select, order };
 }
 
-/** Mock combinato per "quiz_answers": espone sia .select().eq() (getTodaysQuiz) sia .insert() (answerTodaysQuiz) sullo stesso oggetto, perché nella stessa chiamata ad answerTodaysQuiz vengono usati entrambi (insert, poi refetch). */
+/** Mock combinato per "quiz_answers": .select().eq() (getTodaysQuiz/getQuizScores) e .insert() (submitTodaysQuiz) sullo stesso oggetto. */
 function makeQuizAnswersMock(selectResponse: AnswersResponse, insertResponse: InsertResponse = { error: null }) {
   const eq = jest.fn<Promise<AnswersResponse>, [string, string]>().mockResolvedValue(selectResponse);
   const select = jest.fn<{ eq: typeof eq }, [string]>().mockReturnValue({ eq });
@@ -35,20 +38,39 @@ function makeQuizAnswersMock(selectResponse: AnswersResponse, insertResponse: In
   return { select, eq, insert };
 }
 
+/** Chain per una singola query count: .select(cols, {count,head}).eq(a).eq(b) -> Promise<CountResponse>. */
+function makeCountChain(response: CountResponse) {
+  const eq2 = jest.fn<Promise<CountResponse>, [string, boolean]>().mockResolvedValue(response);
+  const eq1 = jest.fn<{ eq: typeof eq2 }, [string, string]>().mockReturnValue({ eq: eq2 });
+  const select = jest.fn<{ eq: typeof eq1 }, [string, unknown?]>().mockReturnValue({ eq: eq1 });
+  return { select, eq1, eq2 };
+}
+
+/** Mock per la doppia query count di getQuizScores (una per profilo). */
+function makeScoresMock(mineCount: number, partnerCount: number) {
+  return {
+    mine: makeCountChain({ count: mineCount, error: null }),
+    partner: makeCountChain({ count: partnerCount, error: null }),
+  };
+}
+
 type FromReturn =
   | ReturnType<typeof makeQuestionsMock>
   | ReturnType<typeof makeQuizAnswersMock>
-  | ReturnType<typeof makeQueryBuilderMock>;
+  | ReturnType<typeof makeQueryBuilderMock>
+  | ReturnType<typeof makeCountChain>;
 
 type MockSupabase = {
   auth: { getUser: jest.Mock<Promise<{ data: { user: { id: string } | null } }>, []> };
   from: jest.Mock<FromReturn, [table: string]>;
+  rpc: jest.Mock<Promise<RpcResponse>, [fn: string, args?: unknown]>;
 };
 
 function makeMockSupabase(): MockSupabase {
   return {
     auth: { getUser: jest.fn<Promise<{ data: { user: { id: string } | null } }>, []>() },
     from: jest.fn<FromReturn, [table: string]>(),
+    rpc: jest.fn<Promise<RpcResponse>, [string, unknown?]>(),
   };
 }
 
@@ -58,12 +80,11 @@ jest.mock("@/lib/supabase/client", () => ({
   createClient: () => mockSupabase,
 }));
 
-import { getTodaysQuiz, answerTodaysQuiz } from "@/lib/quiz-actions";
+import { getTodaysQuiz, submitTodaysQuiz, confirmQuizGuess, getQuizScores } from "@/lib/quiz-actions";
 
 const QUESTIONS = [
   { id: "q1", prompt: "Qual è il mio colore preferito?" },
   { id: "q2", prompt: "Qual è il mio piatto preferito?" },
-  { id: "q3", prompt: "Qual è la mia più grande paura?" },
 ];
 
 beforeEach(() => {
@@ -86,15 +107,7 @@ describe("getTodaysQuiz", () => {
     expect(result).toEqual({ error: "Errore di rete" });
   });
 
-  it("ritorna errore se il pool di domande è vuoto", async () => {
-    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
-    mockSupabase.from.mockReturnValue(makeQuestionsMock({ data: [], error: null }));
-
-    const result = await getTodaysQuiz();
-    expect(result).toEqual({ error: "Nessuna domanda disponibile." });
-  });
-
-  it("nessuna risposta oggi: myAnswer/partnerAnswer null, revealed false", async () => {
+  it("nessuna risposta oggi: mine/partner null, revealed false", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === "quiz_questions") return makeQuestionsMock({ data: QUESTIONS, error: null });
@@ -103,33 +116,39 @@ describe("getTodaysQuiz", () => {
     });
 
     const result = await getTodaysQuiz();
-    expect(result).toMatchObject({ myAnswer: null, partnerAnswer: null, revealed: false });
-    expect((result as { prompt: string }).prompt).toEqual(expect.any(String));
+    expect(result).toMatchObject({ mine: null, partner: null, revealed: false });
   });
 
-  it("solo io ho risposto: myAnswer valorizzata, partnerAnswer null, revealed false (coerente con RLS: la riga del partner non esisterebbe finché non rispondo anch'io)", async () => {
+  it("solo io ho scritto: mine valorizzato, partner null, revealed false", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === "quiz_questions") return makeQuestionsMock({ data: QUESTIONS, error: null });
       if (table === "quiz_answers") {
-        return makeQuizAnswersMock({ data: [{ profile_id: "me", answer: "Rosso" }], error: null });
+        return makeQuizAnswersMock({
+          data: [{ id: "a1", profile_id: "me", my_truth: "Rosso", my_guess: "Blu", guess_correct: null }],
+          error: null,
+        });
       }
       throw new Error(`tabella inattesa nel test: ${table}`);
     });
 
     const result = await getTodaysQuiz();
-    expect(result).toMatchObject({ myAnswer: "Rosso", partnerAnswer: null, revealed: false });
+    expect(result).toMatchObject({
+      mine: { answerId: "a1", truth: "Rosso", guess: "Blu", guessCorrect: null },
+      partner: null,
+      revealed: false,
+    });
   });
 
-  it("entrambi hanno risposto: revealed true, entrambe le risposte visibili", async () => {
+  it("entrambi hanno scritto: revealed true, entrambi i lati visibili", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === "quiz_questions") return makeQuestionsMock({ data: QUESTIONS, error: null });
       if (table === "quiz_answers") {
         return makeQuizAnswersMock({
           data: [
-            { profile_id: "me", answer: "Rosso" },
-            { profile_id: "partner-1", answer: "Blu" },
+            { id: "a1", profile_id: "me", my_truth: "Rosso", my_guess: "Blu", guess_correct: null },
+            { id: "a2", profile_id: "partner-1", my_truth: "Blu", my_guess: "Rosso", guess_correct: true },
           ],
           error: null,
         });
@@ -138,7 +157,11 @@ describe("getTodaysQuiz", () => {
     });
 
     const result = await getTodaysQuiz();
-    expect(result).toMatchObject({ myAnswer: "Rosso", partnerAnswer: "Blu", revealed: true });
+    expect(result).toMatchObject({
+      mine: { answerId: "a1", truth: "Rosso", guess: "Blu", guessCorrect: null },
+      partner: { answerId: "a2", truth: "Blu", guess: "Rosso", guessCorrect: true },
+      revealed: true,
+    });
   });
 
   it("propaga l'errore della query delle risposte", async () => {
@@ -154,16 +177,16 @@ describe("getTodaysQuiz", () => {
   });
 });
 
-describe("answerTodaysQuiz", () => {
-  it("ritorna errore senza chiamare Supabase se la risposta è vuota/solo spazi", async () => {
-    const result = await answerTodaysQuiz("q1", "   ");
-    expect(result).toEqual({ error: "La risposta non può essere vuota." });
+describe("submitTodaysQuiz", () => {
+  it("ritorna errore senza chiamare Supabase se verità o ipotesi sono vuote", async () => {
+    const result = await submitTodaysQuiz("q1", "  ", "Blu");
+    expect(result).toEqual({ error: "Compila sia la tua risposta sia la tua ipotesi." });
     expect(mockSupabase.auth.getUser).not.toHaveBeenCalled();
   });
 
   it("ritorna errore se l'utente non è autenticato", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
-    const result = await answerTodaysQuiz("q1", "Rosso");
+    const result = await submitTodaysQuiz("q1", "Rosso", "Blu");
     expect(result).toEqual({ error: "Utente non autenticato" });
   });
 
@@ -171,13 +194,16 @@ describe("answerTodaysQuiz", () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
     mockSupabase.from.mockReturnValue(makeQueryBuilderMock({ couple_id: null }));
 
-    const result = await answerTodaysQuiz("q1", "Rosso");
+    const result = await submitTodaysQuiz("q1", "Rosso", "Blu");
     expect(result).toEqual({ error: "Non sei accoppiato/a con un partner." });
   });
 
-  it("inserisce la risposta trimmata e ritorna lo stato aggiornato (refetch)", async () => {
+  it("inserisce verità e ipotesi trimmate e ritorna lo stato aggiornato (refetch)", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
-    const quizAnswersMock = makeQuizAnswersMock({ data: [{ profile_id: "me", answer: "Rosso" }], error: null });
+    const quizAnswersMock = makeQuizAnswersMock({
+      data: [{ id: "a1", profile_id: "me", my_truth: "Rosso", my_guess: "Blu", guess_correct: null }],
+      error: null,
+    });
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === "profiles") return makeQueryBuilderMock({ couple_id: "c1" });
       if (table === "quiz_answers") return quizAnswersMock;
@@ -185,12 +211,12 @@ describe("answerTodaysQuiz", () => {
       throw new Error(`tabella inattesa nel test: ${table}`);
     });
 
-    const result = await answerTodaysQuiz("q1", "  Rosso  ");
+    const result = await submitTodaysQuiz("q1", "  Rosso  ", "  Blu  ");
 
     expect(quizAnswersMock.insert).toHaveBeenCalledWith(
-      expect.objectContaining({ couple_id: "c1", profile_id: "me", question_id: "q1", answer: "Rosso" }),
+      expect.objectContaining({ couple_id: "c1", profile_id: "me", question_id: "q1", my_truth: "Rosso", my_guess: "Blu" }),
     );
-    expect(result).toMatchObject({ myAnswer: "Rosso", revealed: false });
+    expect(result).toMatchObject({ mine: { truth: "Rosso", guess: "Blu" }, revealed: false });
   });
 
   it("propaga l'errore di insert senza fare il refetch", async () => {
@@ -203,8 +229,62 @@ describe("answerTodaysQuiz", () => {
       throw new Error(`tabella inattesa nel test: ${table}`);
     });
 
-    const result = await answerTodaysQuiz("q1", "Rosso");
+    const result = await submitTodaysQuiz("q1", "Rosso", "Blu");
     expect(result).toEqual({ error: "Hai già risposto oggi" });
     expect(mockSupabase.from).not.toHaveBeenCalledWith("quiz_questions");
+  });
+});
+
+describe("confirmQuizGuess", () => {
+  it("chiama la RPC confirm_quiz_guess e ritorna lo stato aggiornato (refetch)", async () => {
+    mockSupabase.rpc.mockResolvedValue({ error: null });
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "quiz_questions") return makeQuestionsMock({ data: QUESTIONS, error: null });
+      if (table === "quiz_answers") return makeQuizAnswersMock({ data: [], error: null });
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    await confirmQuizGuess("a2", true);
+
+    expect(mockSupabase.rpc).toHaveBeenCalledWith("confirm_quiz_guess", { p_answer_id: "a2", p_correct: true });
+  });
+
+  it("propaga l'errore della RPC senza fare il refetch", async () => {
+    mockSupabase.rpc.mockResolvedValue({ error: { message: "Ipotesi già confermata" } });
+
+    const result = await confirmQuizGuess("a2", true);
+    expect(result).toEqual({ error: "Ipotesi già confermata" });
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+});
+
+describe("getQuizScores", () => {
+  it("ritorna errore se l'utente non è autenticato", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+    const result = await getQuizScores("partner-1");
+    expect(result).toEqual({ error: "Utente non autenticato" });
+  });
+
+  it("ritorna il conteggio delle ipotesi confermate corrette per ciascun profilo", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    const mocks = makeScoresMock(3, 2);
+    let call = 0;
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table !== "quiz_answers") throw new Error(`tabella inattesa nel test: ${table}`);
+      call += 1;
+      return call === 1 ? mocks.mine : mocks.partner;
+    });
+
+    const result = await getQuizScores("partner-1");
+    expect(result).toEqual({ mine: 3, partner: 2 });
+  });
+
+  it("ritorna 0 se count è null senza errore", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    mockSupabase.from.mockReturnValue(makeCountChain({ count: null, error: null }));
+
+    const result = await getQuizScores("partner-1");
+    expect(result).toEqual({ mine: 0, partner: 0 });
   });
 });

@@ -139,11 +139,16 @@ export interface Database {
           // stesso trigger handle_couple_anniversary_event, esteso in
           // supabase/migrations/20260901070100_monthly_anniversary_and_recurrence_part2.sql.
           monthly_anniversary_event_id: string | null;
+          // Toggle di coppia (non del singolo utente), scrivibili solo via
+          // RPC set_quiz_enabled/set_mood_checkin_enabled — vedi
+          // supabase/migrations/20260904000000_couple_feature_toggles_and_quiz_v2.sql.
+          quiz_enabled: boolean;
+          mood_checkin_enabled: boolean;
           created_at: string;
           updated_at: string;
         };
         Insert: never; // Solo via RPC accept_pairing_invite, nessun INSERT client diretto.
-        Update: never; // Nessuna policy UPDATE per `authenticated` in questa fase — relationship_start_date passa dalla RPC set_relationship_start_date, anniversary_event_id/monthly_anniversary_event_id mai dal client.
+        Update: never; // Nessuna policy UPDATE per `authenticated` in questa fase — relationship_start_date/quiz_enabled/mood_checkin_enabled passano dalle rispettive RPC, anniversary_event_id/monthly_anniversary_event_id mai dal client.
         Relationships: [
           {
             foreignKeyName: "couples_partner_1_id_fkey";
@@ -531,14 +536,18 @@ export interface Database {
         Relationships: [];
       };
       quiz_answers: {
-        // Immutabile: nessun update/delete (come messages).
+        // "Indovina il partner" (v2): my_truth/my_guess immutabili dal
+        // client; guess_correct scrivibile SOLO via RPC confirm_quiz_guess,
+        // mai da un .update() diretto (Update resta "never" per questo).
         Row: {
           id: string;
           couple_id: string;
           profile_id: string;
           answer_date: string;
           question_id: string;
-          answer: string;
+          my_truth: string;
+          my_guess: string;
+          guess_correct: boolean | null;
           created_at: string;
         };
         Insert: {
@@ -547,7 +556,8 @@ export interface Database {
           profile_id: string;
           answer_date: string;
           question_id: string;
-          answer: string;
+          my_truth: string;
+          my_guess: string;
           created_at?: string;
         };
         Update: never;
@@ -726,6 +736,18 @@ export interface Database {
       };
       leave_couple: {
         Args: Record<PropertyKey, never>;
+        Returns: undefined;
+      };
+      set_quiz_enabled: {
+        Args: { p_enabled: boolean };
+        Returns: undefined;
+      };
+      set_mood_checkin_enabled: {
+        Args: { p_enabled: boolean };
+        Returns: undefined;
+      };
+      confirm_quiz_guess: {
+        Args: { p_answer_id: string; p_correct: boolean };
         Returns: undefined;
       };
     };

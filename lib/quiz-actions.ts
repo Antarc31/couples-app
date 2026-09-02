@@ -1,16 +1,17 @@
 "use client";
 
 /**
- * Azioni per il quiz giornaliero "quanto mi conosci" (Fase B del piano
- * approvato, /Users/antonioarcucci/.claude/plans/ho-notato-delle-cose-mossy-sketch.md).
+ * Azioni per il quiz giornaliero "indovina il partner" (Fase B del piano
+ * approvato, redesign dopo la prima versione — vedi
+ * /Users/antonioarcucci/.claude/plans/ho-notato-delle-cose-mossy-sketch.md).
+ * Ogni risposta contiene sia la verità di chi risponde sia la sua ipotesi su
+ * cosa risponderebbe il partner; una volta rivelato, chi possiede la verità
+ * conferma manualmente se l'ipotesi era corretta (RPC confirm_quiz_guess) —
+ * il punteggio individuale è il conteggio delle conferme positive, calcolato
+ * in lettura, nessuna tabella punteggio da mantenere sincronizzata.
+ *
  * Stesso pattern di lib/wishlist-actions.ts: client browser Supabase per
  * funzione, error mapping a {error: string}.
- *
- * La domanda del giorno è la stessa per tutte le coppie (confermato con
- * l'utente) e viene calcolata qui, deterministicamente, senza alcuno stato
- * salvato lato DB — stesso principio già seguito per traguardi/throwback
- * (nessun cron nel progetto). `quiz_questions` è ordinata per `id` (uuid):
- * un ordine stabile e identico su ogni client, non l'ordine di inserimento.
  */
 
 import { createClient } from "@/lib/supabase/client";
@@ -20,17 +21,26 @@ export interface ActionError {
   error: string;
 }
 
+export interface QuizSide {
+  answerId: string;
+  truth: string;
+  guess: string;
+  /** null = non ancora confermata da chi possiede la verità. */
+  guessCorrect: boolean | null;
+}
+
 export interface TodaysQuiz {
   questionId: string;
   prompt: string;
-  myAnswer: string | null;
-  /** Valorizzata SOLO quando `revealed` è true — se null e revealed è false, il partner non ha ancora risposto (o la RLS la nasconde comunque). */
-  partnerAnswer: string | null;
+  /** null se non ho ancora scritto oggi. */
+  mine: QuizSide | null;
+  /** valorizzato SOLO quando `revealed` è true (la RLS lo garantisce comunque). */
+  partner: QuizSide | null;
   revealed: boolean;
 }
 
-// Data di ancoraggio della rotazione: arbitraria ma fissa — cambiarla in
-// futuro sposterebbe quale domanda cade in quale giorno per tutte le coppie.
+// Data di ancoraggio della rotazione del pool domande: arbitraria ma fissa —
+// cambiarla sposterebbe quale domanda cade in quale giorno per tutte le coppie.
 const QUIZ_EPOCH = new Date(2026, 0, 1);
 const MS_PER_DAY = 86400000;
 
@@ -39,7 +49,19 @@ function quizIndexForDate(date: Date, totalQuestions: number): number {
   return ((daysSinceEpoch % totalQuestions) + totalQuestions) % totalQuestions;
 }
 
-/** Domanda di oggi + stato delle risposte (mia sempre visibile, del partner solo se ha risposto anche lui/lei oggi — la RLS lo garantisce già). */
+interface QuizAnswerRow {
+  id: string;
+  profile_id: string;
+  my_truth: string;
+  my_guess: string;
+  guess_correct: boolean | null;
+}
+
+function mapRowToSide(row: QuizAnswerRow): QuizSide {
+  return { answerId: row.id, truth: row.my_truth, guess: row.my_guess, guessCorrect: row.guess_correct };
+}
+
+/** Domanda di oggi + stato delle risposte (la mia sempre visibile, quella del partner solo se ha scritto anche lui/lei oggi — RLS). */
 export async function getTodaysQuiz(): Promise<TodaysQuiz | ActionError> {
   const supabase = createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -58,27 +80,32 @@ export async function getTodaysQuiz(): Promise<TodaysQuiz | ActionError> {
 
   const { data: answers, error: answersError } = await supabase
     .from("quiz_answers")
-    .select("profile_id, answer")
+    .select("id, profile_id, my_truth, my_guess, guess_correct")
     .eq("answer_date", toDateKey(today));
   if (answersError) return { error: answersError.message };
 
   const rows = answers ?? [];
-  const mine = rows.find((row) => row.profile_id === myId);
+  const mineRow = rows.find((row) => row.profile_id === myId);
   const partnerRow = rows.find((row) => row.profile_id !== myId);
 
   return {
     questionId: question.id,
     prompt: question.prompt,
-    myAnswer: mine?.answer ?? null,
-    partnerAnswer: partnerRow?.answer ?? null,
-    revealed: Boolean(mine && partnerRow),
+    mine: mineRow ? mapRowToSide(mineRow) : null,
+    partner: partnerRow ? mapRowToSide(partnerRow) : null,
+    revealed: Boolean(mineRow && partnerRow),
   };
 }
 
-/** Invia la risposta di oggi (una sola, immutabile) e ritorna lo stato aggiornato. */
-export async function answerTodaysQuiz(questionId: string, answer: string): Promise<TodaysQuiz | ActionError> {
-  const trimmed = answer.trim();
-  if (!trimmed) return { error: "La risposta non può essere vuota." };
+/** Invia la risposta di oggi (verità + ipotesi, una sola volta, immutabile) e ritorna lo stato aggiornato. */
+export async function submitTodaysQuiz(
+  questionId: string,
+  truth: string,
+  guess: string,
+): Promise<TodaysQuiz | ActionError> {
+  const trimmedTruth = truth.trim();
+  const trimmedGuess = guess.trim();
+  if (!trimmedTruth || !trimmedGuess) return { error: "Compila sia la tua risposta sia la tua ipotesi." };
 
   const supabase = createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -97,9 +124,50 @@ export async function answerTodaysQuiz(questionId: string, answer: string): Prom
     profile_id: user.id,
     answer_date: toDateKey(new Date()),
     question_id: questionId,
-    answer: trimmed,
+    my_truth: trimmedTruth,
+    my_guess: trimmedGuess,
   });
   if (error) return { error: error.message };
 
   return getTodaysQuiz();
+}
+
+/** Conferma se l'ipotesi del PARTNER su di te era corretta (RPC confirm_quiz_guess) e ritorna lo stato aggiornato. */
+export async function confirmQuizGuess(answerId: string, correct: boolean): Promise<TodaysQuiz | ActionError> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("confirm_quiz_guess", { p_answer_id: answerId, p_correct: correct });
+  if (error) return { error: error.message };
+
+  return getTodaysQuiz();
+}
+
+export interface QuizScores {
+  mine: number;
+  partner: number;
+}
+
+/** Punteggio individuale cumulativo: conteggio delle ipotesi confermate corrette, per profilo. Nessuna tabella punteggio: sempre corretto per costruzione. */
+export async function getQuizScores(partnerId: string): Promise<QuizScores | ActionError> {
+  const supabase = createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const myId = userData?.user?.id;
+  if (!myId) return { error: "Utente non autenticato" };
+
+  const [mineResult, partnerResult] = await Promise.all([
+    supabase
+      .from("quiz_answers")
+      .select("id", { count: "exact", head: true })
+      .eq("profile_id", myId)
+      .eq("guess_correct", true),
+    supabase
+      .from("quiz_answers")
+      .select("id", { count: "exact", head: true })
+      .eq("profile_id", partnerId)
+      .eq("guess_correct", true),
+  ]);
+
+  if (mineResult.error) return { error: mineResult.error.message };
+  if (partnerResult.error) return { error: partnerResult.error.message };
+
+  return { mine: mineResult.count ?? 0, partner: partnerResult.count ?? 0 };
 }
