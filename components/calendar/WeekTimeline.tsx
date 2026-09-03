@@ -38,98 +38,104 @@ export default function WeekTimeline({ days, events, colorCtx, onEventClick, onD
     return events.filter((ev) => isSameDay(new Date(ev.starts_at), day));
   }
 
+  // Un'unica griglia CSS (gutter ore + 7 colonne giorno) condivisa da
+  // intestazioni e timeline: prima erano due `grid grid-cols-7` separate
+  // (una a piena larghezza per le intestazioni, una ristretta dal gutter
+  // `w-7` per la timeline) che quindi non allineavano mai le stesse colonne
+  // — bug segnalato dall'utente. Con una sola definizione di griglia le due
+  // righe non possono più disallinearsi.
   return (
-    <div className="flex flex-col gap-2">
-      <div className="grid grid-cols-7 gap-1">
-        {days.map((day, i) => {
-          const isToday = isSameDay(day, today);
-          const allDayEvents = eventsOnDay(day).filter((ev) => ev.all_day);
-          return (
-            <div key={toDateKey(day)} className="flex flex-col gap-1">
-              <button
-                type="button"
-                onClick={() => onDayClick?.(day)}
-                aria-label={formatDayLabel(day)}
-                className={`flex flex-col items-center rounded-xl py-1 text-xs transition ${
-                  isToday ? "bg-couple-soft font-bold text-ink" : "text-ink-soft"
-                }`}
-              >
-                <span className="capitalize">{WEEKDAY_LABELS[i]}</span>
-                <span className="text-sm">{day.getDate()}</span>
-              </button>
-              <div className="flex flex-col gap-0.5">
-                {allDayEvents.slice(0, MAX_ALL_DAY_CHIPS).map((ev) => (
-                  <span
-                    key={ev.id}
-                    title={ev.title}
-                    className="truncate rounded-full px-1.5 py-0.5 text-center text-[9px] font-semibold text-white"
-                    style={{ backgroundColor: eventColor(ev, colorCtx) }}
-                  >
-                    {ev.title}
-                  </span>
-                ))}
-                {allDayEvents.length > MAX_ALL_DAY_CHIPS && (
-                  <span className="text-center text-[9px] leading-none text-ink-soft">
-                    +{allDayEvents.length - MAX_ALL_DAY_CHIPS}
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="flex">
-        <div className="relative w-7 shrink-0" style={{ height: totalHeight }}>
-          {hours.map((hour, i) => (
-            <span
-              key={hour}
-              className="absolute right-1 text-[9px] text-ink-soft"
-              style={{ top: i * WEEK_ROW_HEIGHT - 5 }}
+    <div className="grid grid-cols-[28px_repeat(7,minmax(0,1fr))] gap-1">
+      <div />
+      {days.map((day, i) => {
+        const isToday = isSameDay(day, today);
+        const allDayEvents = eventsOnDay(day).filter((ev) => ev.all_day);
+        return (
+          <div key={toDateKey(day)} className="flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={() => onDayClick?.(day)}
+              aria-label={formatDayLabel(day)}
+              className={`flex flex-col items-center rounded-xl py-1 text-xs transition ${
+                isToday ? "bg-couple-soft font-bold text-ink" : "bg-surface text-ink-soft"
+              }`}
             >
-              {String(hour).padStart(2, "0")}
-            </span>
-          ))}
-        </div>
+              <span className="capitalize">{WEEKDAY_LABELS[i]}</span>
+              <span className="text-sm">{day.getDate()}</span>
+            </button>
+            <div className="flex flex-col gap-0.5">
+              {allDayEvents.slice(0, MAX_ALL_DAY_CHIPS).map((ev) => (
+                <span
+                  key={ev.id}
+                  title={ev.title}
+                  className="truncate rounded-full px-1.5 py-0.5 text-center text-[9px] font-semibold text-white"
+                  style={{ backgroundColor: eventColor(ev, colorCtx) }}
+                >
+                  {ev.title}
+                </span>
+              ))}
+              {allDayEvents.length > MAX_ALL_DAY_CHIPS && (
+                <span className="text-center text-[9px] leading-none text-ink-soft">
+                  +{allDayEvents.length - MAX_ALL_DAY_CHIPS}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
 
-        <div className="grid flex-1 grid-cols-7 gap-1">
-          {days.map((day) => {
-            const timedEvents = eventsOnDay(day).filter((ev) => !ev.all_day);
-            const layout = layoutTimedEvents(timedEvents, WEEK_ROW_HEIGHT);
-            return (
-              <div key={toDateKey(day)} className="relative rounded-xl bg-base" style={{ height: totalHeight }}>
-                {hours.map((hour, i) => (
-                  <div
-                    key={hour}
-                    className="absolute inset-x-0 border-t border-border"
-                    style={{ top: i * WEEK_ROW_HEIGHT }}
-                  />
-                ))}
-                {layout.map(({ event: ev, top, height, column, columns }) => (
-                  <div
-                    key={ev.id}
-                    role="button"
-                    tabIndex={0}
-                    title={ev.title}
-                    onClick={() => onEventClick?.(ev)}
-                    onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onEventClick?.(ev)}
-                    className="absolute cursor-pointer overflow-hidden rounded-md px-1 text-[9px] font-semibold leading-tight text-white transition active:scale-[0.98]"
-                    style={{
-                      top,
-                      height,
-                      left: `${(column / columns) * 100}%`,
-                      width: `calc(${100 / columns}% - 2px)`,
-                      backgroundColor: eventColor(ev, colorCtx),
-                    }}
-                  >
-                    {ev.title}
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
+      <div className="relative" style={{ height: totalHeight }}>
+        {hours.map((hour, i) => (
+          <span
+            key={hour}
+            className="absolute right-1 text-[9px] text-ink-soft"
+            style={{ top: i * WEEK_ROW_HEIGHT - 5 }}
+          >
+            {String(hour).padStart(2, "0")}
+          </span>
+        ))}
       </div>
+
+      {days.map((day) => {
+        const isToday = isSameDay(day, today);
+        const timedEvents = eventsOnDay(day).filter((ev) => !ev.all_day);
+        const layout = layoutTimedEvents(timedEvents, WEEK_ROW_HEIGHT);
+        return (
+          <div
+            key={toDateKey(day)}
+            className={`relative rounded-xl ${isToday ? "bg-couple-soft/25" : "bg-base"}`}
+            style={{ height: totalHeight }}
+          >
+            {hours.map((hour, i) => (
+              <div
+                key={hour}
+                className="absolute inset-x-0 border-t border-border"
+                style={{ top: i * WEEK_ROW_HEIGHT }}
+              />
+            ))}
+            {layout.map(({ event: ev, top, height, column, columns }) => (
+              <div
+                key={ev.id}
+                role="button"
+                tabIndex={0}
+                title={ev.title}
+                onClick={() => onEventClick?.(ev)}
+                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onEventClick?.(ev)}
+                className="absolute cursor-pointer overflow-hidden rounded-md px-1 text-[9px] font-semibold leading-tight text-white transition active:scale-[0.98]"
+                style={{
+                  top,
+                  height,
+                  left: `${(column / columns) * 100}%`,
+                  width: `calc(${100 / columns}% - 2px)`,
+                  backgroundColor: eventColor(ev, colorCtx),
+                }}
+              >
+                {ev.title}
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
