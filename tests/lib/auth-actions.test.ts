@@ -128,7 +128,10 @@ describe("signUp", () => {
     expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
       email: "a@b.com",
       password: "secret123",
-      options: { data: { display_name: "Anna" } },
+      options: {
+        data: { display_name: "Anna" },
+        emailRedirectTo: expect.stringContaining("/auth/callback"),
+      },
     });
   });
 

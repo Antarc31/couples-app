@@ -71,7 +71,15 @@ export async function signUp(params: {
   const { data, error } = await supabase.auth.signUp({
     email: params.email,
     password: params.password,
-    options: { data: { display_name: params.displayName } },
+    options: {
+      data: { display_name: params.displayName },
+      // Il link nell'email di conferma deve passare da app/auth/callback/route.ts
+      // (che scambia il `code` con una sessione vera) — senza questo la
+      // conferma non si completava mai lato server, vedi commento lì.
+      // window.location.origin funziona qui perché signUp() gira solo
+      // client-side (chiamata da un form, mai da un Server Component).
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
+    },
   });
   if (error) return { error: friendlyAuthErrorMessage(error.message) };
   if (!data.user) return { error: "Registrazione non riuscita, riprova." };
