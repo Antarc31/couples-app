@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { createPairingInvite, acceptPairingInvite, signOut } from "@/lib/auth-actions";
+import { createPairingInvite, acceptPairingInvite, getSession, signOut } from "@/lib/auth-actions";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
@@ -22,6 +22,30 @@ export default function PairingClient() {
   const [acceptError, setAcceptError] = useState<string | null>(null);
   const [pairedWith, setPairedWith] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Bug segnalato dall'utente: chi genera il codice restava bloccato sulla
+  // schermata anche a pairing già avvenuto (accept_pairing_invite collega
+  // ENTRAMBI i profiles nella stessa transazione — verificato via query
+  // diretta sul DB — ma prima nulla ricontrollava mai lato client se nel
+  // frattempo il partner aveva accettato). Poll leggero su getSession()
+  // finché il codice è a schermo: appena couple_id compare, si passa alla
+  // Home in automatico, senza dover ricaricare la pagina a mano.
+  useEffect(() => {
+    if (!code) return;
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      const session = await getSession();
+      if (!cancelled && session?.coupleId) {
+        clearInterval(interval);
+        router.push("/home");
+        router.refresh();
+      }
+    }, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [code, router]);
 
   async function handleGenerate() {
     setGenerating(true);
@@ -100,6 +124,7 @@ export default function PairingClient() {
               <Button variant="secondary" onClick={handleCopy} className="w-full">
                 {copied ? "Copiato ✓" : "Copia codice"}
               </Button>
+              <p className="text-xs text-ink-soft">In attesa che il partner inserisca il codice… si passa alla Home in automatico appena vi accoppiate.</p>
             </>
           ) : (
             <>
