@@ -60,13 +60,28 @@ const mockUpdateCalendarEvent = jest.fn<
   [string, UpdateCalendarEventInput]
 >();
 
+// Controllo automatico di sovrapposizione ("buchi comuni") dentro
+// AppointmentFormModal: risolto a [] di default nel beforeEach, nessun test
+// qui verifica quel comportamento nel dettaglio (coperto da
+// AppointmentFormModal.test.tsx), solo che non rompa il resto del form.
+const mockListCoupleEventsInRange = jest.fn<
+  Promise<CalendarEventRow[] | CalendarActionError>,
+  [string, Date, Date]
+>();
+
 jest.mock("@/lib/calendar-actions", () => ({
   updateCalendarEvent: (...args: [string, UpdateCalendarEventInput]) => mockUpdateCalendarEvent(...args),
+  listCoupleEventsInRange: (...args: [string, Date, Date]) => mockListCoupleEventsInRange(...args),
 }));
 
 type CalendarEventRow = { id: string; starts_at: string; ends_at: string | null; all_day: boolean };
 
 const mockCalendarEventsIn = jest.fn<Promise<{ data: CalendarEventRow[] | null }>, [string, string[]]>();
+// AppointmentFormModal deriva coupleId da sé (auth.getUser() + profiles) per
+// il controllo di sovrapposizione: di default nessun utente loggato, così il
+// codice ritorna prima di toccare la tabella "profiles" (mai mockata qui —
+// coperta da AppointmentFormModal.test.tsx).
+const mockGetUser = jest.fn<Promise<{ data: { user: { id: string } | null } }>, []>();
 const mockFrom = jest.fn((table: string) => {
   if (table === "calendar_events") {
     return { select: () => ({ in: mockCalendarEventsIn }) };
@@ -75,7 +90,7 @@ const mockFrom = jest.fn((table: string) => {
 });
 
 jest.mock("@/lib/supabase/client", () => ({
-  createClient: () => ({ from: mockFrom }),
+  createClient: () => ({ from: mockFrom, auth: { getUser: mockGetUser } }),
 }));
 
 import AppointmentsView from "@/components/appointments/AppointmentsView";
@@ -109,6 +124,10 @@ beforeEach(() => {
   mockUpdateCalendarEvent.mockReset();
   mockCalendarEventsIn.mockReset();
   mockFrom.mockClear();
+  mockListCoupleEventsInRange.mockReset();
+  mockListCoupleEventsInRange.mockResolvedValue([]);
+  mockGetUser.mockReset();
+  mockGetUser.mockResolvedValue({ data: { user: null } });
 });
 
 describe("AppointmentsView — countdown sui confermati", () => {

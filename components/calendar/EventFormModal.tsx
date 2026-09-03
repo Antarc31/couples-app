@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { toDateKey } from "@/lib/calendar-dates";
-import { createCalendarEvent, updateCalendarEvent } from "@/lib/calendar-actions";
+import { overlapsAnyEvent, toDateKey, toTimeString } from "@/lib/calendar-dates";
+import { createCalendarEvent, listCoupleEventsInRange, updateCalendarEvent } from "@/lib/calendar-actions";
 import { createConfirmedAppointment } from "@/lib/appointments-actions";
 import type { CalendarEventRow } from "@/lib/calendar-colors";
 import type { EventCategory } from "@/types/database";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import SlotSuggestions from "@/components/calendar/SlotSuggestions";
 
 const CATEGORY_OPTIONS: { value: EventCategory; label: string; colorVar: string }[] = [
   { value: "personale", label: "Personale", colorVar: "var(--color-partner-a)" },
@@ -17,10 +18,9 @@ const CATEGORY_OPTIONS: { value: EventCategory; label: string; colorVar: string 
 
 const TAG_SUGGESTIONS = ["amici", "uni", "sport", "lavoro", "famiglia", "viaggio"];
 
-/** yyyy-mm-dd → HH:mm locale, per popolare gli <input type="time"> in edit. */
+/** ISO → HH:mm locale, per popolare gli <input type="time"> in edit. */
 function toTimeInputValue(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return toTimeString(new Date(iso));
 }
 
 interface EventFormModalProps {
@@ -31,6 +31,8 @@ interface EventFormModalProps {
   mode?: "create" | "edit";
   /** Obbligatorio quando mode === "edit". */
   initial?: CalendarEventRow;
+  /** Solo mode === "create": precompila inizio/fine da uno slot scelto con "Trova buchi liberi" (CalendarView), invece dei default fissi 09:00–10:00. */
+  initialTimeRange?: { startTime: string; endTime: string };
   onClose: () => void;
   /** Riceve la categoria salvata — usata dal chiamante per un toast di conferma differenziato. */
   onSaved: (category: EventCategory) => void;
@@ -72,6 +74,7 @@ export default function EventFormModal({
   defaultDate,
   mode = "create",
   initial,
+  initialTimeRange,
   onClose,
   onSaved,
 }: EventFormModalProps) {
@@ -86,18 +89,45 @@ export default function EventFormModal({
   const [tag, setTag] = useState(initial?.tag ?? "");
   const [date, setDate] = useState(toDateKey(initial ? new Date(initial.starts_at) : defaultDate));
   const [allDay, setAllDay] = useState(initial?.all_day ?? false);
-  const [startTime, setStartTime] = useState(initial ? toTimeInputValue(initial.starts_at) : "09:00");
+  const [startTime, setStartTime] = useState(
+    initial ? toTimeInputValue(initial.starts_at) : (initialTimeRange?.startTime ?? "09:00"),
+  );
   const [endTime, setEndTime] = useState(
-    initial?.ends_at ? toTimeInputValue(initial.ends_at) : initial ? "" : "10:00",
+    initial?.ends_at ? toTimeInputValue(initial.ends_at) : initial ? "" : (initialTimeRange?.endTime ?? "10:00"),
   );
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [location, setLocation] = useState("");
   const [cost, setCost] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Rilevamento sovrapposizione automatico (nessun checkbox): non blocca il
+  // salvataggio, solo un avviso + suggerimento — vedi piano "buchi comuni".
+  const [overlapWarning, setOverlapWarning] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const showCoupleFields = !isEdit && category === "coppia";
   const showEditCoupleHint = isEdit && category === "coppia";
+
+  useEffect(() => {
+    if (allDay || !startTime || !endTime) {
+      setOverlapWarning(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const dayStart = new Date(`${date}T00:00:00`);
+      const dayEnd = new Date(`${date}T23:59:59`);
+      const result = await listCoupleEventsInRange(coupleId, dayStart, dayEnd);
+      if (cancelled || "error" in result) return;
+      const events = initial ? result.filter((ev) => ev.id !== initial.id) : result;
+      const start = new Date(`${date}T${startTime}:00`);
+      const end = new Date(`${date}T${endTime}:00`);
+      setOverlapWarning(overlapsAnyEvent(events, start, end));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [coupleId, date, startTime, endTime, allDay, initial]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -268,6 +298,34 @@ export default function EventFormModal({
                 Fine
                 <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="mt-1" />
               </label>
+            </div>
+          )}
+
+          {overlapWarning && !allDay && (
+            <div className="flex flex-col gap-2 rounded-2xl bg-danger/10 p-3">
+              <p className="text-xs font-semibold text-danger">⚠️ Si sovrappone a un impegno già in calendario</p>
+              {!showSuggestions ? (
+                <button
+                  type="button"
+                  onClick={() => setShowSuggestions(true)}
+                  className="self-start rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm transition active:scale-95"
+                >
+                  Suggerisci slot orario
+                </button>
+              ) : (
+                <SlotSuggestions
+                  coupleId={coupleId}
+                  from={new Date(`${date}T00:00:00`)}
+                  daysAhead={7}
+                  excludeEventId={initial?.id}
+                  onPick={(start, end) => {
+                    setDate(toDateKey(start));
+                    setStartTime(toTimeString(start));
+                    setEndTime(toTimeString(end));
+                    setShowSuggestions(false);
+                  }}
+                />
+              )}
             </div>
           )}
 

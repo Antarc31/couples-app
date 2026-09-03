@@ -53,12 +53,32 @@ function makeUpcomingEventsMock(response: QueryResponse<unknown[] | null>) {
   return { select, eq, gte, order, limit };
 }
 
+/** Mock della catena `.select("*").eq(col,val).gte(col,val).lt(col,val).order(col,opts)` — query "range" di listCoupleEventsInRange. */
+function makeRangeQueryMock(response: QueryResponse<unknown[] | null>) {
+  const order = jest.fn<Promise<typeof response>, [string, unknown?]>().mockResolvedValue(response);
+  const lt = jest.fn<{ order: typeof order }, [string, string]>().mockReturnValue({ order });
+  const gte = jest.fn<{ lt: typeof lt }, [string, string]>().mockReturnValue({ lt });
+  const eq = jest.fn<{ gte: typeof gte }, [string, string]>().mockReturnValue({ gte });
+  const select = jest.fn<{ eq: typeof eq }, [string]>().mockReturnValue({ eq });
+  return { select, eq, gte, lt, order };
+}
+
+/** Mock della catena `.select("*").eq(col,val).neq(col,val)` — query "ricorrenti" di listCoupleEventsInRange. */
+function makeRecurringQueryMock(response: QueryResponse<unknown[] | null>) {
+  const neq = jest.fn<Promise<typeof response>, [string, string]>().mockResolvedValue(response);
+  const eq = jest.fn<{ neq: typeof neq }, [string, string]>().mockReturnValue({ neq });
+  const select = jest.fn<{ eq: typeof eq }, [string]>().mockReturnValue({ eq });
+  return { select, eq, neq };
+}
+
 type FromReturn =
   | ReturnType<typeof makeQueryBuilderMock>
   | ReturnType<typeof makeInsertSelectSingleMock>
   | ReturnType<typeof makeUpdateEqSelectSingleMock>
   | ReturnType<typeof makeDeleteEqMock>
-  | ReturnType<typeof makeUpcomingEventsMock>;
+  | ReturnType<typeof makeUpcomingEventsMock>
+  | ReturnType<typeof makeRangeQueryMock>
+  | ReturnType<typeof makeRecurringQueryMock>;
 
 type MockSupabase = {
   auth: { getUser: jest.Mock<Promise<{ data: { user: { id: string } | null } }>, []> };
@@ -83,6 +103,7 @@ import {
   updateCalendarEvent,
   deleteCalendarEvent,
   listUpcomingCoupleEvents,
+  listCoupleEventsInRange,
 } from "@/lib/calendar-actions";
 
 beforeEach(() => {
@@ -308,3 +329,76 @@ describe("listUpcomingCoupleEvents", () => {
     expect(result).toEqual([]);
   });
 });
+
+describe("listCoupleEventsInRange", () => {
+  it("unisce eventi non ricorrenti nel range con le occorrenze proiettate dei ricorrenti, senza doppioni", async () => {
+    const nonRecurring = { ...baseRow, id: "ev1", recurrence: "nessuna" as const };
+    // Simula un evento ricorrente la cui data letterale cade *anche* nel range
+    // interrogato dalla prima query: deve comunque sparire dal risultato finale
+    // a favore della SOLA occorrenza proiettata dalla seconda query (dedup via
+    // recurringIds — stesso meccanismo già in CalendarView.loadEvents).
+    const recurringLiteral = { ...baseRow, id: "ev2", recurrence: "annuale" as const, starts_at: "2001-06-15T10:00:00.000Z" };
+
+    const rangeMock = makeRangeQueryMock({ data: [nonRecurring, recurringLiteral], error: null });
+    const recurringMock = makeRecurringQueryMock({ data: [recurringLiteral], error: null });
+    mockSupabase.from.mockReturnValueOnce(rangeMock).mockReturnValueOnce(recurringMock);
+
+    const rangeStart = new Date(2026, 5, 1);
+    const rangeEnd = new Date(2026, 5, 30);
+    const result = await listCoupleEventsInRange("c1", rangeStart, rangeEnd);
+
+    expect(mockSupabase.from).toHaveBeenCalledTimes(2);
+    expect(rangeMock.eq).toHaveBeenCalledWith("couple_id", "c1");
+    expect(recurringMock.eq).toHaveBeenCalledWith("couple_id", "c1");
+    expect(recurringMock.neq).toHaveBeenCalledWith("recurrence", "nessuna");
+
+    if ("error" in result) throw new Error("non doveva ritornare un errore");
+    expect(result).toHaveLength(2);
+    expect(result.some((r) => r.id === "ev1")).toBe(true);
+    // L'occorrenza proiettata ha lo stesso id della riga reale (ev2) ma
+    // starts_at riscritto sulla data proiettata nel range (15 giugno 2026),
+    // non più la data letterale (2001).
+    const projected = result.find((r) => r.id === "ev2");
+    expect(projected).toBeDefined();
+    expect(toDateKeyLocal(new Date(projected!.starts_at))).toBe("2026-06-15");
+  });
+
+  it("il range di fetch include l'intero rangeEnd (lt sul giorno successivo, bordo escluso)", async () => {
+    const rangeMock = makeRangeQueryMock({ data: [], error: null });
+    const recurringMock = makeRecurringQueryMock({ data: [], error: null });
+    mockSupabase.from.mockReturnValueOnce(rangeMock).mockReturnValueOnce(recurringMock);
+
+    const rangeStart = new Date(2026, 5, 1);
+    const rangeEnd = new Date(2026, 5, 30);
+    await listCoupleEventsInRange("c1", rangeStart, rangeEnd);
+
+    expect(rangeMock.gte).toHaveBeenCalledWith("starts_at", rangeStart.toISOString());
+    expect(rangeMock.lt).toHaveBeenCalledWith("starts_at", new Date(2026, 6, 1).toISOString());
+  });
+
+  it("propaga l'errore della query 'range'", async () => {
+    const rangeMock = makeRangeQueryMock({ data: null, error: { message: "Errore di rete" } });
+    const recurringMock = makeRecurringQueryMock({ data: [], error: null });
+    mockSupabase.from.mockReturnValueOnce(rangeMock).mockReturnValueOnce(recurringMock);
+
+    const result = await listCoupleEventsInRange("c1", new Date(2026, 5, 1), new Date(2026, 5, 30));
+    expect(result).toEqual({ error: "Errore di rete" });
+  });
+
+  it("propaga l'errore della query 'ricorrenti'", async () => {
+    const rangeMock = makeRangeQueryMock({ data: [], error: null });
+    const recurringMock = makeRecurringQueryMock({ data: null, error: { message: "Errore di rete" } });
+    mockSupabase.from.mockReturnValueOnce(rangeMock).mockReturnValueOnce(recurringMock);
+
+    const result = await listCoupleEventsInRange("c1", new Date(2026, 5, 1), new Date(2026, 5, 30));
+    expect(result).toEqual({ error: "Errore di rete" });
+  });
+});
+
+/** yyyy-mm-dd locale, solo per le asserzioni di questo file (evita di importare lib/calendar-dates.ts solo per toDateKey). */
+function toDateKeyLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}

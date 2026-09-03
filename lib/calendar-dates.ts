@@ -4,6 +4,12 @@
 
 import type { EventRecurrence } from "@/types/database";
 
+// Finestra oraria usata sia dalla vista Giorno (DayTimeline, che le importa
+// da qui) sia dal calcolo dei "buchi comuni" sotto — unica fonte di verità,
+// mai due window diverse tra la resa grafica e i suggerimenti di slot.
+export const DAY_START_HOUR = 6;
+export const DAY_END_HOUR = 24; // esclusivo
+
 /** yyyy-mm-dd locale (NON toISOString, che è UTC e può shiftare il giorno). */
 export function toDateKey(d: Date): string {
   const y = d.getFullYear();
@@ -71,6 +77,11 @@ export function formatDayLabel(d: Date): string {
 
 export function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+}
+
+/** HH:mm locale da un Date — per precompilare gli <input type="time"> da uno slot scelto (Date, non ISO). */
+export function toTimeString(d: Date): string {
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 export function formatDateShort(iso: string): string {
@@ -244,4 +255,134 @@ export function projectOccurrences(
     }
   }
   return results;
+}
+
+// =============================================================================
+// "Buchi comuni" — slot liberi condivisi + rilevamento sovrapposizioni.
+// Nessuna dipendenza Supabase: il chiamante (lib/calendar-actions.ts) passa
+// già gli eventi risolti (inclusi quelli ricorrenti, proiettati con
+// projectOccurrences sopra). Vedi piano approvato in
+// /Users/antonioarcucci/.claude/plans/ho-notato-delle-cose-mossy-sketch.md.
+// =============================================================================
+
+/** Forma minima strutturale: CalendarEventRow la soddisfa senza bisogno di importarlo qui (stesso disaccoppiamento del resto del file). */
+export interface BusyEvent {
+  id?: string;
+  starts_at: string;
+  ends_at: string | null;
+  all_day: boolean;
+}
+
+// Un appuntamento (AppointmentFormModal) non ha mai un orario di fine
+// registrato — trattarlo come "punto" a durata zero farebbe sì che due
+// appuntamenti allo stesso identico istante non risultino mai in conflitto
+// (l'intervallo [start,start) è per definizione vuoto). Si assume quindi una
+// durata nominale di default quando `ends_at` manca, qui e in tutte le
+// funzioni sotto.
+const DEFAULT_EVENT_DURATION_MINUTES = 60;
+
+function resolvedEventEnd(ev: BusyEvent): Date {
+  if (ev.ends_at) return new Date(ev.ends_at);
+  return new Date(new Date(ev.starts_at).getTime() + DEFAULT_EVENT_DURATION_MINUTES * 60000);
+}
+
+function dayWindow(day: Date): { start: Date; end: Date } {
+  const base = startOfDay(day);
+  const start = new Date(base);
+  start.setHours(DAY_START_HOUR, 0, 0, 0);
+  const end = new Date(base);
+  end.setHours(DAY_END_HOUR, 0, 0, 0); // 24 → normalizza a mezzanotte del giorno dopo (Date lo gestisce da sé)
+  return { start, end };
+}
+
+/**
+ * Fasce libere di `day` dentro `[DAY_START_HOUR, DAY_END_HOUR)`, escludendo
+ * gli intervalli occupati da `events` (di entrambi i partner). Un evento
+ * `all_day` quel giorno blocca l'intera finestra (nessuna fascia). Nessun
+ * filtro di privacy qui: chi chiama ha già solo righe visibili per RLS.
+ */
+export function findFreeSlotsForDay(events: BusyEvent[], day: Date): { start: Date; end: Date }[] {
+  const dayKey = toDateKey(day);
+  const hasAllDayBlock = events.some((ev) => ev.all_day && toDateKey(new Date(ev.starts_at)) === dayKey);
+  if (hasAllDayBlock) return [];
+
+  const { start: windowStart, end: windowEnd } = dayWindow(day);
+
+  const busy: { start: Date; end: Date }[] = [];
+  for (const ev of events) {
+    if (ev.all_day) continue;
+    const evStart = new Date(ev.starts_at);
+    const evEnd = resolvedEventEnd(ev);
+    const clippedStart = evStart < windowStart ? windowStart : evStart;
+    const clippedEnd = evEnd > windowEnd ? windowEnd : evEnd;
+    if (clippedStart < clippedEnd) busy.push({ start: clippedStart, end: clippedEnd });
+  }
+  busy.sort((a, b) => a.start.getTime() - b.start.getTime());
+
+  const merged: { start: Date; end: Date }[] = [];
+  for (const b of busy) {
+    const last = merged[merged.length - 1];
+    if (last && b.start <= last.end) {
+      if (b.end > last.end) last.end = b.end;
+    } else {
+      merged.push({ ...b });
+    }
+  }
+
+  const free: { start: Date; end: Date }[] = [];
+  let cursor = windowStart;
+  for (const b of merged) {
+    if (b.start > cursor) free.push({ start: cursor, end: b.start });
+    if (b.end > cursor) cursor = b.end;
+  }
+  if (cursor < windowEnd) free.push({ start: cursor, end: windowEnd });
+
+  return free;
+}
+
+/**
+ * Fasce libere ≥ `minDurationMinutes` nei prossimi `daysAhead` giorni a
+ * partire da `from` (giorno E ora: se `from` cade a metà di una fascia
+ * libera del primo giorno, la fascia viene ritagliata a partire da `from`,
+ * mai proposto un orario già passato). Ordine cronologico naturale, nessun
+ * sort esplicito necessario. Usata sia dal pulsante indipendente "Trova
+ * buchi liberi" (orizzonte 14gg da oggi) sia da "Suggerisci slot orario"
+ * dentro un form (orizzonte 7gg dalla data corrente del form) — stessa
+ * funzione, orizzonte diverso passato dal chiamante.
+ */
+export function findUpcomingFreeSlots(
+  events: BusyEvent[],
+  from: Date,
+  daysAhead: number,
+  minDurationMinutes = 30,
+): { start: Date; end: Date }[] {
+  const results: { start: Date; end: Date }[] = [];
+  const minMs = minDurationMinutes * 60000;
+  for (let i = 0; i < daysAhead; i++) {
+    const day = addDays(startOfDay(from), i);
+    for (const slot of findFreeSlotsForDay(events, day)) {
+      const start = slot.start < from ? from : slot.start;
+      if (start >= slot.end) continue;
+      if (slot.end.getTime() - start.getTime() >= minMs) {
+        results.push({ start, end: slot.end });
+      }
+    }
+  }
+  return results;
+}
+
+/** True se `[start, end)` si sovrappone a un evento qualunque (per EventFormModal, che ha sempre inizio+fine). */
+export function overlapsAnyEvent(events: BusyEvent[], start: Date, end: Date): boolean {
+  return events.some((ev) => {
+    if (ev.all_day) return toDateKey(new Date(ev.starts_at)) === toDateKey(start);
+    return start < resolvedEventEnd(ev) && end > new Date(ev.starts_at);
+  });
+}
+
+/** True se `moment` cade dentro un evento esistente (per AppointmentFormModal, che ha solo un orario di inizio, mai una fine). */
+export function momentIsBusy(events: BusyEvent[], moment: Date): boolean {
+  return events.some((ev) => {
+    if (ev.all_day) return toDateKey(new Date(ev.starts_at)) === toDateKey(moment);
+    return moment >= new Date(ev.starts_at) && moment < resolvedEventEnd(ev);
+  });
 }

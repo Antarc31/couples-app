@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { toDateKey } from "@/lib/calendar-dates";
+import { useEffect, useState, type FormEvent } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { momentIsBusy, toDateKey, toTimeString } from "@/lib/calendar-dates";
 import {
   createAppointmentIdea,
   createConfirmedAppointment,
@@ -9,9 +10,10 @@ import {
   updateAppointment,
   type Appointment,
 } from "@/lib/appointments-actions";
-import { updateCalendarEvent } from "@/lib/calendar-actions";
+import { listCoupleEventsInRange, updateCalendarEvent } from "@/lib/calendar-actions";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import SlotSuggestions from "@/components/calendar/SlotSuggestions";
 
 export type AppointmentFormMode = "idea" | "confirmed" | "transform" | "edit";
 
@@ -72,6 +74,48 @@ export default function AppointmentFormModal({
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Rilevamento sovrapposizione automatico (nessun checkbox), versione
+  // puntuale: questo form non raccoglie mai un orario di fine, quindi si usa
+  // momentIsBusy invece di overlapsAnyEvent — vedi piano "buchi comuni".
+  const [coupleId, setCoupleId] = useState<string | null>(null);
+  const [momentBusy, setMomentBusy] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (!isConfirmedForm) return;
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (!user) return;
+      const { data: profile } = await supabase.from("profiles").select("couple_id").eq("id", user.id).maybeSingle();
+      if (!cancelled) setCoupleId(profile?.couple_id ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isConfirmedForm]);
+
+  useEffect(() => {
+    if (!isConfirmedForm || !coupleId || !date || !startTime) {
+      setMomentBusy(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const dayStart = new Date(`${date}T00:00:00`);
+      const dayEnd = new Date(`${date}T23:59:59`);
+      const result = await listCoupleEventsInRange(coupleId, dayStart, dayEnd);
+      if (cancelled || "error" in result) return;
+      const excludeId = initial?.calendarEventId ?? undefined;
+      const events = excludeId ? result.filter((ev) => ev.id !== excludeId) : result;
+      setMomentBusy(momentIsBusy(events, new Date(`${date}T${startTime}:00`)));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isConfirmedForm, coupleId, date, startTime, initial]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -240,6 +284,34 @@ export default function AppointmentFormModal({
                   <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="mt-1" />
                 </label>
               </div>
+
+              {momentBusy && (
+                <div className="flex flex-col gap-2 rounded-2xl bg-danger/10 p-3">
+                  <p className="text-xs font-semibold text-danger">⚠️ Si sovrappone a un impegno già in calendario</p>
+                  {!showSuggestions ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowSuggestions(true)}
+                      className="self-start rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm transition active:scale-95"
+                    >
+                      Suggerisci slot orario
+                    </button>
+                  ) : coupleId ? (
+                    <SlotSuggestions
+                      coupleId={coupleId}
+                      from={new Date(`${date}T00:00:00`)}
+                      daysAhead={7}
+                      excludeEventId={initial?.calendarEventId ?? undefined}
+                      onPick={(start) => {
+                        setDate(toDateKey(start));
+                        setStartTime(toTimeString(start));
+                        setShowSuggestions(false);
+                      }}
+                    />
+                  ) : null}
+                </div>
+              )}
+
               <Input
                 type="text"
                 placeholder="Luogo (opzionale)"

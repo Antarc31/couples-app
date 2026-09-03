@@ -27,6 +27,7 @@
  */
 
 import { createClient } from "@/lib/supabase/client";
+import { addDays, projectOccurrences } from "@/lib/calendar-dates";
 import type { CalendarEventRow } from "@/lib/calendar-colors";
 import type { Database, EventCategory } from "@/types/database";
 
@@ -174,4 +175,52 @@ export async function listUpcomingCoupleEvents(): Promise<UpcomingEventOption[] 
 
   if (error) return { error: error.message };
   return (data ?? []).map((row) => ({ id: row.id, title: row.title, startsAt: row.starts_at }));
+}
+
+/**
+ * Eventi della coppia che toccano `[rangeStart, rangeEnd]` (bordi inclusi a
+ * livello di giorno), ricorrenti inclusi — per il calcolo dei "buchi
+ * comuni" (`lib/calendar-dates.ts`: `findFreeSlotsForDay`/
+ * `findUpcomingFreeSlots`/`overlapsAnyEvent`/`momentIsBusy`, tutte accettano
+ * `BusyEvent[]`, soddisfatto strutturalmente da `CalendarEventRow[]`).
+ * Stesso schema a due query già usato inline in
+ * `CalendarView.loadEvents` (non toccato, solo replicato qui): eventi non
+ * ricorrenti nel range + eventi ricorrenti proiettati con
+ * `projectOccurrences`. Un'unica funzione copre sia il controllo automatico
+ * di sovrapposizione (range di un giorno) sia i suggerimenti di slot
+ * (range di più giorni) — cambia solo l'ampiezza del range passato.
+ */
+export async function listCoupleEventsInRange(
+  coupleId: string,
+  rangeStart: Date,
+  rangeEnd: Date,
+): Promise<CalendarEventRow[] | ActionError> {
+  const supabase = createClient();
+
+  const [dateRangeResult, recurringResult] = await Promise.all([
+    supabase
+      .from("calendar_events")
+      .select("*")
+      .eq("couple_id", coupleId)
+      .gte("starts_at", rangeStart.toISOString())
+      .lt("starts_at", addDays(rangeEnd, 1).toISOString())
+      .order("starts_at", { ascending: true }),
+    supabase.from("calendar_events").select("*").eq("couple_id", coupleId).neq("recurrence", "nessuna"),
+  ]);
+
+  if (dateRangeResult.error) return { error: dateRangeResult.error.message };
+  if (recurringResult.error) return { error: recurringResult.error.message };
+
+  const recurringEvents = recurringResult.data ?? [];
+  const recurringIds = new Set(recurringEvents.map((ev) => ev.id));
+  const nonRecurring = (dateRangeResult.data ?? []).filter((ev) => !recurringIds.has(ev.id));
+
+  const projected: CalendarEventRow[] = [];
+  for (const ev of recurringEvents) {
+    for (const occurrence of projectOccurrences(ev.starts_at, ev.recurrence, rangeStart, rangeEnd)) {
+      projected.push({ ...ev, starts_at: occurrence.toISOString() });
+    }
+  }
+
+  return [...nonRecurring, ...projected];
 }

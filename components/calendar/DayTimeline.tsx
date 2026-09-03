@@ -1,7 +1,12 @@
 "use client";
 
-import { formatTime } from "@/lib/calendar-dates";
+import { formatTime, DAY_START_HOUR, DAY_END_HOUR } from "@/lib/calendar-dates";
 import { eventColor, CATEGORY_LABELS, type CalendarEventRow, type ColorContext } from "@/lib/calendar-colors";
+
+// Riesportate per compatibilità con gli import esistenti (es. i test di
+// questo componente) — la fonte di verità è ora lib/calendar-dates.ts,
+// unica sia per la resa grafica qui sia per il calcolo dei "buchi comuni".
+export { DAY_START_HOUR, DAY_END_HOUR };
 
 /**
  * Timeline oraria della vista Giorno (piano UX "Gruppo Calendario/
@@ -26,8 +31,6 @@ import { eventColor, CATEGORY_LABELS, type CalendarEventRow, type ColorContext }
  * tests/components/calendar/DayTimeline.test.tsx.
  */
 
-export const DAY_START_HOUR = 6;
-export const DAY_END_HOUR = 24; // esclusivo: righe orarie 06:00..23:00 incluse (18 righe)
 export const ROW_HEIGHT = 52; // px, altezza di un'ora
 const MIN_EVENT_HEIGHT = 28; // px, altezza minima garantita per eventi brevi o senza ends_at
 

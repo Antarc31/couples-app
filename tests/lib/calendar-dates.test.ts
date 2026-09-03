@@ -10,14 +10,21 @@
 import {
   addDays,
   addMonths,
+  DAY_END_HOUR,
+  DAY_START_HOUR,
   daysBetween,
+  findFreeSlotsForDay,
+  findUpcomingFreeSlots,
   isSameDay,
+  momentIsBusy,
   monthGrid,
   nextMilestone,
   nextOccurrence,
+  overlapsAnyEvent,
   projectOccurrences,
   startOfDay,
   toDateKey,
+  type BusyEvent,
 } from "@/lib/calendar-dates";
 
 describe("toDateKey", () => {
@@ -310,5 +317,138 @@ describe("nextMilestone", () => {
     const start = new Date(2027, 0, 1).toISOString();
     const result = nextMilestone(start, new Date(2026, 0, 1));
     expect(result).toBeNull();
+  });
+});
+
+// =============================================================================
+// "Buchi comuni" — piano approvato in
+// /Users/antonioarcucci/.claude/plans/ho-notato-delle-cose-mossy-sketch.md
+// =============================================================================
+
+function ev(overrides: Partial<BusyEvent> = {}): BusyEvent {
+  return { starts_at: "2026-06-10T10:00:00", ends_at: "2026-06-10T11:00:00", all_day: false, ...overrides };
+}
+
+describe("findFreeSlotsForDay", () => {
+  const day = new Date(2026, 5, 10);
+
+  it("nessun evento: un'unica fascia libera che copre tutta la finestra [DAY_START_HOUR, DAY_END_HOUR)", () => {
+    const slots = findFreeSlotsForDay([], day);
+    expect(slots).toHaveLength(1);
+    expect(slots[0].start.getHours()).toBe(DAY_START_HOUR);
+    // DAY_END_HOUR è 24 (esclusivo) -> normalizzato a mezzanotte del giorno dopo.
+    expect(toDateKey(slots[0].end)).toBe("2026-06-11");
+    expect(slots[0].end.getHours()).toBe(DAY_END_HOUR % 24);
+  });
+
+  it("un giorno con un evento all_day blocca l'intera finestra: nessuna fascia libera", () => {
+    const slots = findFreeSlotsForDay([ev({ all_day: true, starts_at: "2026-06-10T00:00:00" })], day);
+    expect(slots).toEqual([]);
+  });
+
+  it("un evento a metà giornata produce due fasce libere, una prima e una dopo", () => {
+    const slots = findFreeSlotsForDay(
+      [ev({ starts_at: "2026-06-10T12:00:00", ends_at: "2026-06-10T13:00:00" })],
+      day,
+    );
+    expect(slots).toHaveLength(2);
+    expect(slots[0].start.getHours()).toBe(DAY_START_HOUR);
+    expect(slots[0].end.getHours()).toBe(12);
+    expect(slots[1].start.getHours()).toBe(13);
+  });
+
+  it("eventi contigui senza buco tra loro vengono uniti, non lasciano una fascia libera di durata zero in mezzo", () => {
+    const slots = findFreeSlotsForDay(
+      [
+        ev({ starts_at: "2026-06-10T09:00:00", ends_at: "2026-06-10T10:00:00" }),
+        ev({ starts_at: "2026-06-10T10:00:00", ends_at: "2026-06-10T11:00:00" }),
+      ],
+      day,
+    );
+    // Un'unica fascia occupata 9-11, non due contigue con un varco a durata zero.
+    expect(slots.some((s) => s.start.getHours() === 9)).toBe(false);
+    expect(slots.some((s) => s.start.getHours() === 10)).toBe(false);
+    expect(slots[0].start.getHours()).toBe(DAY_START_HOUR);
+    expect(slots[0].end.getHours()).toBe(9);
+    expect(slots[1].start.getHours()).toBe(11);
+  });
+
+  it("un evento senza ends_at usa la durata nominale di default (60 min) per bloccare lo slot", () => {
+    const slots = findFreeSlotsForDay([ev({ starts_at: "2026-06-10T14:00:00", ends_at: null })], day);
+    const afterGap = slots.find((s) => s.start.getHours() >= 14);
+    expect(afterGap?.start.getHours()).toBe(15);
+  });
+});
+
+describe("findUpcomingFreeSlots", () => {
+  it("filtra le fasce più corte della durata minima richiesta", () => {
+    const day = new Date(2026, 5, 10);
+    const events = [
+      // Lascia solo un buco di 20 minuti tra i due eventi: troppo corto per 30 min.
+      ev({ starts_at: "2026-06-10T09:00:00", ends_at: "2026-06-10T10:00:00" }),
+      ev({ starts_at: "2026-06-10T10:20:00", ends_at: "2026-06-10T18:00:00" }),
+    ];
+    const slots = findUpcomingFreeSlots(events, day, 1, 30);
+    expect(slots.some((s) => s.start.getHours() === 10 && s.start.getMinutes() === 0)).toBe(false);
+  });
+
+  it("ritaglia la fascia del primo giorno a partire da 'from', non propone mai un orario già passato", () => {
+    const from = new Date(2026, 5, 10, 15, 0); // oggi alle 15:00
+    const slots = findUpcomingFreeSlots([], from, 1, 30);
+    expect(slots[0].start.getTime()).toBe(from.getTime());
+  });
+
+  it("cerca su più giorni quando daysAhead > 1", () => {
+    const from = new Date(2026, 5, 10, 6, 0);
+    // Giornata di 'oggi' completamente occupata -> il primo slot utile è domani.
+    const busyAllDay = ev({ all_day: true, starts_at: "2026-06-10T00:00:00" });
+    const slots = findUpcomingFreeSlots([busyAllDay], from, 2, 30);
+    expect(slots.length).toBeGreaterThan(0);
+    expect(toDateKey(slots[0].start)).toBe("2026-06-11");
+  });
+});
+
+describe("overlapsAnyEvent", () => {
+  it("true se il range si sovrappone parzialmente a un evento esistente", () => {
+    const events = [ev({ starts_at: "2026-06-10T10:00:00", ends_at: "2026-06-10T11:00:00" })];
+    expect(overlapsAnyEvent(events, new Date(2026, 5, 10, 10, 30), new Date(2026, 5, 10, 11, 30))).toBe(true);
+  });
+
+  it("false se il range è adiacente ma non si sovrappone (si toccano solo ai bordi)", () => {
+    const events = [ev({ starts_at: "2026-06-10T10:00:00", ends_at: "2026-06-10T11:00:00" })];
+    expect(overlapsAnyEvent(events, new Date(2026, 5, 10, 11, 0), new Date(2026, 5, 10, 12, 0))).toBe(false);
+  });
+
+  it("true per qualunque orario dello stesso giorno di un evento all_day", () => {
+    const events = [ev({ all_day: true, starts_at: "2026-06-10T00:00:00" })];
+    expect(overlapsAnyEvent(events, new Date(2026, 5, 10, 8, 0), new Date(2026, 5, 10, 9, 0))).toBe(true);
+  });
+
+  it("false se nessun evento tocca il range", () => {
+    const events = [ev({ starts_at: "2026-06-10T10:00:00", ends_at: "2026-06-10T11:00:00" })];
+    expect(overlapsAnyEvent(events, new Date(2026, 5, 10, 14, 0), new Date(2026, 5, 10, 15, 0))).toBe(false);
+  });
+});
+
+describe("momentIsBusy", () => {
+  it("true se il momento cade dentro [starts_at, ends_at)", () => {
+    const events = [ev({ starts_at: "2026-06-10T20:00:00", ends_at: "2026-06-10T21:00:00" })];
+    expect(momentIsBusy(events, new Date(2026, 5, 10, 20, 30))).toBe(true);
+  });
+
+  it("false esattamente su ends_at (bordo escluso, intervallo semi-aperto)", () => {
+    const events = [ev({ starts_at: "2026-06-10T20:00:00", ends_at: "2026-06-10T21:00:00" })];
+    expect(momentIsBusy(events, new Date(2026, 5, 10, 21, 0))).toBe(false);
+  });
+
+  it("un evento senza ends_at usa la durata nominale di default (60 min)", () => {
+    const events = [ev({ starts_at: "2026-06-10T20:00:00", ends_at: null })];
+    expect(momentIsBusy(events, new Date(2026, 5, 10, 20, 30))).toBe(true);
+    expect(momentIsBusy(events, new Date(2026, 5, 10, 21, 30))).toBe(false);
+  });
+
+  it("true per qualunque momento dello stesso giorno di un evento all_day", () => {
+    const events = [ev({ all_day: true, starts_at: "2026-06-10T00:00:00" })];
+    expect(momentIsBusy(events, new Date(2026, 5, 10, 23, 0))).toBe(true);
   });
 });

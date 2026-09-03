@@ -37,10 +37,15 @@ const mockUpdateCalendarEvent = jest.fn<
   Promise<CalendarEventRow | CalendarActionError>,
   [string, UpdateCalendarEventInput]
 >();
+// Controllo automatico di sovrapposizione ("buchi comuni"): risolto a [] di
+// default nel beforeEach così l'avviso non scatta mai a meno che un test non
+// lo sovrascriva esplicitamente per testarlo.
+const mockListCoupleEventsInRange = jest.fn<Promise<CalendarEventRow[] | CalendarActionError>, [string, Date, Date]>();
 
 jest.mock("@/lib/calendar-actions", () => ({
   createCalendarEvent: (...args: [CreateCalendarEventInput]) => mockCreateCalendarEvent(...args),
   updateCalendarEvent: (...args: [string, UpdateCalendarEventInput]) => mockUpdateCalendarEvent(...args),
+  listCoupleEventsInRange: (...args: [string, Date, Date]) => mockListCoupleEventsInRange(...args),
 }));
 
 const mockCreateConfirmedAppointment = jest.fn<
@@ -98,6 +103,8 @@ beforeEach(() => {
   mockCreateCalendarEvent.mockReset();
   mockUpdateCalendarEvent.mockReset();
   mockCreateConfirmedAppointment.mockReset();
+  mockListCoupleEventsInRange.mockReset();
+  mockListCoupleEventsInRange.mockResolvedValue([]);
 });
 
 describe("EventFormModal — creazione, categoria 'personale' (invariato)", () => {
@@ -379,5 +386,81 @@ describe("EventFormModal — modifica (mode='edit')", () => {
 
     expect(screen.getByText(/Luogo e costo si modificano da Appuntamenti/)).toBeInTheDocument();
     expect(screen.queryByPlaceholderText("Luogo (opzionale)")).not.toBeInTheDocument();
+  });
+});
+
+// =============================================================================
+// Controllo automatico di sovrapposizione ("buchi comuni", nessun checkbox —
+// vedi piano approvato in
+// /Users/antonioarcucci/.claude/plans/ho-notato-delle-cose-mossy-sketch.md).
+// lib/calendar-dates.ts (overlapsAnyEvent) NON è mockato: già testato a
+// parte in tests/lib/calendar-dates.test.ts, qui verifichiamo solo che
+// EventFormModal lo interroghi/mostri correttamente.
+// =============================================================================
+describe("EventFormModal — controllo automatico di sovrapposizione", () => {
+  it("nessun avviso se listCoupleEventsInRange non trova nulla nel giorno", async () => {
+    mockListCoupleEventsInRange.mockResolvedValue([]);
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date(2026, 8, 10)} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    await waitFor(() => expect(mockListCoupleEventsInRange).toHaveBeenCalled());
+    expect(screen.queryByText(/Si sovrappone/)).not.toBeInTheDocument();
+  });
+
+  it("mostra l'avviso quando l'orario scelto si sovrappone a un impegno esistente dello stesso giorno", async () => {
+    // Default di creazione: 09:00–10:00 (nessun initialTimeRange) — impegno
+    // esistente 09:30–10:30, sovrapposizione parziale.
+    mockListCoupleEventsInRange.mockResolvedValue([
+      makeEventRow({ id: "busy", starts_at: "2026-09-10T09:30:00", ends_at: "2026-09-10T10:30:00" }),
+    ]);
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date(2026, 8, 10)} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    expect(await screen.findByText("⚠️ Si sovrappone a un impegno già in calendario")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Suggerisci slot orario" })).toBeInTheDocument();
+  });
+
+  it("'Suggerisci slot orario' espande i chip di durata e, scegliendo uno slot, chiude il pannello", async () => {
+    mockListCoupleEventsInRange.mockResolvedValue([
+      makeEventRow({ id: "busy", starts_at: "2026-09-10T09:30:00", ends_at: "2026-09-10T10:30:00" }),
+    ]);
+    const user = userEvent.setup();
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date(2026, 8, 10)} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    await screen.findByText("⚠️ Si sovrappone a un impegno già in calendario");
+    await user.click(screen.getByRole("button", { name: "Suggerisci slot orario" }));
+    expect(screen.getByText("Quanto tempo ti serve?")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "30 min" }));
+    const result = await screen.findAllByRole("button", { name: /–/ });
+    await user.click(result[0]);
+
+    await waitFor(() => expect(screen.queryByText("Quanto tempo ti serve?")).not.toBeInTheDocument());
+  });
+
+  it("in modifica, l'evento aperto non genera un falso conflitto con se stesso (escluso per id)", async () => {
+    const initial = makeEventRow({ id: "ev1", starts_at: "2026-09-10T09:00:00.000Z", ends_at: "2026-09-10T10:00:00.000Z" });
+    // La query di sovrapposizione ritorna ANCHE la riga stessa (come farebbe
+    // davvero Supabase, che non sa che stiamo modificando proprio quella) —
+    // deve essere filtrata via id, non generare l'avviso.
+    mockListCoupleEventsInRange.mockResolvedValue([initial]);
+    render(
+      <EventFormModal
+        coupleId="c1"
+        createdBy="me"
+        defaultDate={new Date(initial.starts_at)}
+        mode="edit"
+        initial={initial}
+        onClose={jest.fn()}
+        onSaved={jest.fn()}
+      />,
+    );
+
+    await waitFor(() => expect(mockListCoupleEventsInRange).toHaveBeenCalled());
+    expect(screen.queryByText(/Si sovrappone/)).not.toBeInTheDocument();
   });
 });

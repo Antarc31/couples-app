@@ -11,6 +11,7 @@ import {
   monthGrid,
   projectOccurrences,
   toDateKey,
+  toTimeString,
   WEEKDAY_LABELS,
 } from "@/lib/calendar-dates";
 import { eventColor, type CalendarEventRow, type ColorContext } from "@/lib/calendar-colors";
@@ -19,6 +20,7 @@ import EventFormModal from "@/components/calendar/EventFormModal";
 import DayAgendaSheet from "@/components/calendar/DayAgendaSheet";
 import DayTimeline from "@/components/calendar/DayTimeline";
 import EventDetailSheet from "@/components/calendar/EventDetailSheet";
+import SlotSuggestions from "@/components/calendar/SlotSuggestions";
 import Toast from "@/components/ui/Toast";
 
 type View = "month" | "day";
@@ -51,6 +53,10 @@ export default function CalendarView({
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [agendaDate, setAgendaDate] = useState<Date | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  // "Buchi comuni": bottom-sheet indipendente + slot scelto in attesa di
+  // precompilare EventFormModal (null quando showCreate non arriva da qui).
+  const [showFreeSlots, setShowFreeSlots] = useState(false);
+  const [pickedSlot, setPickedSlot] = useState<{ date: Date; startTime: string; endTime: string } | null>(null);
   // Piano UX punto 3: dettaglio evento (Modifica/Elimina) + modifica.
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventRow | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEventRow | null>(null);
@@ -158,7 +164,7 @@ export default function CalendarView({
     return events.filter((ev) => isSameDay(new Date(ev.starts_at), day));
   }
 
-  const createDefaultDate = agendaDate ?? selectedDate;
+  const createDefaultDate = pickedSlot?.date ?? agendaDate ?? selectedDate;
 
   return (
     <div className="flex flex-1 flex-col gap-4 px-4 pt-5">
@@ -178,6 +184,13 @@ export default function CalendarView({
           ))}
         </div>
       </div>
+
+      <button
+        onClick={() => setShowFreeSlots(true)}
+        className="self-start rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm transition active:scale-95"
+      >
+        🔎 Trova buchi liberi
+      </button>
 
       {/* Legenda */}
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-soft">
@@ -283,7 +296,10 @@ export default function CalendarView({
       )}
 
       <button
-        onClick={() => setShowCreate(true)}
+        onClick={() => {
+          setPickedSlot(null);
+          setShowCreate(true);
+        }}
         className="fixed bottom-20 right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-couple text-2xl font-bold text-white shadow-[var(--shadow-soft)] transition active:scale-95"
         aria-label="Nuovo evento"
       >
@@ -297,10 +313,41 @@ export default function CalendarView({
           colorCtx={colorCtx}
           onClose={() => setAgendaDate(null)}
           onAddEvent={() => {
+            setPickedSlot(null);
             setShowCreate(true);
           }}
           onEventClick={setSelectedEvent}
         />
+      )}
+
+      {showFreeSlots && (
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center bg-ink/30 backdrop-blur-sm sm:items-center"
+          onClick={() => setShowFreeSlots(false)}
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-border sm:hidden" />
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-extrabold text-ink">Trova buchi liberi</h2>
+              <button onClick={() => setShowFreeSlots(false)} className="text-sm text-ink-soft" aria-label="Chiudi">
+                ✕
+              </button>
+            </div>
+            <SlotSuggestions
+              coupleId={coupleId}
+              from={new Date()}
+              daysAhead={14}
+              onPick={(start, end) => {
+                setShowFreeSlots(false);
+                setPickedSlot({ date: start, startTime: toTimeString(start), endTime: toTimeString(end) });
+                setShowCreate(true);
+              }}
+            />
+          </div>
+        </div>
       )}
 
       {showCreate && (
@@ -308,9 +355,14 @@ export default function CalendarView({
           coupleId={coupleId}
           createdBy={selfId}
           defaultDate={createDefaultDate}
-          onClose={() => setShowCreate(false)}
+          initialTimeRange={pickedSlot ? { startTime: pickedSlot.startTime, endTime: pickedSlot.endTime } : undefined}
+          onClose={() => {
+            setShowCreate(false);
+            setPickedSlot(null);
+          }}
           onSaved={(category) => {
             setShowCreate(false);
+            setPickedSlot(null);
             setAgendaDate(null);
             loadEvents();
             showSaveToast(category);
