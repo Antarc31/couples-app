@@ -15,6 +15,7 @@ import {
   daysBetween,
   findFreeSlotsForDay,
   findUpcomingFreeSlots,
+  formatWeekRangeLabel,
   isSameDay,
   momentIsBusy,
   monthGrid,
@@ -23,7 +24,9 @@ import {
   overlapsAnyEvent,
   projectOccurrences,
   startOfDay,
+  startOfWeek,
   toDateKey,
+  weekDays,
   type BusyEvent,
 } from "@/lib/calendar-dates";
 
@@ -118,6 +121,62 @@ describe("monthGrid", () => {
     for (let i = 1; i < days.length; i++) {
       expect(toDateKey(addDays(days[i - 1], 1))).toBe(toDateKey(days[i]));
     }
+  });
+});
+
+describe("startOfWeek / weekDays", () => {
+  it("startOfWeek ritorna il lunedì della settimana, a mezzanotte", () => {
+    const d = new Date(2026, 8, 10, 15, 30); // giovedì 10 settembre 2026
+    const start = startOfWeek(d);
+    expect(toDateKey(start)).toBe("2026-09-07"); // lunedì
+    expect(start.getHours()).toBe(0);
+  });
+
+  it("startOfWeek su un lunedì ritorna lo stesso giorno", () => {
+    const monday = new Date(2026, 8, 7);
+    expect(toDateKey(startOfWeek(monday))).toBe("2026-09-07");
+  });
+
+  it("startOfWeek gestisce correttamente la domenica (fine settimana, non inizio)", () => {
+    const sunday = new Date(2026, 8, 13);
+    expect(toDateKey(startOfWeek(sunday))).toBe("2026-09-07");
+  });
+
+  it("weekDays ritorna 7 giorni consecutivi che iniziano di lunedì", () => {
+    const days = weekDays(new Date(2026, 8, 10));
+    expect(days).toHaveLength(7);
+    expect(toDateKey(days[0])).toBe("2026-09-07");
+    expect(toDateKey(days[6])).toBe("2026-09-13");
+    for (let i = 1; i < days.length; i++) {
+      expect(toDateKey(addDays(days[i - 1], 1))).toBe(toDateKey(days[i]));
+    }
+  });
+
+  it("weekDays a cavallo di un cambio mese", () => {
+    // Domenica 4 ottobre 2026 -> la settimana inizia lunedì 28 settembre.
+    const days = weekDays(new Date(2026, 9, 4));
+    expect(toDateKey(days[0])).toBe("2026-09-28");
+    expect(toDateKey(days[6])).toBe("2026-10-04");
+  });
+});
+
+describe("formatWeekRangeLabel", () => {
+  it("stesso mese: '8 – 14 settembre 2026'", () => {
+    const label = formatWeekRangeLabel(new Date(2026, 8, 7), new Date(2026, 8, 13));
+    expect(label).toBe("7 – 13 settembre 2026");
+  });
+
+  it("mesi diversi, stesso anno: usa il mese abbreviato su entrambi i lati", () => {
+    const label = formatWeekRangeLabel(new Date(2026, 8, 28), new Date(2026, 9, 4));
+    expect(label).toContain("set");
+    expect(label).toContain("ott");
+    expect(label).toContain("2026");
+  });
+
+  it("a cavallo di due anni: l'anno compare su entrambi i lati", () => {
+    const label = formatWeekRangeLabel(new Date(2026, 11, 28), new Date(2027, 0, 3));
+    expect(label).toContain("2026");
+    expect(label).toContain("2027");
   });
 });
 

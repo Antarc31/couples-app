@@ -41,15 +41,26 @@ export function isSameDay(a: Date, b: Date): boolean {
   return toDateKey(a) === toDateKey(b);
 }
 
+/** Lunedì della settimana di `d` (a mezzanotte). */
+export function startOfWeek(d: Date): Date {
+  // getDay(): 0=domenica..6=sabato -> vogliamo offset da lunedì
+  const mondayOffset = (d.getDay() + 6) % 7;
+  return addDays(startOfDay(d), -mondayOffset);
+}
+
+/** I 7 giorni consecutivi (lun -> dom) della settimana di `date`. */
+export function weekDays(date: Date): Date[] {
+  const start = startOfWeek(date);
+  return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+}
+
 /**
  * Griglia mese: array di settimane (ognuna 7 Date), da lunedì a domenica,
  * comprese le code del mese precedente/successivo per riempire la griglia.
  */
 export function monthGrid(monthAnchor: Date): Date[][] {
   const firstOfMonth = new Date(monthAnchor.getFullYear(), monthAnchor.getMonth(), 1);
-  // getDay(): 0=domenica..6=sabato -> vogliamo offset da lunedì
-  const mondayOffset = (firstOfMonth.getDay() + 6) % 7;
-  const gridStart = addDays(firstOfMonth, -mondayOffset);
+  const gridStart = startOfWeek(firstOfMonth);
 
   const weeks: Date[][] = [];
   let cursor = gridStart;
@@ -73,6 +84,28 @@ export function formatMonthLabel(d: Date): string {
 
 export function formatDayLabel(d: Date): string {
   return d.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
+}
+
+/**
+ * Label della vista Settimana, es. "8 – 14 settembre 2026". Gestisce il caso
+ * a cavallo di due mesi ("29 set – 5 ott 2026") e di due anni
+ * ("29 dic 2026 – 4 gen 2027").
+ */
+export function formatWeekRangeLabel(start: Date, end: Date): string {
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const sameMonth = sameYear && start.getMonth() === end.getMonth();
+
+  if (sameMonth) {
+    const monthYear = end.toLocaleDateString("it-IT", { month: "long", year: "numeric" });
+    return `${start.getDate()} – ${end.getDate()} ${monthYear}`;
+  }
+
+  const startLabel = start.toLocaleDateString(
+    "it-IT",
+    sameYear ? { day: "numeric", month: "short" } : { day: "numeric", month: "short", year: "numeric" },
+  );
+  const endLabel = end.toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" });
+  return `${startLabel} – ${endLabel}`;
 }
 
 export function formatTime(iso: string): string {

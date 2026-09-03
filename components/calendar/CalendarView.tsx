@@ -7,11 +7,13 @@ import {
   addMonths,
   formatDayLabel,
   formatMonthLabel,
+  formatWeekRangeLabel,
   isSameDay,
   monthGrid,
   projectOccurrences,
   toDateKey,
   toTimeString,
+  weekDays,
   WEEKDAY_LABELS,
 } from "@/lib/calendar-dates";
 import { eventColor, type CalendarEventRow, type ColorContext } from "@/lib/calendar-colors";
@@ -19,11 +21,14 @@ import type { EventCategory } from "@/types/database";
 import EventFormModal from "@/components/calendar/EventFormModal";
 import DayAgendaSheet from "@/components/calendar/DayAgendaSheet";
 import DayTimeline from "@/components/calendar/DayTimeline";
+import WeekTimeline from "@/components/calendar/WeekTimeline";
 import EventDetailSheet from "@/components/calendar/EventDetailSheet";
 import SlotSuggestions from "@/components/calendar/SlotSuggestions";
 import Toast from "@/components/ui/Toast";
 
-type View = "month" | "day";
+type View = "day" | "week" | "month";
+
+const VIEW_LABELS: Record<View, string> = { day: "Giorno", week: "Settimana", month: "Mese" };
 
 interface CalendarViewProps {
   selfId: string;
@@ -77,6 +82,7 @@ export default function CalendarView({
   const weeks = monthGrid(monthAnchor);
   const monthGridStart = weeks[0][0];
   const monthGridEnd = weeks[weeks.length - 1][6];
+  const weekDaysOfSelected = weekDays(selectedDate);
 
   // Bug fix (piano UX, punto 1): il fetch caricava SOLO il range della
   // griglia mese di `monthAnchor`, non `selectedDate`. Navigando in vista
@@ -171,7 +177,7 @@ export default function CalendarView({
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold text-ink">Calendario</h1>
         <div className="flex rounded-2xl bg-partner-a-soft/50 p-1">
-          {(["day", "month"] as const).map((v) => (
+          {(["day", "week", "month"] as const).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
@@ -179,7 +185,7 @@ export default function CalendarView({
                 view === v ? "bg-surface text-ink shadow-sm" : "text-ink-soft"
               }`}
             >
-              {v === "day" ? "Giorno" : "Mese"}
+              {VIEW_LABELS[v]}
             </button>
           ))}
         </div>
@@ -263,6 +269,37 @@ export default function CalendarView({
               );
             })}
           </div>
+          {loading && <p className="text-center text-xs text-ink-soft">Carico eventi…</p>}
+        </div>
+      ) : view === "week" ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setSelectedDate((d) => addDays(d, -7))}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              aria-label="Settimana precedente"
+            >
+              ‹
+            </button>
+            <p className="text-sm font-bold capitalize text-ink">
+              {formatWeekRangeLabel(weekDaysOfSelected[0], weekDaysOfSelected[6])}
+            </p>
+            <button
+              onClick={() => setSelectedDate((d) => addDays(d, 7))}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              aria-label="Settimana successiva"
+            >
+              ›
+            </button>
+          </div>
+
+          <WeekTimeline
+            days={weekDaysOfSelected}
+            events={events}
+            colorCtx={colorCtx}
+            onEventClick={setSelectedEvent}
+            onDayClick={setAgendaDate}
+          />
           {loading && <p className="text-center text-xs text-ink-soft">Carico eventi…</p>}
         </div>
       ) : (

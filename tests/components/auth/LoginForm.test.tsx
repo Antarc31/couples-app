@@ -20,10 +20,12 @@ jest.mock("next/navigation", () => ({
 
 const mockSignUp = jest.fn<Promise<AuthResult | AuthError>, [{ email: string; password: string; displayName: string }]>();
 const mockSignIn = jest.fn<Promise<AuthResult | AuthError>, [{ email: string; password: string }]>();
+const mockRequestPasswordReset = jest.fn<Promise<{ success: true } | AuthError>, [string]>();
 
 jest.mock("@/lib/auth-actions", () => ({
   signUp: (params: { email: string; password: string; displayName: string }) => mockSignUp(params),
   signIn: (params: { email: string; password: string }) => mockSignIn(params),
+  requestPasswordReset: (email: string) => mockRequestPasswordReset(email),
 }));
 
 import LoginForm from "@/components/auth/LoginForm";
@@ -33,6 +35,7 @@ beforeEach(() => {
   mockRefresh.mockReset();
   mockSignUp.mockReset();
   mockSignIn.mockReset();
+  mockRequestPasswordReset.mockReset();
 });
 
 async function fillAndSubmitSignup(user: ReturnType<typeof userEvent.setup>, email = "a@b.com") {
@@ -132,5 +135,61 @@ describe("LoginForm — accesso", () => {
 
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/"));
     expect(mockRefresh).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("LoginForm — recupero password", () => {
+  it("'Password dimenticata?' mostra il form di recupero (solo email) e nasconde i tab Accedi/Registrati", async () => {
+    const user = userEvent.setup();
+    render(<LoginForm />);
+
+    await user.click(screen.getByRole("button", { name: "Password dimenticata?" }));
+
+    expect(screen.getByRole("button", { name: "Invia link di recupero" })).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Password")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Registrati" })).not.toBeInTheDocument();
+  });
+
+  it("invio riuscito chiama requestPasswordReset con l'email, mostra il notice e torna al login", async () => {
+    mockRequestPasswordReset.mockResolvedValue({ success: true });
+    const user = userEvent.setup();
+    render(<LoginForm />);
+
+    await user.click(screen.getByRole("button", { name: "Password dimenticata?" }));
+    await user.type(screen.getByPlaceholderText("Email"), "a@b.com");
+    await user.click(screen.getByRole("button", { name: "Invia link di recupero" }));
+
+    expect(mockRequestPasswordReset).toHaveBeenCalledWith("a@b.com");
+    expect(
+      await screen.findByText(
+        "Se a@b.com è registrata, ti abbiamo mandato un'email con il link per reimpostare la password.",
+      ),
+    ).toBeInTheDocument();
+    // Torna sui tab Accedi/Registrati, non resta sul form di recupero.
+    expect(screen.getByRole("button", { name: "Registrati" })).toBeInTheDocument();
+  });
+
+  it("mostra l'errore e resta sul form di recupero se la richiesta fallisce", async () => {
+    mockRequestPasswordReset.mockResolvedValue({ error: "Errore di rete" });
+    const user = userEvent.setup();
+    render(<LoginForm />);
+
+    await user.click(screen.getByRole("button", { name: "Password dimenticata?" }));
+    await user.type(screen.getByPlaceholderText("Email"), "a@b.com");
+    await user.click(screen.getByRole("button", { name: "Invia link di recupero" }));
+
+    expect(await screen.findByText("Errore di rete")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Invia link di recupero" })).toBeInTheDocument();
+  });
+
+  it("'Torna al login' esce dal recupero senza inviare nulla", async () => {
+    const user = userEvent.setup();
+    render(<LoginForm />);
+
+    await user.click(screen.getByRole("button", { name: "Password dimenticata?" }));
+    await user.click(screen.getByRole("button", { name: "‹ Torna al login" }));
+
+    expect(screen.getByRole("button", { name: "Registrati" })).toBeInTheDocument();
+    expect(mockRequestPasswordReset).not.toHaveBeenCalled();
   });
 });

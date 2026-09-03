@@ -2,11 +2,11 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { signIn, signUp } from "@/lib/auth-actions";
+import { requestPasswordReset, signIn, signUp } from "@/lib/auth-actions";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 
-type Mode = "login" | "signup";
+type Mode = "login" | "signup" | "forgot";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -23,6 +23,18 @@ export default function LoginForm() {
     setError(null);
     setNotice(null);
     setLoading(true);
+
+    if (mode === "forgot") {
+      const result = await requestPasswordReset(email);
+      setLoading(false);
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      setMode("login");
+      setNotice(`Se ${email} è registrata, ti abbiamo mandato un'email con il link per reimpostare la password.`);
+      return;
+    }
 
     if (mode === "signup") {
       const result = await signUp({ email, password, displayName });
@@ -52,6 +64,43 @@ export default function LoginForm() {
     }
     router.push("/");
     router.refresh();
+  }
+
+  if (mode === "forgot") {
+    return (
+      <div className="flex flex-col gap-5">
+        <button
+          type="button"
+          onClick={() => {
+            setMode("login");
+            setError(null);
+            setNotice(null);
+          }}
+          className="self-start text-sm font-semibold text-ink-soft"
+        >
+          ‹ Torna al login
+        </button>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <p className="text-sm text-ink-soft">Inserisci la tua email: ti mandiamo un link per reimpostare la password.</p>
+          <Input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            autoFocus
+          />
+
+          {error && <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+
+          <Button type="submit" size="lg" disabled={loading} className="mt-1">
+            {loading ? "Un attimo…" : "Invia link di recupero"}
+          </Button>
+        </form>
+      </div>
+    );
   }
 
   return (
@@ -103,6 +152,20 @@ export default function LoginForm() {
           minLength={6}
           autoComplete={mode === "login" ? "current-password" : "new-password"}
         />
+
+        {mode === "login" && (
+          <button
+            type="button"
+            onClick={() => {
+              setMode("forgot");
+              setError(null);
+              setNotice(null);
+            }}
+            className="self-end text-xs font-semibold text-ink-soft"
+          >
+            Password dimenticata?
+          </button>
+        )}
 
         {error && (
           <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>

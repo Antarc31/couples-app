@@ -117,6 +117,31 @@ export async function signOut(): Promise<void> {
 }
 
 /**
+ * Manda l'email di recupero password. Il link punta a app/auth/callback/route.ts
+ * (già esistente, stesso scambio `code` -> sessione usato per la conferma
+ * email) con `?next=/reset-password`, dove l'utente imposta la nuova
+ * password mentre è già "loggato" con la sessione di recovery. Supabase non
+ * rivela se l'email esiste o no (ritorna successo comunque) — non c'è un
+ * caso "email non trovata" da gestire a parte.
+ */
+export async function requestPasswordReset(email: string): Promise<{ success: true } | AuthError> {
+  const supabase = createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+  });
+  if (error) return { error: friendlyAuthErrorMessage(error.message) };
+  return { success: true };
+}
+
+/** Imposta la nuova password — valido solo con una sessione attiva (normale o di recovery, vedi requestPasswordReset). */
+export async function updatePassword(newPassword: string): Promise<{ success: true } | AuthError> {
+  const supabase = createClient();
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { error: friendlyAuthErrorMessage(error.message) };
+  return { success: true };
+}
+
+/**
  * Cancellazione account self-service (RPC `delete_own_account`, vedi
  * 20260902000000_delete_own_account.sql): cancella auth.users + tutti i dati
  * applicativi collegati via cascata. Fa anche signOut() dopo, perché la

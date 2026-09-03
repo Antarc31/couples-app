@@ -59,12 +59,16 @@ type MockRpcResponse = {
   error: { message: string } | null;
 };
 
+type MockAuthErrorResponse = { error: { message: string } | null };
+
 type MockSupabase = {
   auth: {
     signUp: jest.Mock<Promise<MockAuthResponse>, [params: unknown]>;
     signInWithPassword: jest.Mock<Promise<MockAuthResponse>, [params: unknown]>;
     signOut: jest.Mock<Promise<MockSignOutResponse>, []>;
     getUser: jest.Mock<Promise<MockGetUserResponse>, []>;
+    resetPasswordForEmail: jest.Mock<Promise<MockAuthErrorResponse>, [email: string, options?: unknown]>;
+    updateUser: jest.Mock<Promise<MockAuthErrorResponse>, [attrs: unknown]>;
   };
   from: jest.Mock<ReturnType<typeof makeQueryBuilderMock>, [table: string]>;
   rpc: jest.Mock<Promise<MockRpcResponse>, [fn: string, args?: unknown]>;
@@ -77,6 +81,8 @@ function makeMockSupabase(): MockSupabase {
       signInWithPassword: jest.fn<Promise<MockAuthResponse>, [params: unknown]>(),
       signOut: jest.fn<Promise<MockSignOutResponse>, []>(),
       getUser: jest.fn<Promise<MockGetUserResponse>, []>(),
+      resetPasswordForEmail: jest.fn<Promise<MockAuthErrorResponse>, [email: string, options?: unknown]>(),
+      updateUser: jest.fn<Promise<MockAuthErrorResponse>, [attrs: unknown]>(),
     },
     from: jest.fn<ReturnType<typeof makeQueryBuilderMock>, [table: string]>(),
     rpc: jest.fn<Promise<MockRpcResponse>, [fn: string, args?: unknown]>(),
@@ -100,6 +106,8 @@ import {
   acceptPairingInvite,
   deleteOwnAccount,
   leaveCouple,
+  requestPasswordReset,
+  updatePassword,
 } from "@/lib/auth-actions";
 
 beforeEach(() => {
@@ -404,5 +412,52 @@ describe("acceptPairingInvite", () => {
     const result = await acceptPairingInvite("ABC12345");
 
     expect(result).toEqual({ coupleId: "couple-1", partnerName: "il tuo partner" });
+  });
+});
+
+describe("requestPasswordReset", () => {
+  it("chiama resetPasswordForEmail con redirectTo verso /auth/callback?next=/reset-password e ritorna successo", async () => {
+    mockSupabase.auth.resetPasswordForEmail.mockResolvedValue({ error: null });
+
+    const result = await requestPasswordReset("a@b.com");
+
+    expect(mockSupabase.auth.resetPasswordForEmail).toHaveBeenCalledWith("a@b.com", {
+      redirectTo: expect.stringContaining("/auth/callback?next=/reset-password"),
+    });
+    expect(result).toEqual({ success: true });
+  });
+
+  it("propaga l'errore di Supabase (tradotto se riconosciuto)", async () => {
+    mockSupabase.auth.resetPasswordForEmail.mockResolvedValue({ error: { message: "Errore di rete" } });
+
+    const result = await requestPasswordReset("a@b.com");
+
+    expect(result).toEqual({ error: "Errore di rete" });
+  });
+});
+
+describe("updatePassword", () => {
+  it("chiama updateUser({password}) e ritorna successo", async () => {
+    mockSupabase.auth.updateUser.mockResolvedValue({ error: null });
+
+    const result = await updatePassword("NuovaPassword123");
+
+    expect(mockSupabase.auth.updateUser).toHaveBeenCalledWith({ password: "NuovaPassword123" });
+    expect(result).toEqual({ success: true });
+  });
+
+  it("traduce l'errore requisiti password (stessa mappatura di signUp)", async () => {
+    mockSupabase.auth.updateUser.mockResolvedValue({
+      error: {
+        message:
+          "Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789",
+      },
+    });
+
+    const result = await updatePassword("debole");
+
+    expect(result).toEqual({
+      error: "La password deve contenere lettere maiuscole, minuscole e numeri (minimo 8 caratteri).",
+    });
   });
 });

@@ -128,6 +128,19 @@ describe("layoutTimedEvents", () => {
     const layout = layoutTimedEvents(events);
     expect(layout.every((l) => l.columns === 1)).toBe(true);
   });
+
+  it("rowHeight custom (usato da WeekTimeline) scala top/height coerentemente, default invariato quando omesso", () => {
+    const ev = makeEvent({ id: "e1", starts_at: "2026-09-10T09:00:00.000", ends_at: "2026-09-10T10:00:00.000" });
+
+    const [defaultLayout] = layoutTimedEvents([ev]);
+    expect(defaultLayout.top).toBe((9 - DAY_START_HOUR) * ROW_HEIGHT);
+    expect(defaultLayout.height).toBe(ROW_HEIGHT);
+
+    const customRowHeight = 36;
+    const [customLayout] = layoutTimedEvents([ev], customRowHeight);
+    expect(customLayout.top).toBe((9 - DAY_START_HOUR) * customRowHeight);
+    expect(customLayout.height).toBe(customRowHeight);
+  });
 });
 
 describe("DayTimeline (componente)", () => {

@@ -69,15 +69,22 @@ interface Interval {
  * numero di eventi del cluster, con una colonna assegnata greedily (primo
  * slot libero il cui evento precedente è già finito).
  */
-export function layoutTimedEvents(events: CalendarEventRow[]): TimedEventLayout[] {
+/**
+ * `rowHeight` opzionale (default `ROW_HEIGHT`, invariato per la vista
+ * Giorno): la vista Settimana (`WeekTimeline.tsx`) riusa questa stessa
+ * funzione — stesso algoritmo di clustering/colonne — con un'altezza oraria
+ * più compatta, senza duplicare la logica.
+ */
+export function layoutTimedEvents(events: CalendarEventRow[], rowHeight: number = ROW_HEIGHT): TimedEventLayout[] {
   const sorted = [...events].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const minEventHeight = (MIN_EVENT_HEIGHT / ROW_HEIGHT) * rowHeight;
 
   const intervals: Interval[] = sorted.map((ev) => {
     const start = new Date(ev.starts_at);
     const end = ev.ends_at ? new Date(ev.ends_at) : null;
-    const top = (hourFloat(start) - DAY_START_HOUR) * ROW_HEIGHT;
+    const top = (hourFloat(start) - DAY_START_HOUR) * rowHeight;
     const durationHours = end ? Math.max(0, (end.getTime() - start.getTime()) / 3_600_000) : 0;
-    const height = Math.max(MIN_EVENT_HEIGHT, durationHours * ROW_HEIGHT);
+    const height = Math.max(minEventHeight, durationHours * rowHeight);
     return {
       event: ev,
       start: start.getTime(),
