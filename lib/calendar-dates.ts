@@ -4,11 +4,24 @@
 
 import type { EventRecurrence } from "@/types/database";
 
-// Finestra oraria usata sia dalla vista Giorno (DayTimeline, che le importa
-// da qui) sia dal calcolo dei "buchi comuni" sotto — unica fonte di verità,
-// mai due window diverse tra la resa grafica e i suggerimenti di slot.
+// Finestra oraria usata dal calcolo dei "buchi comuni" sotto (nessuno slot
+// libero suggerito nel cuore della notte). NON è più la finestra di resa
+// grafica di Giorno/Settimana (vedi GRID_START_HOUR sotto) — le due cose si
+// sono separate su richiesta dell'utente: la griglia deve mostrare l'intera
+// giornata (comprese le prime ore del mattino), i "buchi comuni" no.
 export const DAY_START_HOUR = 6;
 export const DAY_END_HOUR = 24; // esclusivo
+
+// Finestra di RESA GRAFICA della griglia oraria (DayTimeline/WeekTimeline):
+// l'intera giornata, non solo 6-24 — altrimenti un evento delle 5 del
+// mattino sarebbe semplicemente invisibile, il bug segnalato dall'utente.
+// La griglia scrolla internamente (troppe ore per stare tutte a schermo
+// leggibili), quindi può permettersi di coprire tutte le 24 ore: di default
+// è scrollata a GRID_DEFAULT_SCROLL_HOUR, l'utente scorre verso l'alto per
+// vedere la notte/primissimo mattino quando serve.
+export const GRID_START_HOUR = 0;
+export const GRID_END_HOUR = 24; // esclusivo
+export const GRID_DEFAULT_SCROLL_HOUR = 7;
 
 /** yyyy-mm-dd locale (NON toISOString, che è UTC e può shiftare il giorno). */
 export function toDateKey(d: Date): string {

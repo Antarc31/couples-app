@@ -1,12 +1,12 @@
 "use client";
 
-import { formatTime, DAY_START_HOUR, DAY_END_HOUR } from "@/lib/calendar-dates";
+import { useEffect, useRef } from "react";
+import { formatTime, GRID_DEFAULT_SCROLL_HOUR, GRID_END_HOUR, GRID_START_HOUR, toDateKey } from "@/lib/calendar-dates";
 import { eventColor, CATEGORY_LABELS, type CalendarEventRow, type ColorContext } from "@/lib/calendar-colors";
 
 // Riesportate per compatibilità con gli import esistenti (es. i test di
-// questo componente) — la fonte di verità è ora lib/calendar-dates.ts,
-// unica sia per la resa grafica qui sia per il calcolo dei "buchi comuni".
-export { DAY_START_HOUR, DAY_END_HOUR };
+// questo componente) — la fonte di verità è ora lib/calendar-dates.ts.
+export { GRID_START_HOUR, GRID_END_HOUR };
 
 /**
  * Timeline oraria della vista Giorno (piano UX "Gruppo Calendario/
@@ -26,6 +26,14 @@ export { DAY_START_HOUR, DAY_END_HOUR };
  * sovrappongono nello stesso intervallo vengono raggruppati in "cluster" e
  * affiancati in colonne di larghezza uguale.
  *
+ * Griglia dalle 00:00 alle 24:00 (bug segnalato dall'utente: prima partiva
+ * alle 6, un evento delle 5 del mattino spariva del tutto) dentro un
+ * contenitore SCROLLABILE — 24 ore leggibili non ci stanno tutte a schermo,
+ * quindi invece di rimpicciolirle si scrolla. Di default la vista è
+ * scrollata a `GRID_DEFAULT_SCROLL_HOUR` (7 del mattino): l'utente scorre
+ * verso l'alto per vedere la notte/primissimo mattino solo quando serve,
+ * verso il basso per il resto della giornata.
+ *
  * Estratto come componente esportato (prima era una funzione locale dentro
  * CalendarView.tsx) per testabilità diretta — vedi
  * tests/components/calendar/DayTimeline.test.tsx.
@@ -33,6 +41,10 @@ export { DAY_START_HOUR, DAY_END_HOUR };
 
 export const ROW_HEIGHT = 52; // px, altezza di un'ora
 const MIN_EVENT_HEIGHT = 28; // px, altezza minima garantita per eventi brevi o senza ends_at
+// Quanto alta al massimo la griglia scrollabile — abbastanza per vedere
+// diverse ore di fila senza scrollare in continuazione, non così tanta da
+// spingere fuori schermo il resto della pagina (switcher, legenda, ecc.).
+const GRID_MAX_HEIGHT = "60vh";
 
 export interface TimedEventLayout {
   event: CalendarEventRow;
@@ -68,8 +80,7 @@ interface Interval {
  * molti calendari: dentro ogni cluster la larghezza si divide per il
  * numero di eventi del cluster, con una colonna assegnata greedily (primo
  * slot libero il cui evento precedente è già finito).
- */
-/**
+ *
  * `rowHeight` opzionale (default `ROW_HEIGHT`, invariato per la vista
  * Giorno): la vista Settimana (`WeekTimeline.tsx`) riusa questa stessa
  * funzione — stesso algoritmo di clustering/colonne — con un'altezza oraria
@@ -82,7 +93,7 @@ export function layoutTimedEvents(events: CalendarEventRow[], rowHeight: number 
   const intervals: Interval[] = sorted.map((ev) => {
     const start = new Date(ev.starts_at);
     const end = ev.ends_at ? new Date(ev.ends_at) : null;
-    const top = (hourFloat(start) - DAY_START_HOUR) * rowHeight;
+    const top = (hourFloat(start) - GRID_START_HOUR) * rowHeight;
     const durationHours = end ? Math.max(0, (end.getTime() - start.getTime()) / 3_600_000) : 0;
     const height = Math.max(minEventHeight, durationHours * rowHeight);
     return {
@@ -138,12 +149,21 @@ interface DayTimelineProps {
   onEventClick?: (event: CalendarEventRow) => void;
 }
 
-export default function DayTimeline({ events, colorCtx, onEventClick }: DayTimelineProps) {
+export default function DayTimeline({ day, events, colorCtx, onEventClick }: DayTimelineProps) {
   const allDayEvents = events.filter((ev) => ev.all_day);
   const timedEvents = events.filter((ev) => !ev.all_day);
-  const hours = Array.from({ length: DAY_END_HOUR - DAY_START_HOUR }, (_, i) => i + DAY_START_HOUR);
+  const hours = Array.from({ length: GRID_END_HOUR - GRID_START_HOUR }, (_, i) => i + GRID_START_HOUR);
   const layout = layoutTimedEvents(timedEvents);
   const totalHeight = hours.length * ROW_HEIGHT;
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Ogni cambio di giorno riparte dalla stessa ora di default, non da dove
+  // si era rimasti scrollando il giorno precedente.
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = (GRID_DEFAULT_SCROLL_HOUR - GRID_START_HOUR) * ROW_HEIGHT;
+    }
+  }, [day]);
 
   function handleActivate(ev: CalendarEventRow) {
     onEventClick?.(ev);
@@ -170,46 +190,54 @@ export default function DayTimeline({ events, colorCtx, onEventClick }: DayTimel
         </div>
       )}
 
-      <div className="relative rounded-2xl bg-base" style={{ height: totalHeight }}>
-        {/* Griglia oraria di sfondo: righe divisorie + etichette, non più contenitori degli eventi. */}
-        {hours.map((hour, i) => (
-          <div
-            key={hour}
-            className="absolute inset-x-0 border-t border-border px-3 pt-0.5 text-xs text-ink-soft"
-            style={{ top: i * ROW_HEIGHT, height: ROW_HEIGHT }}
-          >
-            <span className="w-10 shrink-0">{String(hour).padStart(2, "0")}:00</span>
-          </div>
-        ))}
-
-        {/* Eventi timed: posizionamento assoluto, colonne affiancate per i cluster sovrapposti. */}
-        <div className="absolute inset-y-0 left-14 right-2">
-          {layout.map(({ event: ev, top, height, column, columns }) => (
+      <div
+        key={toDateKey(day)}
+        ref={scrollRef}
+        data-testid="day-grid-scroll"
+        className="overflow-y-auto rounded-2xl bg-base"
+        style={{ maxHeight: GRID_MAX_HEIGHT }}
+      >
+        <div className="relative" style={{ height: totalHeight }}>
+          {/* Griglia oraria di sfondo: righe divisorie + etichette, non più contenitori degli eventi. */}
+          {hours.map((hour, i) => (
             <div
-              key={ev.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => handleActivate(ev)}
-              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleActivate(ev)}
-              className="absolute cursor-pointer overflow-hidden rounded-xl px-2.5 py-1.5 text-white shadow-sm transition active:scale-[0.98]"
-              style={{
-                top,
-                height,
-                left: `${(column / columns) * 100}%`,
-                width: `calc(${100 / columns}% - 4px)`,
-                backgroundColor: eventColor(ev, colorCtx),
-              }}
+              key={hour}
+              className="absolute inset-x-0 border-t border-border px-3 pt-0.5 text-xs text-ink-soft"
+              style={{ top: i * ROW_HEIGHT, height: ROW_HEIGHT }}
             >
-              <p className="truncate text-sm font-semibold">{ev.title}</p>
-              <p className="truncate text-xs opacity-90">
-                {formatTime(ev.starts_at)}
-                {ev.ends_at ? ` – ${formatTime(ev.ends_at)}` : ""}
-                {" · "}
-                {CATEGORY_LABELS[ev.category]}
-                {ev.tag ? ` · ${ev.tag}` : ""}
-              </p>
+              <span className="w-10 shrink-0">{String(hour).padStart(2, "0")}:00</span>
             </div>
           ))}
+
+          {/* Eventi timed: posizionamento assoluto, colonne affiancate per i cluster sovrapposti. */}
+          <div className="absolute inset-y-0 left-14 right-2">
+            {layout.map(({ event: ev, top, height, column, columns }) => (
+              <div
+                key={ev.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => handleActivate(ev)}
+                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleActivate(ev)}
+                className="absolute cursor-pointer overflow-hidden rounded-xl px-2.5 py-1.5 text-white shadow-sm transition active:scale-[0.98]"
+                style={{
+                  top,
+                  height,
+                  left: `${(column / columns) * 100}%`,
+                  width: `calc(${100 / columns}% - 4px)`,
+                  backgroundColor: eventColor(ev, colorCtx),
+                }}
+              >
+                <p className="truncate text-sm font-semibold">{ev.title}</p>
+                <p className="truncate text-xs opacity-90">
+                  {formatTime(ev.starts_at)}
+                  {ev.ends_at ? ` – ${formatTime(ev.ends_at)}` : ""}
+                  {" · "}
+                  {CATEGORY_LABELS[ev.category]}
+                  {ev.tag ? ` · ${ev.tag}` : ""}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

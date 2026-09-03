@@ -20,7 +20,8 @@
 
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import DayTimeline, { layoutTimedEvents, DAY_START_HOUR, ROW_HEIGHT } from "@/components/calendar/DayTimeline";
+import DayTimeline, { layoutTimedEvents, GRID_START_HOUR, ROW_HEIGHT } from "@/components/calendar/DayTimeline";
+import { GRID_DEFAULT_SCROLL_HOUR } from "@/lib/calendar-dates";
 import type { ColorContext } from "@/lib/calendar-colors";
 import type { Database } from "@/types/database";
 
@@ -50,10 +51,10 @@ function makeEvent(overrides: Partial<CalendarEventRow> & { id: string; starts_a
 const ctx: ColorContext = { selfId: "me", selfColor: "#F7A6C4", partnerId: null, partnerColor: null };
 
 describe("layoutTimedEvents", () => {
-  it("posiziona un evento delle 09:00 a (9 - DAY_START_HOUR) * ROW_HEIGHT dall'alto", () => {
+  it("posiziona un evento delle 09:00 a (9 - GRID_START_HOUR) * ROW_HEIGHT dall'alto", () => {
     const ev = makeEvent({ id: "e1", starts_at: "2026-09-10T09:00:00.000", ends_at: "2026-09-10T10:00:00.000" });
     const [layout] = layoutTimedEvents([ev]);
-    expect(layout.top).toBe((9 - DAY_START_HOUR) * ROW_HEIGHT);
+    expect(layout.top).toBe((9 - GRID_START_HOUR) * ROW_HEIGHT);
   });
 
   it("un evento di 2 ore occupa il doppio dell'altezza di uno da 1 ora", () => {
@@ -70,7 +71,7 @@ describe("layoutTimedEvents", () => {
   it("tiene conto dei minuti di inizio (09:30 è a metà strada tra la riga delle 9 e delle 10)", () => {
     const ev = makeEvent({ id: "e1", starts_at: "2026-09-10T09:30:00.000", ends_at: "2026-09-10T10:00:00.000" });
     const [layout] = layoutTimedEvents([ev]);
-    expect(layout.top).toBe((9.5 - DAY_START_HOUR) * ROW_HEIGHT);
+    expect(layout.top).toBe((9.5 - GRID_START_HOUR) * ROW_HEIGHT);
   });
 
   it("un evento senza ends_at usa l'altezza minima garantita", () => {
@@ -136,12 +137,12 @@ describe("layoutTimedEvents", () => {
     const ev = makeEvent({ id: "e1", starts_at: "2026-09-10T09:00:00.000", ends_at: "2026-09-10T10:00:00.000" });
 
     const [defaultLayout] = layoutTimedEvents([ev]);
-    expect(defaultLayout.top).toBe((9 - DAY_START_HOUR) * ROW_HEIGHT);
+    expect(defaultLayout.top).toBe((9 - GRID_START_HOUR) * ROW_HEIGHT);
     expect(defaultLayout.height).toBe(ROW_HEIGHT);
 
     const customRowHeight = 36;
     const [customLayout] = layoutTimedEvents([ev], customRowHeight);
-    expect(customLayout.top).toBe((9 - DAY_START_HOUR) * customRowHeight);
+    expect(customLayout.top).toBe((9 - GRID_START_HOUR) * customRowHeight);
     expect(customLayout.height).toBe(customRowHeight);
   });
 });
@@ -183,5 +184,19 @@ describe("DayTimeline (componente)", () => {
 
     await user.click(screen.getByText("Compleanno"));
     expect(onEventClick).toHaveBeenCalledWith(ev);
+  });
+
+  // Bug segnalato dall'utente: la griglia partiva dalle 6 del mattino, un
+  // evento più mattiniero spariva del tutto dalla vista.
+  it("la griglia oraria parte da mezzanotte (00:00), non dalle 6", () => {
+    render(<DayTimeline day={new Date("2026-09-10")} events={[]} colorCtx={ctx} />);
+    expect(screen.getByText("00:00")).toBeInTheDocument();
+    expect(GRID_START_HOUR).toBe(0);
+  });
+
+  it("all'apertura la griglia è scrollata di default a GRID_DEFAULT_SCROLL_HOUR, non a mezzanotte", () => {
+    render(<DayTimeline day={new Date("2026-09-10")} events={[]} colorCtx={ctx} />);
+    const scrollContainer = screen.getByTestId("day-grid-scroll");
+    expect(scrollContainer.scrollTop).toBe((GRID_DEFAULT_SCROLL_HOUR - GRID_START_HOUR) * ROW_HEIGHT);
   });
 });

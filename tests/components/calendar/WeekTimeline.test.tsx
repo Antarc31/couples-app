@@ -12,8 +12,8 @@
 
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import WeekTimeline from "@/components/calendar/WeekTimeline";
-import { weekDays, formatDayLabel } from "@/lib/calendar-dates";
+import WeekTimeline, { WEEK_ROW_HEIGHT } from "@/components/calendar/WeekTimeline";
+import { GRID_DEFAULT_SCROLL_HOUR, GRID_START_HOUR, weekDays, formatDayLabel } from "@/lib/calendar-dates";
 import type { ColorContext } from "@/lib/calendar-colors";
 import type { Database } from "@/types/database";
 
@@ -123,5 +123,21 @@ describe("WeekTimeline — eventi orari", () => {
     render(<WeekTimeline days={fixedWeek} events={[event]} colorCtx={ctx} />);
 
     expect(screen.queryByText("Fuori settimana")).not.toBeInTheDocument();
+  });
+});
+
+describe("WeekTimeline — griglia oraria da mezzanotte, scrollata di default", () => {
+  // Bug segnalato dall'utente: la griglia partiva dalle 6 del mattino, un
+  // evento più mattiniero spariva del tutto dalla vista.
+  it("la griglia oraria parte da mezzanotte (00), non dalle 6", () => {
+    render(<WeekTimeline days={fixedWeek} events={[]} colorCtx={ctx} />);
+    expect(screen.getByText("00")).toBeInTheDocument();
+    expect(GRID_START_HOUR).toBe(0);
+  });
+
+  it("all'apertura la griglia è scrollata di default a GRID_DEFAULT_SCROLL_HOUR, non a mezzanotte", () => {
+    render(<WeekTimeline days={fixedWeek} events={[]} colorCtx={ctx} />);
+    const scrollContainer = screen.getByTestId("week-grid-scroll");
+    expect(scrollContainer.scrollTop).toBe((GRID_DEFAULT_SCROLL_HOUR - GRID_START_HOUR) * WEEK_ROW_HEIGHT);
   });
 });
