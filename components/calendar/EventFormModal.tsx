@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { formatRecurrenceSummary, overlapsAnyEvent, pluralizeRecurrenceUnit, toDateKey, toTimeString } from "@/lib/calendar-dates";
+import { addDays, formatRecurrenceSummary, overlapsAnyEvent, pluralizeRecurrenceUnit, toDateKey, toTimeString } from "@/lib/calendar-dates";
 import { createCalendarEvent, listCoupleEventsInRange, updateCalendarEvent } from "@/lib/calendar-actions";
 import { createConfirmedAppointment } from "@/lib/appointments-actions";
 import type { CalendarEventRow } from "@/lib/calendar-colors";
@@ -31,6 +31,30 @@ type RecurrenceEndMode = "mai" | "data" | "volte";
 /** ISO → HH:mm locale, per popolare gli <input type="time"> in edit. */
 function toTimeInputValue(iso: string): string {
   return toTimeString(new Date(iso));
+}
+
+/**
+ * Costruisce inizio/fine da data+orari del form. Il form ha un solo campo
+ * data per entrambi: se l'orario di fine è <= quello di inizio (es. 20:00 ->
+ * 00:00, o 22:00 -> 02:00), l'evento attraversa la mezzanotte e la fine va
+ * spostata al giorno dopo — altrimenti risulterebbe precedente all'inizio e
+ * violerebbe il constraint DB `calendar_events_ends_after_starts` (bug
+ * segnalato dall'utente: "20:00 -> 00:00" falliva con l'errore Postgres
+ * grezzo mostrato a schermo). Usata sia per il controllo automatico di
+ * sovrapposizione sia per il submit, un solo posto per la stessa logica.
+ */
+function resolveEventRange(
+  date: string,
+  startTime: string,
+  endTime: string,
+  allDay: boolean,
+): { start: Date; end: Date | null } {
+  if (allDay) return { start: new Date(`${date}T00:00:00`), end: null };
+  const start = new Date(`${date}T${startTime}:00`);
+  if (!endTime) return { start, end: null };
+  let end = new Date(`${date}T${endTime}:00`);
+  if (end <= start) end = addDays(end, 1);
+  return { start, end };
 }
 
 interface EventFormModalProps {
@@ -156,13 +180,16 @@ export default function EventFormModal({
     }
     let cancelled = false;
     (async () => {
+      const { start, end } = resolveEventRange(date, startTime, endTime, false);
+      if (!end) return;
       const dayStart = new Date(`${date}T00:00:00`);
-      const dayEnd = new Date(`${date}T23:59:59`);
+      // Copre anche il giorno dopo se l'evento attraversa la mezzanotte
+      // (vedi resolveEventRange), altrimenti un evento 20:00->00:00 non
+      // verrebbe mai confrontato con impegni della primissima mattina dopo.
+      const dayEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59);
       const result = await listCoupleEventsInRange(coupleId, dayStart, dayEnd);
       if (cancelled || "error" in result) return;
       const events = initial ? result.filter((ev) => ev.id !== initial.id) : result;
-      const start = new Date(`${date}T${startTime}:00`);
-      const end = new Date(`${date}T${endTime}:00`);
       setOverlapWarning(overlapsAnyEvent(events, start, end));
     })();
     return () => {
@@ -176,10 +203,9 @@ export default function EventFormModal({
     setSaving(true);
     setError(null);
 
-    const startsAt = allDay ? `${date}T00:00:00` : `${date}T${startTime}:00`;
-    const endsAt = allDay ? null : endTime ? `${date}T${endTime}:00` : null;
-    const startsAtIso = new Date(startsAt).toISOString();
-    const endsAtIso = endsAt ? new Date(endsAt).toISOString() : null;
+    const { start, end } = resolveEventRange(date, startTime, endTime, allDay);
+    const startsAtIso = start.toISOString();
+    const endsAtIso = end ? end.toISOString() : null;
 
     // "Fino al" memorizzato a fine giornata (23:59:59): garantisce che
     // l'occorrenza dell'ultimo giorno scelto (qualunque sia l'orario di

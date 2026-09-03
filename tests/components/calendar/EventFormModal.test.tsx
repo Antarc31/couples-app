@@ -633,3 +633,74 @@ describe("EventFormModal — ricorrenza generale ('Ripeti')", () => {
     expect(screen.getByLabelText("Data di fine ricorrenza")).toHaveValue("2026-12-15");
   });
 });
+
+// =============================================================================
+// Evento a cavallo di mezzanotte — bug segnalato dall'utente: un orario di
+// fine <= inizio (es. 20:00 -> 00:00) veniva mandato sullo STESSO giorno
+// dell'inizio, violando il constraint DB "la fine deve essere dopo
+// l'inizio" con un errore Postgres grezzo mostrato a schermo. Vedi
+// resolveEventRange in components/calendar/EventFormModal.tsx.
+// =============================================================================
+describe("EventFormModal — evento a cavallo di mezzanotte", () => {
+  it("orario di fine <= orario di inizio: la fine viene spostata automaticamente al giorno dopo", async () => {
+    mockCreateCalendarEvent.mockResolvedValue(makeEventRow());
+    const user = userEvent.setup();
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date(2026, 8, 10)} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    await user.type(screen.getByPlaceholderText("Titolo (es. Cena da Marco)"), "Festa");
+    fireEvent.change(screen.getByLabelText("Inizio"), { target: { value: "20:00" } });
+    fireEvent.change(screen.getByLabelText("Fine"), { target: { value: "00:00" } });
+    await user.click(screen.getByRole("button", { name: "Crea evento" }));
+
+    await waitFor(() => expect(mockCreateCalendarEvent).toHaveBeenCalledTimes(1));
+    expect(mockCreateCalendarEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        startsAt: new Date("2026-09-10T20:00:00").toISOString(),
+        endsAt: new Date("2026-09-11T00:00:00").toISOString(),
+      }),
+    );
+  });
+
+  it("un orario di fine chiaramente dopo l'inizio resta sullo stesso giorno (comportamento invariato)", async () => {
+    mockCreateCalendarEvent.mockResolvedValue(makeEventRow());
+    const user = userEvent.setup();
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date(2026, 8, 10)} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    await user.type(screen.getByPlaceholderText("Titolo (es. Cena da Marco)"), "Pranzo");
+    // Default del form in creazione: 09:00 - 10:00.
+    await user.click(screen.getByRole("button", { name: "Crea evento" }));
+
+    await waitFor(() => expect(mockCreateCalendarEvent).toHaveBeenCalledTimes(1));
+    expect(mockCreateCalendarEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        startsAt: new Date("2026-09-10T09:00:00").toISOString(),
+        endsAt: new Date("2026-09-10T10:00:00").toISOString(),
+      }),
+    );
+  });
+
+  it("un orario di fine identico all'inizio (durata zero) viene comunque trattato come 'attraversa la mezzanotte'", async () => {
+    mockCreateCalendarEvent.mockResolvedValue(makeEventRow());
+    const user = userEvent.setup();
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date(2026, 8, 10)} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    await user.type(screen.getByPlaceholderText("Titolo (es. Cena da Marco)"), "Veglia");
+    fireEvent.change(screen.getByLabelText("Inizio"), { target: { value: "20:00" } });
+    fireEvent.change(screen.getByLabelText("Fine"), { target: { value: "20:00" } });
+    await user.click(screen.getByRole("button", { name: "Crea evento" }));
+
+    await waitFor(() => expect(mockCreateCalendarEvent).toHaveBeenCalledTimes(1));
+    expect(mockCreateCalendarEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        startsAt: new Date("2026-09-10T20:00:00").toISOString(),
+        endsAt: new Date("2026-09-11T20:00:00").toISOString(),
+      }),
+    );
+  });
+});

@@ -104,6 +104,7 @@ import {
   deleteCalendarEvent,
   listUpcomingCoupleEvents,
   listCoupleEventsInRange,
+  friendlyCalendarErrorMessage,
 } from "@/lib/calendar-actions";
 
 beforeEach(() => {
@@ -239,6 +240,26 @@ describe("createCalendarEvent", () => {
     });
     expect(result).toEqual({ error: "RLS violation" });
   });
+
+  it("traduce il vincolo 'ends_after_starts' in un messaggio comprensibile invece dell'errore Postgres grezzo (bug segnalato dall'utente)", async () => {
+    mockSupabase.from.mockReturnValue(
+      makeInsertSelectSingleMock({
+        data: null,
+        error: {
+          message:
+            'new row for relation "calendar_events" violates check constraint "calendar_events_ends_after_starts"',
+        },
+      }),
+    );
+    const result = await createCalendarEvent({
+      coupleId: "c1",
+      createdBy: "me",
+      title: "Cena da Marco",
+      category: "personale",
+      startsAt: "2026-09-10T20:00:00.000Z",
+    });
+    expect(result).toEqual({ error: "L'orario di fine deve essere dopo quello di inizio." });
+  });
 });
 
 describe("updateCalendarEvent", () => {
@@ -300,6 +321,20 @@ describe("updateCalendarEvent", () => {
     );
     const result = await updateCalendarEvent("ev1", { title: "X" });
     expect(result).toEqual({ error: "Non autorizzato" });
+  });
+
+  it("traduce il vincolo 'ends_after_starts' in un messaggio comprensibile anche in modifica", async () => {
+    mockSupabase.from.mockReturnValue(
+      makeUpdateEqSelectSingleMock({
+        data: null,
+        error: {
+          message:
+            'new row for relation "calendar_events" violates check constraint "calendar_events_ends_after_starts"',
+        },
+      }),
+    );
+    const result = await updateCalendarEvent("ev1", { startsAt: "2026-09-10T20:00:00.000Z" });
+    expect(result).toEqual({ error: "L'orario di fine deve essere dopo quello di inizio." });
   });
 });
 
@@ -444,6 +479,45 @@ describe("listCoupleEventsInRange", () => {
 
     const result = await listCoupleEventsInRange("c1", new Date(2026, 5, 1), new Date(2026, 5, 30));
     expect(result).toEqual({ error: "Errore di rete" });
+  });
+});
+
+describe("friendlyCalendarErrorMessage", () => {
+  it("traduce 'ends_after_starts'", () => {
+    expect(
+      friendlyCalendarErrorMessage('violates check constraint "calendar_events_ends_after_starts"'),
+    ).toBe("L'orario di fine deve essere dopo quello di inizio.");
+  });
+
+  it("traduce 'recurrence_until_after_starts'", () => {
+    expect(
+      friendlyCalendarErrorMessage('violates check constraint "calendar_events_recurrence_until_after_starts"'),
+    ).toBe("La data di fine ricorrenza deve essere dopo la data di inizio dell'evento.");
+  });
+
+  it("traduce 'recurrence_count_max'", () => {
+    expect(
+      friendlyCalendarErrorMessage('violates check constraint "calendar_events_recurrence_count_max"'),
+    ).toBe("Il numero di ripetizioni non può superare 10.");
+  });
+
+  it("traduce 'recurrence_interval_positive'/'recurrence_count_positive'", () => {
+    expect(
+      friendlyCalendarErrorMessage('violates check constraint "calendar_events_recurrence_interval_positive"'),
+    ).toBe("Il valore inserito non è valido.");
+    expect(
+      friendlyCalendarErrorMessage('violates check constraint "calendar_events_recurrence_count_positive"'),
+    ).toBe("Il valore inserito non è valido.");
+  });
+
+  it("traduce 'recurrence_end_mutually_exclusive'", () => {
+    expect(
+      friendlyCalendarErrorMessage('violates check constraint "calendar_events_recurrence_end_mutually_exclusive"'),
+    ).toBe("La ricorrenza può finire a una data oppure dopo N volte, non entrambe.");
+  });
+
+  it("un errore non riconosciuto resta invariato (mai un buco silenzioso)", () => {
+    expect(friendlyCalendarErrorMessage("Errore di rete")).toBe("Errore di rete");
   });
 });
 

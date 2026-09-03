@@ -37,6 +37,41 @@ export interface ActionError {
   error: string;
 }
 
+/**
+ * Traduce i vincoli DB di `calendar_events` in messaggi comprensibili —
+ * stesso principio già in uso in lib/auth-actions.ts
+ * (`friendlyAuthErrorMessage`): l'utente non deve mai vedere un errore
+ * Postgres grezzo (bug segnalato dall'utente: "20:00 -> 00:00" mostrava
+ * `new row for relation "calendar_events" violates check constraint
+ * "calendar_events_ends_after_starts"` a schermo). Il vincolo fine/inizio
+ * non dovrebbe più scattare in condizioni normali da EventFormModal (che ora
+ * fa da sé il rollover a mezzanotte, vedi `resolveEventRange` lì), ma resta
+ * qui come rete di sicurezza per qualunque altro chiamante presente o
+ * futuro. Esportata perché riusata anche da lib/appointments-actions.ts,
+ * che scrive sulla stessa tabella per la categoria "coppia".
+ */
+export function friendlyCalendarErrorMessage(message: string): string {
+  if (message.includes("calendar_events_ends_after_starts")) {
+    return "L'orario di fine deve essere dopo quello di inizio.";
+  }
+  if (message.includes("calendar_events_recurrence_until_after_starts")) {
+    return "La data di fine ricorrenza deve essere dopo la data di inizio dell'evento.";
+  }
+  if (message.includes("calendar_events_recurrence_count_max")) {
+    return "Il numero di ripetizioni non può superare 10.";
+  }
+  if (
+    message.includes("calendar_events_recurrence_interval_positive") ||
+    message.includes("calendar_events_recurrence_count_positive")
+  ) {
+    return "Il valore inserito non è valido.";
+  }
+  if (message.includes("calendar_events_recurrence_end_mutually_exclusive")) {
+    return "La ricorrenza può finire a una data oppure dopo N volte, non entrambe.";
+  }
+  return message;
+}
+
 export interface CreateCalendarEventInput {
   coupleId: string;
   createdBy: string;
@@ -83,7 +118,7 @@ export async function createCalendarEvent(
     .select("*")
     .single();
 
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyCalendarErrorMessage(error.message) };
   return data;
 }
 
@@ -135,7 +170,7 @@ export async function updateCalendarEvent(
     .select("*")
     .single();
 
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyCalendarErrorMessage(error.message) };
   return data;
 }
 

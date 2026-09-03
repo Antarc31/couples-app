@@ -322,6 +322,26 @@ describe("confirmAppointment", () => {
     expect(result).toEqual({ error: "RLS violation su calendar_events" });
   });
 
+  it("traduce il vincolo 'ends_after_starts' in un messaggio comprensibile (stessa tabella di lib/calendar-actions.ts)", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    const calendarMock = makeCalendarEventsMock({
+      data: null,
+      error: {
+        message:
+          'new row for relation "calendar_events" violates check constraint "calendar_events_ends_after_starts"',
+      },
+    });
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "profiles") return makeQueryBuilderMock({ couple_id: "c1" });
+      if (table === "calendar_events") return calendarMock;
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    const result = await confirmAppointment("ap1", { startsAt: "2026-09-10T20:00:00.000Z" }, "Cena romantica");
+    expect(result).toEqual({ error: "L'orario di fine deve essere dopo quello di inizio." });
+  });
+
   it("fa rollback (best-effort) del calendar_event appena creato se l'update dell'appointment fallisce", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
     const calendarMock = makeCalendarEventsMock({ data: { id: "ev1" }, error: null });
@@ -450,6 +470,29 @@ describe("createConfirmedAppointment", () => {
       { startsAt: "2026-09-10T20:00:00.000Z" },
     );
     expect(result).toEqual({ error: "RLS violation su calendar_events" });
+  });
+
+  it("traduce il vincolo 'ends_after_starts' in un messaggio comprensibile", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    const calendarMock = makeCalendarEventsMock({
+      data: null,
+      error: {
+        message:
+          'new row for relation "calendar_events" violates check constraint "calendar_events_ends_after_starts"',
+      },
+    });
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "profiles") return makeQueryBuilderMock({ couple_id: "c1" });
+      if (table === "calendar_events") return calendarMock;
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    const result = await createConfirmedAppointment(
+      { title: "Cena romantica" },
+      { startsAt: "2026-09-10T20:00:00.000Z" },
+    );
+    expect(result).toEqual({ error: "L'orario di fine deve essere dopo quello di inizio." });
   });
 
   it("fa rollback (best-effort) del calendar_event appena creato se l'insert dell'appointment fallisce", async () => {

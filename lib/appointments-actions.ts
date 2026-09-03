@@ -17,6 +17,7 @@
  */
 
 import { createClient } from "@/lib/supabase/client";
+import { friendlyCalendarErrorMessage } from "@/lib/calendar-actions";
 import type { AppointmentStatus, Database, EventRecurrence } from "@/types/database";
 
 type AppointmentUpdate = Database["public"]["Tables"]["appointments"]["Update"];
@@ -206,7 +207,7 @@ export async function confirmAppointment(
     .select("id")
     .single();
 
-  if (eventError) return { error: eventError.message };
+  if (eventError) return { error: friendlyCalendarErrorMessage(eventError.message) };
 
   const { data, error } = await supabase
     .from("appointments")
@@ -282,7 +283,7 @@ export async function createConfirmedAppointment(
     .select("id")
     .single();
 
-  if (eventError) return { error: eventError.message };
+  if (eventError) return { error: friendlyCalendarErrorMessage(eventError.message) };
 
   const { data, error } = await supabase
     .from("appointments")
