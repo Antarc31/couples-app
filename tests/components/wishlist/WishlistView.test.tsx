@@ -1,11 +1,23 @@
 /**
  * Unit test per components/wishlist/WishlistView.tsx — copre la logica non
- * banale del componente: i filtri Regali/Attività di coppia/Tutto, il
- * toggle archivio "Completati", e SOPRATTUTTO come il componente reagisce al
- * flag `isHiddenSurprise` già calcolato lato server (view `wishlist_feed`) —
- * il componente non ha NESSUNA logica di mascheramento propria, si limita a
- * leggere quel flag (a differenza della vecchia versione mock con
- * `isSurpriseHiddenFor`, sostituita nello swap a dati reali).
+ * banale del componente: i filtri per destinatario Per me/Per partner/Per
+ * entrambi (sostituiscono i vecchi filtri per categoria Regali/Attività di
+ * coppia/Tutto — vedi commento in WishlistView.tsx sul perché la categoria è
+ * stata tolta), il toggle archivio "Completati", e SOPRATTUTTO come il
+ * componente reagisce al flag `isHiddenSurprise` già calcolato lato server
+ * (view `wishlist_feed`) — il componente non ha NESSUNA logica di
+ * mascheramento propria, si limita a leggere quel flag (a differenza della
+ * vecchia versione mock con `isSurpriseHiddenFor`, sostituita nello swap a
+ * dati reali).
+ *
+ * ATTENZIONE testando il badge destinatario: l'etichetta di un item "per il
+ * partner" (es. "Per Sam") è IDENTICA al testo del tab del filtro "partner"
+ * (anche lui "Per Sam", stesso `partnerName`) — una `findByText("Per Sam")`
+ * senza disambiguare rischia un falso positivo che matcha il BOTTONE del
+ * tab invece dello SPAN della card (il tab resta a schermo comunque, anche
+ * quando l'item non è nel filtro attivo e quindi non renderizza affatto).
+ * Per questo le asserzioni sul badge qui sotto usano `{ selector: "span" }`
+ * per restringere il match alla card, non al tab.
  *
  * lib/wishlist-actions.ts è mockato: qui non testiamo Supabase/RLS/la view
  * SQL (vedi tests/lib/wishlist-actions.test.ts per quello), solo
@@ -63,36 +75,38 @@ beforeEach(() => {
   mockReopenWishlistItem.mockReset();
 });
 
-describe("WishlistView — filtri Regali / Attività di coppia / Tutto", () => {
-  it("il filtro di default 'Tutto' mostra sia regali che attività attive", async () => {
+describe("WishlistView — filtri Per me / Per partner / Per entrambi", () => {
+  it("il filtro di default 'Per me' mostra solo gli item di cui sei il beneficiario", async () => {
     mockListWishlistFeed.mockResolvedValue([
-      makeItem({ id: "wl1", category: "regalo", title: "Cuffie wireless" }),
-      makeItem({ id: "wl2", category: "attivita", title: "Corso di ballo" }),
+      makeItem({ id: "wl1", target: "self", createdBy: "me", title: "Cuffie wireless" }),
+      makeItem({ id: "wl2", target: "partner", createdBy: "me", title: "Idea regalo per Sam" }),
     ]);
 
     render(<WishlistView selfId="me" partnerName="Sam" />);
 
     expect(await screen.findByText("Cuffie wireless")).toBeInTheDocument();
-    expect(screen.getByText("Corso di ballo")).toBeInTheDocument();
+    expect(screen.queryByText("Idea regalo per Sam")).not.toBeInTheDocument();
   });
 
-  it("il filtro 'Regali' nasconde le attività, e viceversa per 'Attività di coppia'", async () => {
+  it("'Per <partner>' mostra solo gli item di cui beneficia il partner, 'Per entrambi' solo quelli condivisi", async () => {
     const user = userEvent.setup();
     mockListWishlistFeed.mockResolvedValue([
-      makeItem({ id: "wl1", category: "regalo", title: "Cuffie wireless" }),
-      makeItem({ id: "wl2", category: "attivita", title: "Corso di ballo" }),
+      makeItem({ id: "wl1", target: "self", createdBy: "me", title: "Cuffie wireless" }),
+      makeItem({ id: "wl2", target: "partner", createdBy: "me", title: "Idea regalo per Sam" }),
+      makeItem({ id: "wl3", target: "entrambi", createdBy: "me", title: "Cassa bluetooth" }),
     ]);
 
     render(<WishlistView selfId="me" partnerName="Sam" />);
     await screen.findByText("Cuffie wireless");
 
-    await user.click(screen.getByRole("button", { name: "Regali" }));
-    expect(screen.getByText("Cuffie wireless")).toBeInTheDocument();
-    expect(screen.queryByText("Corso di ballo")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Attività di coppia" }));
+    await user.click(screen.getByRole("button", { name: "Per Sam" }));
     expect(screen.queryByText("Cuffie wireless")).not.toBeInTheDocument();
-    expect(screen.getByText("Corso di ballo")).toBeInTheDocument();
+    expect(screen.getByText("Idea regalo per Sam")).toBeInTheDocument();
+    expect(screen.queryByText("Cassa bluetooth")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Per entrambi" }));
+    expect(screen.queryByText("Idea regalo per Sam")).not.toBeInTheDocument();
+    expect(screen.getByText("Cassa bluetooth")).toBeInTheDocument();
   });
 
   it("nasconde gli item completati dalla vista 'Attivi' e li mostra solo nell'archivio 'Completati'", async () => {
@@ -109,8 +123,8 @@ describe("WishlistView — filtri Regali / Attività di coppia / Tutto", () => {
     await user.click(screen.getByRole("button", { name: "Completati 🗂" }));
     expect(screen.queryByText("Attivo")).not.toBeInTheDocument();
     expect(screen.getByText("Fatto insieme")).toBeInTheDocument();
-    // In archivio i filtri categoria non hanno senso e spariscono dalla UI.
-    expect(screen.queryByRole("button", { name: "Regali" })).not.toBeInTheDocument();
+    // In archivio i filtri destinatario non hanno senso e spariscono dalla UI.
+    expect(screen.queryByRole("button", { name: "Per me" })).not.toBeInTheDocument();
   });
 });
 
@@ -153,7 +167,11 @@ describe("WishlistView — visibilità modalità sorpresa (il punto più delicat
       }),
     ]);
 
+    const user = userEvent.setup();
     render(<WishlistView selfId="me" partnerName="Sam" />);
+    // target='partner' creato da me -> ricade nel bucket "partner", non nel
+    // filtro di default "self".
+    await user.click(screen.getByRole("button", { name: "Per Sam" }));
 
     expect(await screen.findByText("Sorpresa per Sam")).toBeInTheDocument();
     expect(screen.getByText("🎁 sorpresa")).toBeInTheDocument();
@@ -275,31 +293,40 @@ describe("WishlistView — riapertura di un item completato per errore", () => {
 });
 
 describe("WishlistView — badge destinatario (target, sempre relativo a chi guarda)", () => {
-  it("target='entrambi' mostra 'Per voi due' indipendentemente da chi l'ha creato", async () => {
+  it("target='entrambi' mostra 'Per voi due' indipendentemente da chi l'ha creato (sezione 'Per entrambi')", async () => {
     mockListWishlistFeed.mockResolvedValue([makeItem({ id: "wl1", target: "entrambi", createdBy: "partner-1" })]);
+    const user = userEvent.setup();
     render(<WishlistView selfId="me" partnerName="Sam" />);
+    await user.click(screen.getByRole("button", { name: "Per entrambi" }));
     expect(await screen.findByText("Per voi due")).toBeInTheDocument();
   });
 
-  it("target='self' creato da te mostra 'Per te'", async () => {
+  it("target='self' creato da te mostra 'Per te' (sezione di default 'Per me')", async () => {
     mockListWishlistFeed.mockResolvedValue([makeItem({ id: "wl1", target: "self", createdBy: "me" })]);
     render(<WishlistView selfId="me" partnerName="Sam" />);
     expect(await screen.findByText("Per te")).toBeInTheDocument();
   });
 
-  it("target='self' creato dal partner (lo vuole per sé) mostra 'Per <nome partner>'", async () => {
+  it("target='self' creato dal partner (lo vuole per sé) mostra 'Per <nome partner>' (sezione 'Per <partner>')", async () => {
     mockListWishlistFeed.mockResolvedValue([makeItem({ id: "wl1", target: "self", createdBy: "partner-1" })]);
+    const user = userEvent.setup();
     render(<WishlistView selfId="me" partnerName="Sam" />);
-    expect(await screen.findByText("Per Sam")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Per Sam" }));
+    // "Per Sam" compare anche come testo del tab appena cliccato: la card
+    // (uno <span>, non un <button>) va disambiguata dal tab — vedi nota in
+    // testa al file.
+    expect(await screen.findByText("Per Sam", { selector: "span" })).toBeInTheDocument();
   });
 
-  it("target='partner' creato da te (idea regalo per il partner) mostra 'Per <nome partner>'", async () => {
+  it("target='partner' creato da te (idea regalo per il partner) mostra 'Per <nome partner>' (sezione 'Per <partner>')", async () => {
     mockListWishlistFeed.mockResolvedValue([makeItem({ id: "wl1", target: "partner", createdBy: "me" })]);
+    const user = userEvent.setup();
     render(<WishlistView selfId="me" partnerName="Sam" />);
-    expect(await screen.findByText("Per Sam")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Per Sam" }));
+    expect(await screen.findByText("Per Sam", { selector: "span" })).toBeInTheDocument();
   });
 
-  it("target='partner' creato dal partner (per il SUO partner, cioè te) mostra 'Per te'", async () => {
+  it("target='partner' creato dal partner (per il SUO partner, cioè te) mostra 'Per te' (sezione di default 'Per me')", async () => {
     mockListWishlistFeed.mockResolvedValue([makeItem({ id: "wl1", target: "partner", createdBy: "partner-1" })]);
     render(<WishlistView selfId="me" partnerName="Sam" />);
     expect(await screen.findByText("Per te")).toBeInTheDocument();

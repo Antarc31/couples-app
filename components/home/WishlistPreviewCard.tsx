@@ -2,11 +2,6 @@ import Link from "next/link";
 import Card from "@/components/ui/Card";
 import type { WishlistCategory } from "@/types/database";
 
-const CATEGORY_EMOJI: Record<WishlistCategory, string> = {
-  regalo: "🎁",
-  attivita: "🎯",
-};
-
 function formatPrice(price: number | null): string | null {
   if (price == null) return null;
   return Number.isInteger(price) ? `~${price}€` : `~${price.toFixed(2)}€`;
@@ -50,7 +45,7 @@ export default function WishlistPreviewCard({ items, selfId, partnerName }: Wish
         <ul className="flex flex-col gap-2">
           {items.map((item) => (
             <li key={item.id} className="flex items-center gap-3 rounded-2xl bg-base px-3 py-2">
-              <span className="text-xl">{item.is_hidden_surprise ? "🎁" : CATEGORY_EMOJI[item.category]}</span>
+              <span className="text-xl">🎁</span>
               <div className="flex-1">
                 <p className="text-sm font-semibold text-ink">
                   {item.is_hidden_surprise ? "Sorpresa in arrivo…" : item.title}

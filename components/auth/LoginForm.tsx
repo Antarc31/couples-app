@@ -5,16 +5,22 @@ import { useRouter } from "next/navigation";
 import { requestPasswordReset, signIn, signUp } from "@/lib/auth-actions";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import PasswordInput from "@/components/ui/PasswordInput";
 
 type Mode = "login" | "signup" | "forgot";
 
-export default function LoginForm() {
+interface LoginFormProps {
+  /** Messaggio da mostrare subito al primo render, es. da ?error= sulla pagina (vedi app/(auth)/login/page.tsx). */
+  initialError?: string | null;
+}
+
+export default function LoginForm({ initialError = null }: LoginFormProps) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -143,8 +149,7 @@ export default function LoginForm() {
           required
           autoComplete="email"
         />
-        <Input
-          type="password"
+        <PasswordInput
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}

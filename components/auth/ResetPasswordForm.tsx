@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { updatePassword } from "@/lib/auth-actions";
 import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
+import PasswordInput from "@/components/ui/PasswordInput";
 
 /**
  * Form mostrato dopo il link di recupero password (app/(auth)/reset-password/page.tsx):
@@ -46,8 +46,7 @@ export default function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <p className="text-sm text-ink-soft">Scegli una nuova password per il tuo account.</p>
-      <Input
-        type="password"
+      <PasswordInput
         placeholder="Nuova password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -56,8 +55,7 @@ export default function ResetPasswordForm() {
         autoComplete="new-password"
         autoFocus
       />
-      <Input
-        type="password"
+      <PasswordInput
         placeholder="Conferma nuova password"
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}

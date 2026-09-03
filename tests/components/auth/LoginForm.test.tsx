@@ -99,6 +99,20 @@ describe("LoginForm — registrazione", () => {
   });
 });
 
+describe("LoginForm — initialError (da ?error= sulla pagina, vedi app/(auth)/login/page.tsx)", () => {
+  it("mostra subito il messaggio passato come initialError", () => {
+    render(<LoginForm initialError="Il link non è più valido: prova a richiederne uno nuovo." />);
+
+    expect(screen.getByText("Il link non è più valido: prova a richiederne uno nuovo.")).toBeInTheDocument();
+  });
+
+  it("senza initialError non mostra nessun errore", () => {
+    render(<LoginForm />);
+
+    expect(screen.queryByText(/non è più valido/)).not.toBeInTheDocument();
+  });
+});
+
 describe("LoginForm — accesso", () => {
   it("mostra il messaggio 'email non confermata' tradotto se il login fallisce per quel motivo", async () => {
     mockSignIn.mockResolvedValue({

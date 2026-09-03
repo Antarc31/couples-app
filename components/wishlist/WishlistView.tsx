@@ -10,7 +10,13 @@ import {
 import Card from "@/components/ui/Card";
 import WishlistFormModal from "@/components/wishlist/WishlistFormModal";
 
-type Filter = "regalo" | "attivita" | "tutto";
+// Sezioni per destinatario, non più per categoria regalo/attività di coppia
+// (tolta su richiesta dell'utente: ridondante col Calendario/Appuntamenti,
+// che già coprono la pianificazione di attività condivise — la Wishlist
+// resta solo "cosa vorrei", non "cosa vogliamo fare"). Niente sezione
+// "Tutto": le tre sezioni per destinatario sono già esaustive e mutuamente
+// esclusive (ogni item ha esattamente un target).
+type Filter = "self" | "partner" | "entrambi";
 
 const PRIORITY_LABELS: Record<WishlistFeedItem["priority"], string> = {
   bassa: "Bassa",
@@ -24,11 +30,6 @@ const PRIORITY_STYLES: Record<WishlistFeedItem["priority"], string> = {
   alta: "bg-couple-soft text-couple",
 };
 
-const CATEGORY_EMOJI: Record<WishlistFeedItem["category"], string> = {
-  regalo: "🎁",
-  attivita: "🎯",
-};
-
 function formatPrice(price: number | null): string | null {
   if (price == null) return null;
   return Number.isInteger(price) ? `~${price}€` : `~${price.toFixed(2)}€`;
@@ -36,14 +37,24 @@ function formatPrice(price: number | null): string | null {
 
 /**
  * `target` è sempre relativo a chi ha CREATO l'item, non a chi guarda —
- * qui lo traduciamo rispetto al viewer corrente (selfId), così la stessa
- * riga si legge "Per te" o "Per <partner>" a seconda di chi la sta
- * guardando.
+ * qui lo traduciamo rispetto al viewer corrente (selfId): la stessa riga si
+ * legge "self"/"per te" per chi ne beneficia, "partner"/"per <partner>" per
+ * l'altro. Stessa traduzione usata sia per l'etichetta sulla card
+ * (targetLabel) sia per decidere in quale sezione ricade l'item (itemBucket).
  */
+function beneficiaryIsSelf(item: WishlistFeedItem, selfId: string): boolean {
+  return item.target === "self" ? item.createdBy === selfId : item.createdBy !== selfId;
+}
+
 function targetLabel(item: WishlistFeedItem, selfId: string, partnerName: string): string {
   if (item.target === "entrambi") return "Per voi due";
-  const beneficiaryIsSelf = item.target === "self" ? item.createdBy === selfId : item.createdBy !== selfId;
-  return beneficiaryIsSelf ? "Per te" : `Per ${partnerName}`;
+  return beneficiaryIsSelf(item, selfId) ? "Per te" : `Per ${partnerName}`;
+}
+
+/** Sezione (Filter) a cui appartiene l'item dal punto di vista del viewer corrente. */
+function itemBucket(item: WishlistFeedItem, selfId: string): Filter {
+  if (item.target === "entrambi") return "entrambi";
+  return beneficiaryIsSelf(item, selfId) ? "self" : "partner";
 }
 
 interface WishlistViewProps {
@@ -52,11 +63,13 @@ interface WishlistViewProps {
 }
 
 /**
- * Schermata Wishlist (docs/PLAN.md sezione "Wishlist"): filtri Regali/
- * Attività/Tutto, archivio "Completati" separato (mai delete secco: nessuna
- * policy DELETE lato DB, solo il pulsante di completamento), modalità
- * sorpresa. Dati reali (tabella `wishlist_items`, live dal 2026-09-01) via
- * lib/wishlist-actions.ts.
+ * Schermata Wishlist (docs/PLAN.md sezione "Wishlist"): filtri per
+ * destinatario (Per me/Per <partner>/Per entrambi — sostituiscono i vecchi
+ * filtri per categoria Regali/Attività di coppia/Tutto, tolti su richiesta
+ * dell'utente perché ridondanti col Calendario/Appuntamenti), archivio
+ * "Completati" separato (mai delete secco: nessuna policy DELETE lato DB,
+ * solo il pulsante di completamento), modalità sorpresa. Dati reali (tabella
+ * `wishlist_items`, live dal 2026-09-01) via lib/wishlist-actions.ts.
  *
  * IMPORTANTE (ribadito da backend2 e da main): la lista condivisa legge
  * SEMPRE `listWishlistFeed()` (view `wishlist_feed`), mai una query diretta
@@ -69,7 +82,7 @@ export default function WishlistView({ selfId, partnerName }: WishlistViewProps)
   const [items, setItems] = useState<WishlistFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<Filter>("tutto");
+  const [filter, setFilter] = useState<Filter>("self");
   const [showArchive, setShowArchive] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
@@ -90,7 +103,7 @@ export default function WishlistView({ selfId, partnerName }: WishlistViewProps)
   }, [load]);
 
   const scoped = items.filter((i) => (showArchive ? i.status === "completato" : i.status === "attivo"));
-  const filtered = scoped.filter((i) => filter === "tutto" || i.category === filter);
+  const filtered = scoped.filter((i) => itemBucket(i, selfId) === filter);
 
   async function complete(id: string) {
     // Ottimistico, coerente con ThoughtsSection: aggiorniamo subito la UI e
@@ -144,7 +157,7 @@ export default function WishlistView({ selfId, partnerName }: WishlistViewProps)
 
       {!showArchive && (
         <div className="flex rounded-2xl bg-partner-a-soft/50 p-1">
-          {(["regalo", "attivita", "tutto"] as const).map((f) => (
+          {(["self", "partner", "entrambi"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -152,7 +165,7 @@ export default function WishlistView({ selfId, partnerName }: WishlistViewProps)
                 filter === f ? "bg-surface text-ink shadow-sm" : "text-ink-soft"
               }`}
             >
-              {f === "regalo" ? "Regali" : f === "attivita" ? "Attività di coppia" : "Tutto"}
+              {f === "self" ? "Per me" : f === "partner" ? `Per ${partnerName}` : "Per entrambi"}
             </button>
           ))}
         </div>
@@ -173,7 +186,7 @@ export default function WishlistView({ selfId, partnerName }: WishlistViewProps)
           {filtered.map((item) => (
             <Card key={item.id} className="flex gap-3">
               <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-partner-a-soft/50 text-2xl">
-                {item.isHiddenSurprise ? "🎁" : CATEGORY_EMOJI[item.category]}
+                🎁
               </span>
               <div className="flex-1">
                 {item.isHiddenSurprise ? (

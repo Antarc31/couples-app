@@ -4,14 +4,9 @@ import { useEffect, useState, type FormEvent } from "react";
 import { createWishlistItem } from "@/lib/wishlist-actions";
 import { listUpcomingCoupleEvents, type UpcomingEventOption } from "@/lib/calendar-actions";
 import { formatDateShort } from "@/lib/calendar-dates";
-import type { WishlistCategory, WishlistPriority, WishlistTarget } from "@/types/database";
+import type { WishlistPriority, WishlistTarget } from "@/types/database";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-
-const CATEGORY_OPTIONS: { value: WishlistCategory; label: string }[] = [
-  { value: "regalo", label: "Regalo" },
-  { value: "attivita", label: "Attività di coppia" },
-];
 
 const PRIORITY_OPTIONS: { value: WishlistPriority; label: string }[] = [
   { value: "bassa", label: "Bassa" },
@@ -46,7 +41,6 @@ interface WishlistFormModalProps {
 export default function WishlistFormModal({ onClose, onSaved }: WishlistFormModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<WishlistCategory>("regalo");
   const [priority, setPriority] = useState<WishlistPriority>("media");
   const [price, setPrice] = useState("");
   const [link, setLink] = useState("");
@@ -75,7 +69,11 @@ export default function WishlistFormModal({ onClose, onSaved }: WishlistFormModa
     setError(null);
 
     const result = await createWishlistItem({
-      category,
+      // Categoria rimossa dalla UI (piano "sezioni per me/partner/entrambi"):
+      // "regalo" fisso, non più scelto dall'utente — vedi commento in
+      // WishlistView.tsx sul perché la distinzione regalo/attività di coppia
+      // è stata tolta (ridondante col Calendario/Appuntamenti).
+      category: "regalo",
       target,
       title: title.trim(),
       description: description.trim() || undefined,
@@ -112,24 +110,6 @@ export default function WishlistFormModal({ onClose, onSaved }: WishlistFormModa
             required
             autoFocus
           />
-
-          <div>
-            <p className="mb-1.5 text-xs font-semibold text-ink-soft">Categoria</p>
-            <div className="flex gap-2">
-              {CATEGORY_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setCategory(opt.value)}
-                  className={`flex-1 rounded-2xl border px-2 py-2 text-xs font-semibold transition ${
-                    category === opt.value ? "border-transparent bg-couple text-white" : "border-border text-ink-soft"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div>
             <p className="mb-1.5 text-xs font-semibold text-ink-soft">Per chi</p>
