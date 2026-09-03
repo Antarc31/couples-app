@@ -23,7 +23,7 @@
  * convenzione sui nomi `mock*` richiesta dall'hoisting di jest.mock.
  */
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Database } from "@/types/database";
 import type { CreateCalendarEventInput, UpdateCalendarEventInput } from "@/lib/calendar-actions";
@@ -73,6 +73,9 @@ function makeEventRow(overrides: Partial<CalendarEventRow> = {}): CalendarEventR
     ends_at: "2026-09-10T10:00:00.000Z",
     all_day: false,
     recurrence: "nessuna",
+    recurrence_interval: 1,
+    recurrence_until: null,
+    recurrence_count: null,
     is_shared_with_partner: false,
     created_at: "2026-09-01T00:00:00.000Z",
     updated_at: "2026-09-01T00:00:00.000Z",
@@ -462,5 +465,151 @@ describe("EventFormModal — controllo automatico di sovrapposizione", () => {
 
     await waitFor(() => expect(mockListCoupleEventsInRange).toHaveBeenCalled());
     expect(screen.queryByText(/Si sovrappone/)).not.toBeInTheDocument();
+  });
+});
+
+// =============================================================================
+// Ricorrenza generale ("Ripeti", stile Google Calendar semplice — vedi piano
+// approvato in /Users/antonioarcucci/.claude/plans/ho-notato-delle-cose-mossy-sketch.md).
+// lib/calendar-dates.ts (formatRecurrenceSummary/pluralizeRecurrenceUnit) NON
+// è mockato: già testato a parte in tests/lib/calendar-dates.test.ts.
+// =============================================================================
+describe("EventFormModal — ricorrenza generale ('Ripeti')", () => {
+  it("di default mostra solo il selettore frequenza, nessun controllo aggiuntivo", () => {
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date(2026, 8, 10)} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    expect(screen.getByRole("combobox", { name: "Ripeti" })).toHaveValue("nessuna");
+    expect(screen.queryByRole("spinbutton", { name: "Ogni quante unità" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Mai" })).not.toBeInTheDocument();
+  });
+
+  it("selezionare una frequenza mostra l'intervallo e le tre opzioni di fine (default 'Mai') più l'anteprima live", async () => {
+    const user = userEvent.setup();
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date(2026, 8, 10)} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Ripeti" }), "settimanale");
+
+    expect(screen.getByRole("spinbutton", { name: "Ogni quante unità" })).toHaveValue(1);
+    expect(screen.getByRole("radio", { name: "Mai" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Il" })).not.toBeChecked();
+    expect(screen.getByRole("radio", { name: "Dopo" })).not.toBeChecked();
+    expect(screen.getByText("🔁 Ogni settimana")).toBeInTheDocument();
+  });
+
+  it("aumentare l'intervallo aggiorna l'anteprima con l'unità al plurale", async () => {
+    const user = userEvent.setup();
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date(2026, 8, 10)} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Ripeti" }), "settimanale");
+    const intervalInput = screen.getByRole("spinbutton", { name: "Ogni quante unità" });
+    await user.clear(intervalInput);
+    await user.type(intervalInput, "2");
+
+    expect(screen.getByText("🔁 Ogni 2 settimane")).toBeInTheDocument();
+  });
+
+  it("'Non si ripete' (default): submit non passa recurrenceUntil/recurrenceCount", async () => {
+    mockCreateCalendarEvent.mockResolvedValue(makeEventRow());
+    const user = userEvent.setup();
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date(2026, 8, 10)} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    await user.type(screen.getByPlaceholderText("Titolo (es. Cena da Marco)"), "Palestra");
+    await user.click(screen.getByRole("button", { name: "Crea evento" }));
+
+    await waitFor(() => expect(mockCreateCalendarEvent).toHaveBeenCalledTimes(1));
+    expect(mockCreateCalendarEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recurrence: "nessuna",
+        recurrenceInterval: 1,
+        recurrenceUntil: null,
+        recurrenceCount: null,
+      }),
+    );
+  });
+
+  it("'Il [data]': submit passa recurrenceUntil a fine giornata e recurrenceCount null", async () => {
+    mockCreateCalendarEvent.mockResolvedValue(makeEventRow());
+    const user = userEvent.setup();
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date(2026, 8, 10)} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    await user.type(screen.getByPlaceholderText("Titolo (es. Cena da Marco)"), "Lezione di Analisi");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Ripeti" }), "settimanale");
+    await user.click(screen.getByRole("radio", { name: "Il" }));
+    fireEvent.change(screen.getByLabelText("Fino al"), { target: { value: "2026-12-15" } });
+    await user.click(screen.getByRole("button", { name: "Crea evento" }));
+
+    await waitFor(() => expect(mockCreateCalendarEvent).toHaveBeenCalledTimes(1));
+    expect(mockCreateCalendarEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recurrence: "settimanale",
+        recurrenceInterval: 1,
+        recurrenceUntil: new Date("2026-12-15T23:59:59").toISOString(),
+        recurrenceCount: null,
+      }),
+    );
+  });
+
+  it("'Dopo [N] volte': submit passa recurrenceCount e recurrenceUntil null", async () => {
+    mockCreateCalendarEvent.mockResolvedValue(makeEventRow());
+    const user = userEvent.setup();
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date(2026, 8, 10)} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    await user.type(screen.getByPlaceholderText("Titolo (es. Cena da Marco)"), "Terapia");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Ripeti" }), "giornaliera");
+    await user.click(screen.getByRole("radio", { name: "Dopo" }));
+    const countInput = screen.getByRole("spinbutton", { name: "Numero di volte" });
+    await user.clear(countInput);
+    await user.type(countInput, "5");
+    await user.click(screen.getByRole("button", { name: "Crea evento" }));
+
+    await waitFor(() => expect(mockCreateCalendarEvent).toHaveBeenCalledTimes(1));
+    expect(mockCreateCalendarEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recurrence: "giornaliera",
+        recurrenceInterval: 1,
+        recurrenceUntil: null,
+        recurrenceCount: 5,
+      }),
+    );
+  });
+
+  it("in modifica di un evento ricorrente, i campi sono precompilati da initial", () => {
+    const initial = makeEventRow({
+      recurrence: "settimanale",
+      recurrence_interval: 2,
+      // Costruito con lo stesso schema (locale, non un letterale "Z" già in
+      // UTC) del componente reale (`new Date(\`${date}T23:59:59\`)`), così il
+      // test resta deterministico a prescindere dal fuso orario di chi lo
+      // esegue — vedi la nota sui timestamp in DayTimeline.test.tsx.
+      recurrence_until: new Date("2026-12-15T23:59:59").toISOString(),
+    });
+    render(
+      <EventFormModal
+        coupleId="c1"
+        createdBy="me"
+        defaultDate={new Date(initial.starts_at)}
+        mode="edit"
+        initial={initial}
+        onClose={jest.fn()}
+        onSaved={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("combobox", { name: "Ripeti" })).toHaveValue("settimanale");
+    expect(screen.getByRole("spinbutton", { name: "Ogni quante unità" })).toHaveValue(2);
+    expect(screen.getByRole("radio", { name: "Il" })).toBeChecked();
+    expect(screen.getByLabelText("Fino al")).toHaveValue("2026-12-15");
   });
 });

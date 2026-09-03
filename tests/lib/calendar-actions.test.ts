@@ -122,6 +122,9 @@ const baseRow = {
   ends_at: null,
   all_day: false,
   recurrence: "nessuna" as const,
+  recurrence_interval: 1,
+  recurrence_until: null,
+  recurrence_count: null,
   is_shared_with_partner: false,
   created_at: "2026-09-01T10:00:00.000Z",
   updated_at: "2026-09-01T10:00:00.000Z",
@@ -163,6 +166,10 @@ describe("createCalendarEvent", () => {
       starts_at: "2026-09-10T20:00:00.000Z",
       ends_at: null,
       all_day: false,
+      recurrence: "nessuna",
+      recurrence_interval: 1,
+      recurrence_until: null,
+      recurrence_count: null,
     });
     expect(result).toEqual(baseRow);
   });
@@ -189,6 +196,32 @@ describe("createCalendarEvent", () => {
         tag: "ristorante",
         notes: "portare il vino",
         ends_at: "2026-09-10T22:00:00.000Z",
+      }),
+    );
+  });
+
+  it("passa recurrence/recurrenceInterval/recurrenceUntil/recurrenceCount quando forniti (ricorrenza generale)", async () => {
+    const insertMock = makeInsertSelectSingleMock({ data: baseRow, error: null });
+    mockSupabase.from.mockReturnValue(insertMock);
+
+    await createCalendarEvent({
+      coupleId: "c1",
+      createdBy: "me",
+      title: "Lezione di Analisi",
+      category: "personale",
+      startsAt: "2026-09-10T09:00:00.000Z",
+      recurrence: "settimanale",
+      recurrenceInterval: 2,
+      recurrenceUntil: "2026-12-15T23:59:59.000Z",
+      recurrenceCount: null,
+    });
+
+    expect(insertMock.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recurrence: "settimanale",
+        recurrence_interval: 2,
+        recurrence_until: "2026-12-15T23:59:59.000Z",
+        recurrence_count: null,
       }),
     );
   });
@@ -240,6 +273,25 @@ describe("updateCalendarEvent", () => {
     await updateCalendarEvent("ev1", { tag: null, notes: null, endsAt: null });
 
     expect(updateMock.update).toHaveBeenCalledWith({ tag: null, notes: null, ends_at: null });
+  });
+
+  it("passa recurrence/recurrenceInterval/recurrenceUntil/recurrenceCount quando forniti", async () => {
+    const updateMock = makeUpdateEqSelectSingleMock({ data: baseRow, error: null });
+    mockSupabase.from.mockReturnValue(updateMock);
+
+    await updateCalendarEvent("ev1", {
+      recurrence: "mensile",
+      recurrenceInterval: 3,
+      recurrenceUntil: null,
+      recurrenceCount: 8,
+    });
+
+    expect(updateMock.update).toHaveBeenCalledWith({
+      recurrence: "mensile",
+      recurrence_interval: 3,
+      recurrence_until: null,
+      recurrence_count: 8,
+    });
   });
 
   it("propaga l'errore della query (es. RLS: non autorizzato a modificare un evento personale altrui)", async () => {

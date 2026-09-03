@@ -29,7 +29,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { addDays, projectOccurrences } from "@/lib/calendar-dates";
 import type { CalendarEventRow } from "@/lib/calendar-colors";
-import type { Database, EventCategory } from "@/types/database";
+import type { Database, EventCategory, EventRecurrence } from "@/types/database";
 
 type CalendarEventUpdate = Database["public"]["Tables"]["calendar_events"]["Update"];
 
@@ -48,6 +48,11 @@ export interface CreateCalendarEventInput {
   startsAt: string;
   endsAt?: string | null;
   allDay?: boolean;
+  /** Ricorrenza generale (piano "ricorrenza generale"): default 'nessuna' se omessa. */
+  recurrence?: EventRecurrence;
+  recurrenceInterval?: number;
+  recurrenceUntil?: string | null;
+  recurrenceCount?: number | null;
 }
 
 /** Crea un nuovo evento calendario (insert diretto su `calendar_events`). */
@@ -70,6 +75,10 @@ export async function createCalendarEvent(
       starts_at: input.startsAt,
       ends_at: input.endsAt ?? null,
       all_day: input.allDay ?? false,
+      recurrence: input.recurrence ?? "nessuna",
+      recurrence_interval: input.recurrenceInterval ?? 1,
+      recurrence_until: input.recurrenceUntil ?? null,
+      recurrence_count: input.recurrenceCount ?? null,
     })
     .select("*")
     .single();
@@ -87,6 +96,10 @@ export interface UpdateCalendarEventInput {
   startsAt?: string;
   endsAt?: string | null;
   allDay?: boolean;
+  recurrence?: EventRecurrence;
+  recurrenceInterval?: number;
+  recurrenceUntil?: string | null;
+  recurrenceCount?: number | null;
 }
 
 /**
@@ -110,6 +123,10 @@ export async function updateCalendarEvent(
   if (input.startsAt !== undefined) patch.starts_at = input.startsAt;
   if (input.endsAt !== undefined) patch.ends_at = input.endsAt;
   if (input.allDay !== undefined) patch.all_day = input.allDay;
+  if (input.recurrence !== undefined) patch.recurrence = input.recurrence;
+  if (input.recurrenceInterval !== undefined) patch.recurrence_interval = input.recurrenceInterval;
+  if (input.recurrenceUntil !== undefined) patch.recurrence_until = input.recurrenceUntil;
+  if (input.recurrenceCount !== undefined) patch.recurrence_count = input.recurrenceCount;
 
   const { data, error } = await supabase
     .from("calendar_events")
@@ -217,7 +234,15 @@ export async function listCoupleEventsInRange(
 
   const projected: CalendarEventRow[] = [];
   for (const ev of recurringEvents) {
-    for (const occurrence of projectOccurrences(ev.starts_at, ev.recurrence, rangeStart, rangeEnd)) {
+    for (const occurrence of projectOccurrences(
+      ev.starts_at,
+      ev.recurrence,
+      rangeStart,
+      rangeEnd,
+      ev.recurrence_interval,
+      ev.recurrence_until,
+      ev.recurrence_count,
+    )) {
       projected.push({ ...ev, starts_at: occurrence.toISOString() });
     }
   }

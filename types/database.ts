@@ -28,7 +28,9 @@ export type Json =
 export type EventCategory = "personale" | "coppia" | "speciale" | "ciclo";
 // 'mensile' aggiunto in supabase/migrations/
 // 20260901070000_monthly_anniversary_and_recurrence.sql per il mesiversario.
-export type EventRecurrence = "nessuna" | "annuale" | "mensile";
+// 'giornaliera'/'settimanale' aggiunti in
+// 20260904030000_general_event_recurrence.sql per la ricorrenza generale.
+export type EventRecurrence = "nessuna" | "annuale" | "mensile" | "giornaliera" | "settimanale";
 export type PairingInviteStatus =
   | "pending"
   | "accepted"
@@ -223,6 +225,9 @@ export interface Database {
           ends_at: string | null;
           all_day: boolean;
           recurrence: EventRecurrence;
+          recurrence_interval: number;
+          recurrence_until: string | null;
+          recurrence_count: number | null;
           is_shared_with_partner: boolean;
           created_at: string;
           updated_at: string;
@@ -239,6 +244,9 @@ export interface Database {
           ends_at?: string | null;
           all_day?: boolean;
           recurrence?: EventRecurrence;
+          recurrence_interval?: number;
+          recurrence_until?: string | null;
+          recurrence_count?: number | null;
           is_shared_with_partner?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -252,6 +260,9 @@ export interface Database {
           ends_at?: string | null;
           all_day?: boolean;
           recurrence?: EventRecurrence;
+          recurrence_interval?: number;
+          recurrence_until?: string | null;
+          recurrence_count?: number | null;
           is_shared_with_partner?: boolean;
           updated_at?: string;
         };

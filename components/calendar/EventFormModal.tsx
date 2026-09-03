@@ -2,11 +2,11 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { overlapsAnyEvent, toDateKey, toTimeString } from "@/lib/calendar-dates";
+import { formatRecurrenceSummary, overlapsAnyEvent, pluralizeRecurrenceUnit, toDateKey, toTimeString } from "@/lib/calendar-dates";
 import { createCalendarEvent, listCoupleEventsInRange, updateCalendarEvent } from "@/lib/calendar-actions";
 import { createConfirmedAppointment } from "@/lib/appointments-actions";
 import type { CalendarEventRow } from "@/lib/calendar-colors";
-import type { EventCategory } from "@/types/database";
+import type { EventCategory, EventRecurrence } from "@/types/database";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import SlotSuggestions from "@/components/calendar/SlotSuggestions";
@@ -17,6 +17,16 @@ const CATEGORY_OPTIONS: { value: EventCategory; label: string; colorVar: string 
 ];
 
 const TAG_SUGGESTIONS = ["amici", "uni", "sport", "lavoro", "famiglia", "viaggio"];
+
+const RECURRENCE_OPTIONS: { value: EventRecurrence; label: string }[] = [
+  { value: "nessuna", label: "Non si ripete" },
+  { value: "giornaliera", label: "Ogni giorno" },
+  { value: "settimanale", label: "Ogni settimana" },
+  { value: "mensile", label: "Ogni mese" },
+  { value: "annuale", label: "Ogni anno" },
+];
+
+type RecurrenceEndMode = "mai" | "data" | "volte";
 
 /** ISO → HH:mm locale, per popolare gli <input type="time"> in edit. */
 function toTimeInputValue(iso: string): string {
@@ -104,9 +114,40 @@ export default function EventFormModal({
   // salvataggio, solo un avviso + suggerimento — vedi piano "buchi comuni".
   const [overlapWarning, setOverlapWarning] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  // Ricorrenza generale (piano "ricorrenza generale"): mai/dopo-N-volte/
+  // fino-a-una-data sono mutuamente esclusivi lato UI (recurrenceEndMode),
+  // solo il campo del modo selezionato viene inviato (l'altro resta null).
+  const [recurrence, setRecurrence] = useState<EventRecurrence>(initial?.recurrence ?? "nessuna");
+  // Stringa grezza (stesso pattern di `cost` sopra), non un numero
+  // coercizzato a ogni tasto: forzare subito "" -> 1 nell'onChange impedisce
+  // di svuotare il campo per riscriverlo (es. cancellare "1" per scrivere
+  // "12" ridiventava "1" a metà digitazione). Parsata/clampata solo dove
+  // serve il valore numerico (submit, anteprima, etichetta unità).
+  const [recurrenceInterval, setRecurrenceInterval] = useState(String(initial?.recurrence_interval ?? 1));
+  const recurrenceIntervalNum = Math.max(1, parseInt(recurrenceInterval, 10) || 1);
+  const [recurrenceEndMode, setRecurrenceEndMode] = useState<RecurrenceEndMode>(
+    initial?.recurrence_until ? "data" : initial?.recurrence_count ? "volte" : "mai",
+  );
+  const [recurrenceUntilDate, setRecurrenceUntilDate] = useState(
+    initial?.recurrence_until ? toDateKey(new Date(initial.recurrence_until)) : "",
+  );
+  const [recurrenceCount, setRecurrenceCount] = useState(String(initial?.recurrence_count ?? 1));
+  const recurrenceCountNum = Math.max(1, parseInt(recurrenceCount, 10) || 1);
 
   const showCoupleFields = !isEdit && category === "coppia";
   const showEditCoupleHint = isEdit && category === "coppia";
+
+  const recurrenceUnitLabel =
+    recurrence === "nessuna" ? "" : pluralizeRecurrenceUnit(recurrence, recurrenceIntervalNum);
+  const recurrenceSummary =
+    recurrence === "nessuna"
+      ? null
+      : formatRecurrenceSummary(
+          recurrence,
+          recurrenceIntervalNum,
+          recurrenceEndMode === "data" && recurrenceUntilDate ? recurrenceUntilDate : null,
+          recurrenceEndMode === "volte" ? recurrenceCountNum : null,
+        );
 
   useEffect(() => {
     if (allDay || !startTime || !endTime) {
@@ -140,6 +181,23 @@ export default function EventFormModal({
     const startsAtIso = new Date(startsAt).toISOString();
     const endsAtIso = endsAt ? new Date(endsAt).toISOString() : null;
 
+    // "Fino al" memorizzato a fine giornata (23:59:59): garantisce che
+    // l'occorrenza dell'ultimo giorno scelto (qualunque sia l'orario di
+    // starts_at) rientri comunque, e che recurrence_until >= starts_at non
+    // scatti mai per errore se si sceglie proprio il giorno di inizio.
+    const recurrencePayload =
+      recurrence === "nessuna"
+        ? { recurrence: "nessuna" as const, recurrenceInterval: 1, recurrenceUntil: null, recurrenceCount: null }
+        : {
+            recurrence,
+            recurrenceInterval: recurrenceIntervalNum,
+            recurrenceUntil:
+              recurrenceEndMode === "data" && recurrenceUntilDate
+                ? new Date(`${recurrenceUntilDate}T23:59:59`).toISOString()
+                : null,
+            recurrenceCount: recurrenceEndMode === "volte" ? recurrenceCountNum : null,
+          };
+
     if (isEdit && initial) {
       const result = await updateCalendarEvent(initial.id, {
         title: title.trim(),
@@ -149,6 +207,7 @@ export default function EventFormModal({
         startsAt: startsAtIso,
         endsAt: endsAtIso,
         allDay,
+        ...recurrencePayload,
       });
       setSaving(false);
       if ("error" in result) {
@@ -176,6 +235,7 @@ export default function EventFormModal({
           category: "coppia",
           tag: tag.trim() || undefined,
           notes: notes.trim() || undefined,
+          ...recurrencePayload,
         },
       );
       setSaving(false);
@@ -197,6 +257,7 @@ export default function EventFormModal({
       startsAt: startsAtIso,
       endsAt: endsAtIso,
       allDay,
+      ...recurrencePayload,
     });
     setSaving(false);
     if ("error" in result) {
@@ -328,6 +389,99 @@ export default function EventFormModal({
               )}
             </div>
           )}
+
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-ink-soft">Ripeti</p>
+            <select
+              value={recurrence}
+              onChange={(e) => setRecurrence(e.target.value as EventRecurrence)}
+              aria-label="Ripeti"
+              className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] text-ink outline-none focus:border-partner-a focus:ring-2 focus:ring-partner-a-soft"
+            >
+              {RECURRENCE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
+            {recurrence !== "nessuna" && (
+              <div className="mt-3 flex flex-col gap-3">
+                <label className="flex items-center gap-2 text-sm text-ink">
+                  Ogni
+                  <Input
+                    type="number"
+                    aria-label="Ogni quante unità"
+                    min={1}
+                    value={recurrenceInterval}
+                    onChange={(e) => setRecurrenceInterval(e.target.value)}
+                    className="w-16"
+                  />
+                  {recurrenceUnitLabel}
+                </label>
+
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-semibold text-ink-soft">Fine</p>
+                  <label className="flex items-center gap-2 text-sm text-ink">
+                    <input
+                      type="radio"
+                      name="recurrence-end"
+                      checked={recurrenceEndMode === "mai"}
+                      onChange={() => setRecurrenceEndMode("mai")}
+                      className="h-4 w-4 accent-[var(--color-couple)]"
+                    />
+                    Mai
+                  </label>
+                  <div className="flex items-center gap-2 text-sm text-ink">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="recurrence-end"
+                        checked={recurrenceEndMode === "data"}
+                        onChange={() => setRecurrenceEndMode("data")}
+                        className="h-4 w-4 accent-[var(--color-couple)]"
+                      />
+                      Il
+                    </label>
+                    <Input
+                      type="date"
+                      aria-label="Fino al"
+                      min={date}
+                      value={recurrenceUntilDate}
+                      onChange={(e) => setRecurrenceUntilDate(e.target.value)}
+                      disabled={recurrenceEndMode !== "data"}
+                      required={recurrenceEndMode === "data"}
+                      className="flex-1"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-ink">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="recurrence-end"
+                        checked={recurrenceEndMode === "volte"}
+                        onChange={() => setRecurrenceEndMode("volte")}
+                        className="h-4 w-4 accent-[var(--color-couple)]"
+                      />
+                      Dopo
+                    </label>
+                    <Input
+                      type="number"
+                      aria-label="Numero di volte"
+                      min={1}
+                      value={recurrenceCount}
+                      onChange={(e) => setRecurrenceCount(e.target.value)}
+                      disabled={recurrenceEndMode !== "volte"}
+                      className="w-16"
+                    />
+                    volte
+                  </div>
+                </div>
+
+                {recurrenceSummary && <p className="text-xs text-ink-soft">🔁 {recurrenceSummary}</p>}
+              </div>
+            )}
+          </div>
 
           {showCoupleFields && (
             <>

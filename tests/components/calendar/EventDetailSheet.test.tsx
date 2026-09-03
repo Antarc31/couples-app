@@ -57,6 +57,9 @@ function makeEvent(overrides: Partial<CalendarEventRow> = {}): CalendarEventRow 
     ends_at: "2026-09-10T22:00:00.000Z",
     all_day: false,
     recurrence: "nessuna",
+    recurrence_interval: 1,
+    recurrence_until: null,
+    recurrence_count: null,
     is_shared_with_partner: false,
     created_at: "2026-09-01T00:00:00.000Z",
     updated_at: "2026-09-01T00:00:00.000Z",
@@ -200,21 +203,45 @@ describe("EventDetailSheet — dettagli mostrati", () => {
     const event = makeEvent({ recurrence: "nessuna" });
     render(<EventDetailSheet event={event} selfId="me" colorCtx={ctx} onClose={jest.fn()} onEdit={jest.fn()} onDeleted={jest.fn()} />);
 
-    expect(screen.queryByText(/Si ripete/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^🔁/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Ogni/)).not.toBeInTheDocument();
   });
 
-  it("mostra 'Si ripete ogni anno' per un evento con recurrence='annuale' (compleanno/anniversario)", () => {
+  it("mostra 'Ogni anno' per un evento con recurrence='annuale' (compleanno/anniversario)", () => {
     const event = makeEvent({ title: "Anniversario", category: "speciale", recurrence: "annuale" });
     render(<EventDetailSheet event={event} selfId="me" colorCtx={ctx} onClose={jest.fn()} onEdit={jest.fn()} onDeleted={jest.fn()} />);
 
-    expect(screen.getByText(/Si ripete ogni anno/)).toBeInTheDocument();
+    expect(screen.getByText(/Ogni anno/)).toBeInTheDocument();
   });
 
-  it("mostra 'Si ripete ogni mese' per un evento con recurrence='mensile' (mesiversario)", () => {
+  it("mostra 'Ogni mese' per un evento con recurrence='mensile' (mesiversario)", () => {
     const event = makeEvent({ title: "Mesiversario", category: "speciale", recurrence: "mensile" });
     render(<EventDetailSheet event={event} selfId="me" colorCtx={ctx} onClose={jest.fn()} onEdit={jest.fn()} onDeleted={jest.fn()} />);
 
-    expect(screen.getByText(/Si ripete ogni mese/)).toBeInTheDocument();
+    expect(screen.getByText(/Ogni mese/)).toBeInTheDocument();
+  });
+
+  it("mostra 'Ogni 2 settimane, fino al ...' per un evento settimanale con intervallo e data di fine (ricorrenza generale)", () => {
+    const event = makeEvent({
+      title: "Lezione di Analisi",
+      recurrence: "settimanale",
+      recurrence_interval: 2,
+      recurrence_until: "2026-12-15T23:59:59.000Z",
+    });
+    render(<EventDetailSheet event={event} selfId="me" colorCtx={ctx} onClose={jest.fn()} onEdit={jest.fn()} onDeleted={jest.fn()} />);
+
+    expect(screen.getByText(/Ogni 2 settimane, fino al/)).toBeInTheDocument();
+  });
+
+  it("mostra 'Ogni giorno, per 5 volte' per un evento giornaliero con fine 'dopo N volte'", () => {
+    const event = makeEvent({
+      title: "Terapia",
+      recurrence: "giornaliera",
+      recurrence_count: 5,
+    });
+    render(<EventDetailSheet event={event} selfId="me" colorCtx={ctx} onClose={jest.fn()} onEdit={jest.fn()} onDeleted={jest.fn()} />);
+
+    expect(screen.getByText("🔁 Ogni giorno, per 5 volte")).toBeInTheDocument();
   });
 });
 

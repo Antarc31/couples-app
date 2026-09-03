@@ -17,7 +17,7 @@
  */
 
 import { createClient } from "@/lib/supabase/client";
-import type { AppointmentStatus, Database } from "@/types/database";
+import type { AppointmentStatus, Database, EventRecurrence } from "@/types/database";
 
 type AppointmentUpdate = Database["public"]["Tables"]["appointments"]["Update"];
 
@@ -154,6 +154,11 @@ export interface ConfirmAppointmentEventInput {
    */
   tag?: string | null;
   notes?: string | null;
+  /** Ricorrenza generale (piano "ricorrenza generale"): default 'nessuna' se omessa, stesso schema di lib/calendar-actions.ts. */
+  recurrence?: EventRecurrence;
+  recurrenceInterval?: number;
+  recurrenceUntil?: string | null;
+  recurrenceCount?: number | null;
 }
 
 /**
@@ -193,6 +198,10 @@ export async function confirmAppointment(
       starts_at: eventInput.startsAt,
       ends_at: eventInput.endsAt ?? null,
       all_day: eventInput.allDay ?? false,
+      recurrence: eventInput.recurrence ?? "nessuna",
+      recurrence_interval: eventInput.recurrenceInterval ?? 1,
+      recurrence_until: eventInput.recurrenceUntil ?? null,
+      recurrence_count: eventInput.recurrenceCount ?? null,
     })
     .select("id")
     .single();
@@ -265,6 +274,10 @@ export async function createConfirmedAppointment(
       starts_at: eventInput.startsAt,
       ends_at: eventInput.endsAt ?? null,
       all_day: eventInput.allDay ?? false,
+      recurrence: eventInput.recurrence ?? "nessuna",
+      recurrence_interval: eventInput.recurrenceInterval ?? 1,
+      recurrence_until: eventInput.recurrenceUntil ?? null,
+      recurrence_count: eventInput.recurrenceCount ?? null,
     })
     .select("id")
     .single();

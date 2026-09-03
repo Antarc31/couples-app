@@ -53,7 +53,7 @@ export default function CalendarView({
   partnerName,
   coupleId,
 }: CalendarViewProps) {
-  const [view, setView] = useState<View>("month");
+  const [view, setView] = useState<View>("week");
   const [monthAnchor, setMonthAnchor] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [agendaDate, setAgendaDate] = useState<Date | null>(null);
@@ -147,7 +147,15 @@ export default function CalendarView({
 
     const projected: CalendarEventRow[] = [];
     for (const ev of recurringEvents) {
-      const occurrences = projectOccurrences(ev.starts_at, ev.recurrence, gridStart, gridEnd);
+      const occurrences = projectOccurrences(
+        ev.starts_at,
+        ev.recurrence,
+        gridStart,
+        gridEnd,
+        ev.recurrence_interval,
+        ev.recurrence_until,
+        ev.recurrence_count,
+      );
       for (const occurrence of occurrences) {
         // Copia di visualizzazione: stesso id/title/category della riga
         // reale, solo starts_at sovrascritto con la data proiettata. Il tap

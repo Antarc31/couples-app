@@ -15,6 +15,7 @@ import {
   daysBetween,
   findFreeSlotsForDay,
   findUpcomingFreeSlots,
+  formatRecurrenceSummary,
   formatWeekRangeLabel,
   isSameDay,
   momentIsBusy,
@@ -22,6 +23,7 @@ import {
   nextMilestone,
   nextOccurrence,
   overlapsAnyEvent,
+  pluralizeRecurrenceUnit,
   projectOccurrences,
   startOfDay,
   startOfWeek,
@@ -346,6 +348,140 @@ describe("projectOccurrences", () => {
       new Date(2026, 5, 5),
     );
     expect(result).toHaveLength(0);
+  });
+
+  // Ricorrenza generale (piano "ricorrenza generale"): interval/until/count.
+  it("'giornaliera' con interval: un'occorrenza ogni N giorni", () => {
+    const result = projectOccurrences(
+      "2026-06-01T08:00:00",
+      "giornaliera",
+      new Date(2026, 5, 1),
+      new Date(2026, 5, 10),
+      3,
+    );
+    expect(result.map(toDateKey)).toEqual(["2026-06-01", "2026-06-04", "2026-06-07", "2026-06-10"]);
+  });
+
+  it("'settimanale' con interval: un'occorrenza ogni N settimane", () => {
+    const result = projectOccurrences(
+      "2026-06-01T08:00:00", // lunedì
+      "settimanale",
+      new Date(2026, 5, 1),
+      new Date(2026, 6, 1),
+      2,
+    );
+    expect(result.map(toDateKey)).toEqual(["2026-06-01", "2026-06-15", "2026-06-29"]);
+  });
+
+  it("'mensile' con interval: un'occorrenza ogni N mesi", () => {
+    const result = projectOccurrences(
+      "2026-01-15T08:00:00",
+      "mensile",
+      new Date(2026, 0, 1),
+      new Date(2026, 10, 30),
+      3,
+    );
+    expect(result.map(toDateKey)).toEqual(["2026-01-15", "2026-04-15", "2026-07-15", "2026-10-15"]);
+  });
+
+  it("'annuale' con interval: un'occorrenza ogni N anni", () => {
+    const result = projectOccurrences(
+      "2020-06-15T08:00:00",
+      "annuale",
+      new Date(2024, 0, 1),
+      new Date(2031, 11, 31),
+      5,
+    );
+    expect(result.map(toDateKey)).toEqual(["2025-06-15", "2030-06-15"]);
+  });
+
+  it("troncamento con 'until': nessuna occorrenza oltre la data di fine anche se il range la coprirebbe", () => {
+    const result = projectOccurrences(
+      "2026-01-01T08:00:00",
+      "giornaliera",
+      new Date(2026, 0, 1),
+      new Date(2026, 0, 31),
+      1,
+      "2026-01-05T00:00:00",
+    );
+    expect(result.map(toDateKey)).toEqual(["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", "2026-01-05"]);
+  });
+
+  it("troncamento con 'count': la occorrenza N+1 non compare anche se il range la coprirebbe (conta dall'ancora, non da rangeStart)", () => {
+    const result = projectOccurrences(
+      "2026-01-01T08:00:00",
+      "giornaliera",
+      new Date(2026, 0, 1),
+      new Date(2026, 0, 31),
+      1,
+      null,
+      3,
+    );
+    expect(result.map(toDateKey)).toEqual(["2026-01-01", "2026-01-02", "2026-01-03"]);
+  });
+
+  it("range molto lontano nel futuro rispetto all'ancora: lo skip-ahead trova comunque l'occorrenza corretta", () => {
+    // Ancora lunedì 6 gennaio 2020, ogni settimana. Anni dopo, il 1° giugno
+    // 2026 è un lunedì: deve essere trovato senza iterare da zero.
+    const result = projectOccurrences(
+      "2020-01-06T08:00:00",
+      "settimanale",
+      new Date(2026, 5, 1),
+      new Date(2026, 5, 7),
+      1,
+    );
+    expect(result.map(toDateKey)).toEqual(["2026-06-01"]);
+  });
+
+  it("range molto lontano nel futuro rispetto all'ancora, ma la serie è già finita per 'count': nessuna occorrenza", () => {
+    const result = projectOccurrences(
+      "2020-01-01T08:00:00",
+      "giornaliera",
+      new Date(2026, 5, 1),
+      new Date(2026, 5, 7),
+      1,
+      null,
+      10, // finita 10 giorni dopo l'ancora, nel 2020
+    );
+    expect(result).toEqual([]);
+  });
+});
+
+describe("pluralizeRecurrenceUnit", () => {
+  it("singolare con interval 1, plurale altrimenti", () => {
+    expect(pluralizeRecurrenceUnit("giornaliera", 1)).toBe("giorno");
+    expect(pluralizeRecurrenceUnit("giornaliera", 2)).toBe("giorni");
+    expect(pluralizeRecurrenceUnit("settimanale", 1)).toBe("settimana");
+    expect(pluralizeRecurrenceUnit("settimanale", 3)).toBe("settimane");
+    expect(pluralizeRecurrenceUnit("mensile", 1)).toBe("mese");
+    expect(pluralizeRecurrenceUnit("mensile", 2)).toBe("mesi");
+    expect(pluralizeRecurrenceUnit("annuale", 1)).toBe("anno");
+    expect(pluralizeRecurrenceUnit("annuale", 2)).toBe("anni");
+  });
+});
+
+describe("formatRecurrenceSummary", () => {
+  it("null per 'nessuna' (nessun badge/anteprima da mostrare)", () => {
+    expect(formatRecurrenceSummary("nessuna", 1, null, null)).toBeNull();
+  });
+
+  it("'Ogni giorno' con interval 1 e nessuna fine", () => {
+    expect(formatRecurrenceSummary("giornaliera", 1, null, null)).toBe("Ogni giorno");
+  });
+
+  it("'Ogni 2 settimane' con interval > 1 e nessuna fine", () => {
+    expect(formatRecurrenceSummary("settimanale", 2, null, null)).toBe("Ogni 2 settimane");
+  });
+
+  it("aggiunge 'fino al ...' quando 'until' è presente", () => {
+    const summary = formatRecurrenceSummary("mensile", 1, "2026-12-15T00:00:00.000Z", null);
+    expect(summary).toContain("Ogni mese, fino al");
+    expect(summary).toContain("2026");
+  });
+
+  it("aggiunge 'per N volte'/'per 1 volta' quando 'count' è presente", () => {
+    expect(formatRecurrenceSummary("annuale", 1, null, 8)).toBe("Ogni anno, per 8 volte");
+    expect(formatRecurrenceSummary("annuale", 1, null, 1)).toBe("Ogni anno, per 1 volta");
   });
 });
 

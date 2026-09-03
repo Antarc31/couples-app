@@ -232,12 +232,35 @@ export function sameDayLastYear(today: Date = new Date()): { start: Date; end: D
  * usata dalla vista Calendario per mostrare le occorrenze proiettate
  * sull'anno/mese effettivamente visualizzato, non solo sull'anno letterale
  * salvato in `starts_at` (es. l'anno di nascita per un compleanno).
+ *
+ * `interval`/`until`/`count` (tutti opzionali, default = comportamento
+ * perpetuo con passo 1, invariato per gli eventi speciali auto-generati che
+ * non li passano mai) implementano la ricorrenza generale "stile Google
+ * Calendar semplice" (piano approvato in
+ * /Users/antonioarcucci/.claude/plans/ho-notato-delle-cose-mossy-sketch.md):
+ * ogni N unità di frequenza, fino a una data o dopo N occorrenze totali
+ * (ancora inclusa — `count` conta dall'occorrenza 0, non da `rangeStart`,
+ * perché "la 5ª occorrenza" è definita rispetto all'inizio della serie).
+ *
+ * Due sole strategie di calcolo data, non un branch per frequenza: passo
+ * fisso in giorni (giornaliera/settimanale, via `addDays`) o passo di
+ * calendario in mesi (mensile/annuale, stesso `clampDayOfMonth` di fine mese
+ * già in uso per il mesiversario — ora applicato anche all'annuale, che
+ * prima non clampava un compleanno ancorato al 29 febbraio su anni non
+ * bisestili). In entrambi i casi si stima l'indice di occorrenza più vicino
+ * a `rangeStart` (un passo indietro di margine) invece di iterare da zero —
+ * necessario ora che `interval` può essere > 1 (non ogni mese/giorno
+ * corrisponde più a un'occorrenza valida) e per non iterare per anni quando
+ * il range richiesto è lontano nel tempo dall'ancora.
  */
 export function projectOccurrences(
   startsAtIso: string,
   recurrence: EventRecurrence,
   rangeStart: Date,
   rangeEnd: Date,
+  interval: number = 1,
+  until: string | null = null,
+  count: number | null = null,
 ): Date[] {
   const original = new Date(startsAtIso);
   const start = startOfDay(rangeStart);
@@ -252,42 +275,100 @@ export function projectOccurrences(
     return inRange(original) ? [original] : [];
   }
 
-  if (recurrence === "annuale") {
-    const results: Date[] = [];
-    // ±1 anno rispetto ai bordi del range, per coprire correttamente i casi
-    // limite (es. range a cavallo di capodanno, o starts_at vicino ai bordi).
-    for (let year = start.getFullYear() - 1; year <= end.getFullYear() + 1; year++) {
-      const candidate = new Date(year, original.getMonth(), original.getDate(), original.getHours(), original.getMinutes());
-      if (inRange(candidate)) results.push(candidate);
-    }
-    return results;
+  const untilBound = until ? startOfDay(new Date(until)) : null;
+  const step = Math.max(1, interval || 1);
+  const isDayBased = recurrence === "giornaliera" || recurrence === "settimanale";
+  const dayStep = recurrence === "settimanale" ? step * 7 : step;
+  const monthStep = recurrence === "annuale" ? step * 12 : step;
+  const anchorAbsMonth = original.getFullYear() * 12 + original.getMonth();
+
+  function occurrenceAt(i: number): Date {
+    if (isDayBased) return addDays(original, i * dayStep);
+    const absMonth = anchorAbsMonth + i * monthStep;
+    const year = Math.floor(absMonth / 12);
+    const month = ((absMonth % 12) + 12) % 12;
+    const day = clampDayOfMonth(year, month, original.getDate());
+    return new Date(year, month, day, original.getHours(), original.getMinutes());
   }
 
-  // 'mensile': itera mese per mese, partendo un mese prima dell'inizio del
-  // range (margine di sicurezza per non perdere un'occorrenza il cui giorno
-  // clampato ricade comunque dentro il range) fino a superare la fine del
-  // range, stesso giorno-del-mese di `starts_at`, clampato a fine mese.
-  const results: Date[] = [];
-  let year = start.getFullYear();
-  let month = start.getMonth() - 1;
-  if (month < 0) {
-    month = 11;
-    year -= 1;
+  // Per il break "oltre rangeEnd": il primo del mese basta per mensile/
+  // annuale (nessuna occorrenza dentro un mese può iniziare prima), il
+  // giorno stesso per gli altri due.
+  function periodStart(i: number): Date {
+    const d = occurrenceAt(i);
+    return isDayBased ? startOfDay(d) : new Date(d.getFullYear(), d.getMonth(), 1);
   }
-  for (let i = 0; i < 400; i++) {
-    // Se anche il primo del mese è già oltre la fine del range, nessun mese
-    // successivo potrà più produrre un'occorrenza in range: si può fermare.
-    if (new Date(year, month, 1) > end) break;
-    const day = clampDayOfMonth(year, month, original.getDate());
-    const candidate = new Date(year, month, day, original.getHours(), original.getMinutes());
+
+  let i0: number;
+  if (isDayBased) {
+    const stepMs = dayStep * 86400000;
+    i0 = Math.floor((start.getTime() - startOfDay(original).getTime()) / stepMs) - 1;
+  } else {
+    const startAbsMonth = start.getFullYear() * 12 + start.getMonth();
+    i0 = Math.floor((startAbsMonth - anchorAbsMonth) / monthStep) - 1;
+  }
+  if (i0 < 0) i0 = 0;
+  // La serie è già finita (per numero di occorrenze) prima di raggiungere il range.
+  if (count != null && i0 >= count) return [];
+
+  const results: Date[] = [];
+  const SAFETY_CAP = 500;
+  for (let k = 0; k < SAFETY_CAP; k++) {
+    const i = i0 + k;
+    if (count != null && i >= count) break;
+    if (periodStart(i) > end) break;
+    const candidate = occurrenceAt(i);
+    if (untilBound && startOfDay(candidate) > untilBound) break;
     if (inRange(candidate)) results.push(candidate);
-    month += 1;
-    if (month > 11) {
-      month = 0;
-      year += 1;
-    }
   }
   return results;
+}
+
+const RECURRENCE_UNIT_LABELS: Record<Exclude<EventRecurrence, "nessuna">, [string, string]> = {
+  giornaliera: ["giorno", "giorni"],
+  settimanale: ["settimana", "settimane"],
+  mensile: ["mese", "mesi"],
+  annuale: ["anno", "anni"],
+};
+
+/**
+ * "giorno"/"giorni", "settimana"/"settimane", ecc. — pluralizzazione
+ * italiana in base a `interval` (1 = singolare). Estratta da
+ * `formatRecurrenceSummary` perché serve anche da sola in EventFormModal
+ * per l'etichetta accanto al campo "Ogni [N] ___".
+ */
+export function pluralizeRecurrenceUnit(recurrence: Exclude<EventRecurrence, "nessuna">, interval: number): string {
+  const safeInterval = Math.max(1, interval || 1);
+  const [singular, plural] = RECURRENCE_UNIT_LABELS[recurrence];
+  return safeInterval === 1 ? singular : plural;
+}
+
+/**
+ * Riassunto testuale della ricorrenza (es. "Ogni giorno", "Ogni 2
+ * settimane, fino al 15 dic 2026", "Ogni mese, per 8 volte") — usato sia
+ * dall'anteprima live in EventFormModal sia dal badge di EventDetailSheet.
+ * `null` per `'nessuna'` (nessun badge/anteprima da mostrare). `count`
+ * include l'occorrenza di ancora (stessa convenzione di `projectOccurrences`).
+ */
+export function formatRecurrenceSummary(
+  recurrence: EventRecurrence,
+  interval: number,
+  until: string | null,
+  count: number | null,
+): string | null {
+  if (recurrence === "nessuna") return null;
+  const safeInterval = Math.max(1, interval || 1);
+  const unit = pluralizeRecurrenceUnit(recurrence, safeInterval);
+  const base = safeInterval === 1 ? `Ogni ${unit}` : `Ogni ${safeInterval} ${unit}`;
+
+  if (until) {
+    const untilLabel = new Date(until).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" });
+    return `${base}, fino al ${untilLabel}`;
+  }
+  if (count) {
+    return `${base}, per ${count} volt${count === 1 ? "a" : "e"}`;
+  }
+  return base;
 }
 
 // =============================================================================

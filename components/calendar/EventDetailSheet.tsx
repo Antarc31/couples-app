@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatDayLabel, formatTime } from "@/lib/calendar-dates";
+import { formatDayLabel, formatRecurrenceSummary, formatTime } from "@/lib/calendar-dates";
 import { eventColor, CATEGORY_LABELS, type CalendarEventRow, type ColorContext } from "@/lib/calendar-colors";
 import { deleteCalendarEvent } from "@/lib/calendar-actions";
 import { getLinkedSurprise, type LinkedSurprise } from "@/lib/wishlist-actions";
@@ -101,7 +101,13 @@ export default function EventDetailSheet({ event, selfId, colorCtx, onClose, onE
           </p>
           {event.recurrence !== "nessuna" && (
             <p className="inline-flex w-fit items-center gap-1 rounded-full bg-special-soft px-2.5 py-1 text-xs font-semibold text-ink">
-              🎉 {event.recurrence === "annuale" ? "Si ripete ogni anno" : "Si ripete ogni mese"}
+              🔁{" "}
+              {formatRecurrenceSummary(
+                event.recurrence,
+                event.recurrence_interval,
+                event.recurrence_until,
+                event.recurrence_count,
+              )}
             </p>
           )}
           {event.notes && (
