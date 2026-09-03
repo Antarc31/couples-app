@@ -495,7 +495,7 @@ describe("EventFormModal — ricorrenza generale ('Ripeti')", () => {
 
     expect(screen.getByRole("spinbutton", { name: "Ogni quante unità" })).toHaveValue(1);
     expect(screen.getByRole("radio", { name: "Mai" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Il" })).not.toBeChecked();
+    expect(screen.getByRole("radio", { name: "Fino al" })).not.toBeChecked();
     expect(screen.getByRole("radio", { name: "Dopo" })).not.toBeChecked();
     expect(screen.getByText("🔁 Ogni settimana")).toBeInTheDocument();
   });
@@ -544,8 +544,8 @@ describe("EventFormModal — ricorrenza generale ('Ripeti')", () => {
 
     await user.type(screen.getByPlaceholderText("Titolo (es. Cena da Marco)"), "Lezione di Analisi");
     await user.selectOptions(screen.getByRole("combobox", { name: "Ripeti" }), "settimanale");
-    await user.click(screen.getByRole("radio", { name: "Il" }));
-    fireEvent.change(screen.getByLabelText("Fino al"), { target: { value: "2026-12-15" } });
+    await user.click(screen.getByRole("radio", { name: "Fino al" }));
+    fireEvent.change(screen.getByLabelText("Data di fine ricorrenza"), { target: { value: "2026-12-15" } });
     await user.click(screen.getByRole("button", { name: "Crea evento" }));
 
     await waitFor(() => expect(mockCreateCalendarEvent).toHaveBeenCalledTimes(1));
@@ -585,6 +585,26 @@ describe("EventFormModal — ricorrenza generale ('Ripeti')", () => {
     );
   });
 
+  it("'Dopo [N] volte' è limitato a un massimo di 10 anche se il browser permettesse di digitare oltre", async () => {
+    mockCreateCalendarEvent.mockResolvedValue(makeEventRow());
+    const user = userEvent.setup();
+    render(
+      <EventFormModal coupleId="c1" createdBy="me" defaultDate={new Date(2026, 8, 10)} onClose={jest.fn()} onSaved={jest.fn()} />,
+    );
+
+    await user.type(screen.getByPlaceholderText("Titolo (es. Cena da Marco)"), "Terapia");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Ripeti" }), "giornaliera");
+    await user.click(screen.getByRole("radio", { name: "Dopo" }));
+    const countInput = screen.getByRole("spinbutton", { name: "Numero di volte" });
+    expect(countInput).toHaveAttribute("max", "10");
+    await user.clear(countInput);
+    await user.type(countInput, "50");
+    await user.click(screen.getByRole("button", { name: "Crea evento" }));
+
+    await waitFor(() => expect(mockCreateCalendarEvent).toHaveBeenCalledTimes(1));
+    expect(mockCreateCalendarEvent).toHaveBeenCalledWith(expect.objectContaining({ recurrenceCount: 10 }));
+  });
+
   it("in modifica di un evento ricorrente, i campi sono precompilati da initial", () => {
     const initial = makeEventRow({
       recurrence: "settimanale",
@@ -609,7 +629,7 @@ describe("EventFormModal — ricorrenza generale ('Ripeti')", () => {
 
     expect(screen.getByRole("combobox", { name: "Ripeti" })).toHaveValue("settimanale");
     expect(screen.getByRole("spinbutton", { name: "Ogni quante unità" })).toHaveValue(2);
-    expect(screen.getByRole("radio", { name: "Il" })).toBeChecked();
-    expect(screen.getByLabelText("Fino al")).toHaveValue("2026-12-15");
+    expect(screen.getByRole("radio", { name: "Fino al" })).toBeChecked();
+    expect(screen.getByLabelText("Data di fine ricorrenza")).toHaveValue("2026-12-15");
   });
 });

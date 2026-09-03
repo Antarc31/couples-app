@@ -132,7 +132,7 @@ export default function EventFormModal({
     initial?.recurrence_until ? toDateKey(new Date(initial.recurrence_until)) : "",
   );
   const [recurrenceCount, setRecurrenceCount] = useState(String(initial?.recurrence_count ?? 1));
-  const recurrenceCountNum = Math.max(1, parseInt(recurrenceCount, 10) || 1);
+  const recurrenceCountNum = Math.min(10, Math.max(1, parseInt(recurrenceCount, 10) || 1));
 
   const showCoupleFields = !isEdit && category === "coppia";
   const showEditCoupleHint = isEdit && category === "coppia";
@@ -415,6 +415,7 @@ export default function EventFormModal({
                     min={1}
                     value={recurrenceInterval}
                     onChange={(e) => setRecurrenceInterval(e.target.value)}
+                    onBlur={() => setRecurrenceInterval(String(recurrenceIntervalNum))}
                     className="w-16"
                   />
                   {recurrenceUnitLabel}
@@ -441,11 +442,11 @@ export default function EventFormModal({
                         onChange={() => setRecurrenceEndMode("data")}
                         className="h-4 w-4 accent-[var(--color-couple)]"
                       />
-                      Il
+                      Fino al
                     </label>
                     <Input
                       type="date"
-                      aria-label="Fino al"
+                      aria-label="Data di fine ricorrenza"
                       min={date}
                       value={recurrenceUntilDate}
                       onChange={(e) => setRecurrenceUntilDate(e.target.value)}
@@ -469,8 +470,10 @@ export default function EventFormModal({
                       type="number"
                       aria-label="Numero di volte"
                       min={1}
+                      max={10}
                       value={recurrenceCount}
                       onChange={(e) => setRecurrenceCount(e.target.value)}
+                      onBlur={() => setRecurrenceCount(String(recurrenceCountNum))}
                       disabled={recurrenceEndMode !== "volte"}
                       className="w-16"
                     />
