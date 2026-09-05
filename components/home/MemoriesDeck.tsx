@@ -271,38 +271,38 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
   return (
     <>
       <div className="relative">
-      <Card className="flex flex-col gap-3 text-white" style={{ backgroundImage: "var(--grad-hero)" }}>
+      <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-tint)" }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <IconBadge icon={MessageCircle} size={32} variant="onColor" />
-            <h2 className="text-sm font-bold">Ricordi</h2>
+            <IconBadge icon={MessageCircle} size={32} variant="onTint" />
+            <h2 className="text-sm font-bold text-ink">Ricordi</h2>
             {thoughts.length > 1 && (
-              <span className="text-[11px] font-semibold text-white/80">
+              <span className="text-[11px] font-semibold text-ink-soft">
                 {topIndex + 1}/{thoughts.length}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            {uploadingPhoto && <span className="text-xs font-semibold text-white/85">Carico la foto…</span>}
-            <Link href="/home/foto" className="text-xs font-semibold text-white/85 underline underline-offset-2">
+            {uploadingPhoto && <span className="text-xs font-semibold text-ink-soft">Carico la foto…</span>}
+            <Link href="/home/foto" className="text-xs font-semibold text-couple">
               Tutte le foto
             </Link>
           </div>
         </div>
 
-        {photoError && <p className="rounded-xl bg-white/90 px-3 py-2 text-sm font-semibold text-danger">{photoError}</p>}
+        {photoError && <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{photoError}</p>}
 
         <div className="relative h-72 w-full select-none">
           {loading ? (
-            <div className="flex h-full items-center justify-center rounded-[28px] bg-white/15 text-sm text-white/85">
+            <div className="flex h-full items-center justify-center rounded-[28px] bg-surface text-sm text-ink-soft">
               Carico i ricordi…
             </div>
           ) : error ? (
-            <div className="flex h-full items-center justify-center rounded-[28px] bg-white/90 px-4 text-center text-sm font-semibold text-danger">
+            <div className="flex h-full items-center justify-center rounded-[28px] bg-danger/10 px-4 text-center text-sm text-danger">
               {error}
             </div>
           ) : thoughts.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center gap-2 rounded-[28px] bg-white/15 text-center text-sm text-white/85">
+            <div className="flex h-full flex-col items-center justify-center gap-2 rounded-[28px] bg-surface text-center text-sm text-ink-soft">
               <MessageCircle size={30} strokeWidth={1.8} />
               Ancora nessun ricordo, manda il primo!
             </div>
@@ -393,12 +393,12 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
         </div>
 
         {!loading && !error && thoughts.length > 0 && topIndex === thoughts.length - 1 && (
-          <div className="flex items-center justify-between gap-2 rounded-2xl bg-white/20 px-3 py-2">
-            <p className="text-xs text-white/90">Hai visto tutti i ricordi</p>
+          <div className="flex items-center justify-between gap-2 rounded-2xl bg-surface px-3 py-2">
+            <p className="text-xs text-ink-soft">Hai visto tutti i ricordi</p>
             <button
               type="button"
               onClick={() => setShowMenu(true)}
-              className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-couple transition active:scale-95"
+              className="shrink-0 rounded-full bg-couple px-3 py-1.5 text-xs font-semibold text-white transition active:scale-95"
             >
               Mandane uno nuovo
             </button>
@@ -418,13 +418,12 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
 
       {/* Ancorato all'angolo della card "Ricordi" (non più fluttuante sulla
           pagina) — il nesso col widget resta chiaro anche scorrendo la Home,
-          dato che si muove insieme alla card. Bianco (non lo stesso rosa
-          della card dietro, che qui è l'unico "momento" a piena saturazione
-          della Home): deve restare un pulsante riconoscibile sopra, non
-          mimetizzarsi nello sfondo. */}
+          dato che si muove insieme alla card. Stesso identico stile del FAB
+          "+" di Calendario/Appuntamenti/Wishlist (bg-couple), non
+          un'eccezione a parte per questo widget. */}
       <button
         onClick={() => setShowMenu(true)}
-        className="absolute bottom-3 right-3 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-white text-couple shadow-[var(--shadow-soft)] ring-4 ring-base transition active:scale-95"
+        className="absolute bottom-3 right-3 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-couple text-white shadow-[var(--shadow-soft)] ring-4 ring-base transition active:scale-95"
         aria-label="Aggiungi un pensiero o una foto"
       >
         <Plus size={26} strokeWidth={2.4} />

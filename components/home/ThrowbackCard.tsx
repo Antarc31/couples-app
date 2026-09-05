@@ -18,7 +18,7 @@ interface ThrowbackCardProps {
  * MemoriesDeck). Nessun output — né skeleton né messaggio d'errore — se non
  * c'è nulla da mostrare quel giorno: è un bonus silenzioso, mai una card
  * vuota che occupa spazio a caso (stesso "opt-out facile" di CountdownHeader).
- * Stessa tinta couple-soft delle altre card di Home; le righe interne
+ * Stessa tinta couple-tint delle altre card di Home; le righe interne
  * restano bianche (bg-surface) perché è lì che vivono le foto vere.
  */
 export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
@@ -42,7 +42,7 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
 
   return (
     <>
-      <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-soft)" }}>
+      <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-tint)" }}>
         <div className="flex items-center gap-2">
           <IconBadge icon={Clock} size={32} variant="onTint" />
           <h2 className="text-sm font-bold text-ink">Un anno fa oggi</h2>

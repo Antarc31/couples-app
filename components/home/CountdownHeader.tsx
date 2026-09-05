@@ -19,7 +19,7 @@ export default function CountdownHeader({ nextSpecial }: CountdownHeaderProps) {
   return (
     <div
       className="flex items-center gap-3 rounded-[var(--radius-app)] px-4 py-3 shadow-[var(--shadow-soft)]"
-      style={{ backgroundColor: "var(--color-couple-soft)" }}
+      style={{ backgroundColor: "var(--color-couple-tint)" }}
     >
       <IconBadge icon={PartyPopper} variant="onTint" />
       <p className="text-sm font-bold text-ink">

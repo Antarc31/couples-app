@@ -53,7 +53,7 @@ function renderCard() {
 }
 
 describe("QuizCard", () => {
-  it("mostra i due campi (verità + ipotesi) quando non ho ancora scritto oggi", async () => {
+  it("mostra solo la domanda finché non si tocca per rispondere, poi i due campi (verità + ipotesi)", async () => {
     mockGetTodaysQuiz.mockResolvedValue({
       questionId: "q1",
       prompt: "Qual è il mio colore preferito?",
@@ -61,9 +61,14 @@ describe("QuizCard", () => {
       partner: null,
       revealed: false,
     });
+    const user = userEvent.setup();
     renderCard();
 
     expect(await screen.findByText("Qual è il mio colore preferito?")).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("La verità su di te…")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Rispondi alla domanda" }));
+
     expect(screen.getByPlaceholderText("La verità su di te…")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Cosa risponderebbe Sam?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Rispondi" })).toBeDisabled();
@@ -89,7 +94,7 @@ describe("QuizCard", () => {
     expect(selfScoreBlock?.querySelector("svg")).not.toBeInTheDocument();
   });
 
-  it("non mostra il blocco punteggio se entrambi sono a zero", async () => {
+  it("mostra il blocco punteggio anche quando entrambi sono a zero (ci tiene l'utente, resta sempre visibile)", async () => {
     mockGetTodaysQuiz.mockResolvedValue({
       questionId: "q1",
       prompt: "Domanda",
@@ -101,7 +106,7 @@ describe("QuizCard", () => {
     renderCard();
 
     await screen.findByText("Domanda");
-    expect(screen.queryByText("Tu")).not.toBeInTheDocument();
+    expect(screen.getByText("Tu")).toBeInTheDocument();
   });
 
   it("mostra 'in attesa' quando ho scritto ma il partner no", async () => {
@@ -114,9 +119,8 @@ describe("QuizCard", () => {
     });
     renderCard();
 
-    expect(
-      await screen.findByText("Hai scritto! Appena scrive anche Sam vedrete le ipotesi svelate."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Domanda")).toBeInTheDocument();
+    expect(await screen.findByText("Hai risposto! In attesa di Sam…")).toBeInTheDocument();
   });
 
   it("da rivelato, mostra la card coperta con solo la domanda finché non si tocca per scoprire le risposte", async () => {
@@ -163,7 +167,7 @@ describe("QuizCard", () => {
     expect(await screen.findByText("Hai confermato: ha indovinato")).toBeInTheDocument();
   });
 
-  it("invia verità e ipotesi e aggiorna lo stato con il risultato del refetch", async () => {
+  it("invia verità e ipotesi e torna alla card coperta con il messaggio di attesa", async () => {
     mockGetTodaysQuiz.mockResolvedValue({
       questionId: "q1",
       prompt: "Domanda",
@@ -181,14 +185,15 @@ describe("QuizCard", () => {
     const user = userEvent.setup();
     renderCard();
 
-    await user.type(await screen.findByPlaceholderText("La verità su di te…"), "Rosso");
+    await user.click(await screen.findByRole("button", { name: "Rispondi alla domanda" }));
+    await user.type(screen.getByPlaceholderText("La verità su di te…"), "Rosso");
     await user.type(screen.getByPlaceholderText("Cosa risponderebbe Sam?"), "Blu");
     await user.click(screen.getByRole("button", { name: "Rispondi" }));
 
     await waitFor(() => expect(mockSubmitTodaysQuiz).toHaveBeenCalledWith("q1", "Rosso", "Blu"));
-    expect(
-      await screen.findByText("Hai scritto! Appena scrive anche Sam vedrete le ipotesi svelate."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Hai risposto! In attesa di Sam…")).toBeInTheDocument();
+    // La card torna "coperta": il form non è più visibile.
+    expect(screen.queryByPlaceholderText("La verità su di te…")).not.toBeInTheDocument();
   });
 
   it("mostra l'errore di submit", async () => {
@@ -203,7 +208,8 @@ describe("QuizCard", () => {
     const user = userEvent.setup();
     renderCard();
 
-    await user.type(await screen.findByPlaceholderText("La verità su di te…"), "Rosso");
+    await user.click(await screen.findByRole("button", { name: "Rispondi alla domanda" }));
+    await user.type(screen.getByPlaceholderText("La verità su di te…"), "Rosso");
     await user.type(screen.getByPlaceholderText("Cosa risponderebbe Sam?"), "Blu");
     await user.click(screen.getByRole("button", { name: "Rispondi" }));
 

@@ -12,7 +12,7 @@ interface UpcomingEventsCardProps {
 
 export default function UpcomingEventsCard({ events, colorCtx }: UpcomingEventsCardProps) {
   return (
-    <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-soft)" }}>
+    <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-tint)" }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <IconBadge icon={CalendarDays} size={32} variant="onTint" />

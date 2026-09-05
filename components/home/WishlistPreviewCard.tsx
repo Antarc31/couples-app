@@ -32,7 +32,7 @@ interface WishlistPreviewCardProps {
  */
 export default function WishlistPreviewCard({ items, selfId, partnerName }: WishlistPreviewCardProps) {
   return (
-    <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-soft)" }}>
+    <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-tint)" }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <IconBadge icon={Gift} size={32} variant="onTint" />

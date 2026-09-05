@@ -86,6 +86,9 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
     setQuiz(result);
     setTruthDraft("");
     setGuessDraft("");
+    // Torna a carta coperta: il fronte ora mostra "in attesa del partner",
+    // non deve restare aperto sul form appena inviato.
+    setFlipped(false);
   }
 
   async function handleConfirm(answerId: string, correct: boolean) {
@@ -104,13 +107,13 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
   }
 
   return (
-    <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-soft)" }}>
+    <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-tint)" }}>
       <div className="flex items-center gap-2">
         <IconBadge icon={Brain} size={32} variant="onTint" />
         <h2 className="text-sm font-bold text-ink">Indovina il partner</h2>
       </div>
 
-      {scores && (scores.mine > 0 || scores.partner > 0) && (
+      {scores && (
         <div className="flex items-center justify-center gap-5 rounded-2xl bg-surface px-4 py-3">
           <div className="flex flex-col items-center gap-0.5">
             <span className="flex h-5 items-center justify-center text-couple">
@@ -140,10 +143,57 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
         <p className="text-xs text-ink-soft">Caricamento…</p>
       ) : (
         <>
-          {!(quiz.revealed && quiz.mine && quiz.partner) && <p className="text-sm text-ink">{quiz.prompt}</p>}
-          {submitError && <p className="text-xs text-danger">{submitError}</p>}
+          {submitError && <p className="rounded-xl bg-surface px-3 py-2 text-xs font-semibold text-danger">{submitError}</p>}
 
-          {quiz.revealed && quiz.mine && quiz.partner ? (
+          {quiz.mine === null ? (
+            !flipped ? (
+              <button
+                type="button"
+                onClick={() => setFlipped(true)}
+                aria-label="Rispondi alla domanda"
+                className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface px-4 py-10 text-center transition active:scale-[0.98]"
+              >
+                <p className="text-base font-semibold text-ink">{quiz.prompt}</p>
+                <span className="text-xs font-bold uppercase tracking-wide text-couple">Tocca per rispondere</span>
+              </button>
+            ) : (
+              <div className="flex flex-col gap-2 animate-toast-in">
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                    La tua risposta vera
+                  </span>
+                  <textarea
+                    value={truthDraft}
+                    onChange={(e) => setTruthDraft(e.target.value)}
+                    placeholder="La verità su di te…"
+                    rows={2}
+                    className="w-full resize-none rounded-2xl bg-surface px-3 py-2 text-sm text-ink outline-none"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                    La tua ipotesi su {partnerName}
+                  </span>
+                  <textarea
+                    value={guessDraft}
+                    onChange={(e) => setGuessDraft(e.target.value)}
+                    placeholder={`Cosa risponderebbe ${partnerName}?`}
+                    rows={2}
+                    className="w-full resize-none rounded-2xl bg-surface px-3 py-2 text-sm text-ink outline-none"
+                  />
+                </label>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleSubmit}
+                  disabled={saving || !truthDraft.trim() || !guessDraft.trim()}
+                  className="w-full"
+                >
+                  {saving ? "Invio…" : "Rispondi"}
+                </Button>
+              </div>
+            )
+          ) : quiz.revealed && quiz.partner ? (
             !flipped ? (
               <button
                 type="button"
@@ -218,43 +268,12 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                 </div>
               </div>
             )
-          ) : quiz.mine !== null ? (
-            <p className="rounded-2xl bg-surface px-3 py-3 text-center text-xs text-ink-soft">
-              Hai scritto! Appena scrive anche {partnerName} vedrete le ipotesi svelate.
-            </p>
           ) : (
-            <div className="flex flex-col gap-2">
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">La tua risposta vera</span>
-                <textarea
-                  value={truthDraft}
-                  onChange={(e) => setTruthDraft(e.target.value)}
-                  placeholder="La verità su di te…"
-                  rows={2}
-                  className="w-full resize-none rounded-2xl bg-surface px-3 py-2 text-sm text-ink outline-none"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                  La tua ipotesi su {partnerName}
-                </span>
-                <textarea
-                  value={guessDraft}
-                  onChange={(e) => setGuessDraft(e.target.value)}
-                  placeholder={`Cosa risponderebbe ${partnerName}?`}
-                  rows={2}
-                  className="w-full resize-none rounded-2xl bg-surface px-3 py-2 text-sm text-ink outline-none"
-                />
-              </label>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleSubmit}
-                disabled={saving || !truthDraft.trim() || !guessDraft.trim()}
-                className="w-full"
-              >
-                {saving ? "Invio…" : "Rispondi"}
-              </Button>
+            <div className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface px-4 py-10 text-center">
+              <p className="text-base font-semibold text-ink">{quiz.prompt}</p>
+              <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+                Hai risposto! In attesa di {partnerName}…
+              </span>
             </div>
           )}
         </>

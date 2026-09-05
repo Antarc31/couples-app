@@ -7,10 +7,11 @@
  * non vincolati al genere: nel codice si parla sempre di "partner A/B".
  */
 :root {
-  /* base — leggermente più rosato di prima (#fff8f6), per legare la tela di
-     fondo di tutta l'app alla stessa famiglia di colore dell'accento
-     "couple", invece di un bianco/crema quasi neutro scollegato da esso. */
-  --color-base: #fdf0f1;
+  /* base — stesso rosa finora usato per le card dei widget di Home
+     (couple-soft): l'utente ha chiesto di spostarlo sullo sfondo di
+     pagina, lasciando alle card un rosa un filo più acceso (vedi
+     --color-couple-tint) così restano distinguibili dalla tela sotto. */
+  --color-base: #fbdde3;
   --color-surface: #ffffff;
   --color-ink: #3a2c30;
   --color-ink-soft: #7a6b6f;
@@ -23,6 +24,11 @@
   --color-partner-b-soft: #e5eefb;
   --color-couple: #e8677d; /* corallo — eventi di coppia */
   --color-couple-soft: #fbdde3;
+  /* Sfondo delle card widget in Home — un'unica tinta per tutte, mai una
+     diversa per widget: più accesa di couple-soft (che ora è lo sfondo di
+     pagina), più tenue del couple pieno; il testo scuro (text-ink) resta
+     leggibile sopra. */
+  --color-couple-tint: #f5aec1;
   --color-special: #e8b86d; /* oro — date speciali */
   --color-special-soft: #fbecd6;
   --color-cycle: #c9b6e4; /* lavanda — ciclo (privacy) */
@@ -33,16 +39,6 @@
 
   --radius-app: 20px;
   --shadow-soft: 0 8px 24px -8px rgb(58 44 48 / 0.12);
-
-  /*
-   * Un solo "momento" a colore pieno in tutta la Home (non un colore per
-   * widget): Ricordi, la card sempre presente e più centrale, prende
-   * questo gradiente a piena saturazione — stessa famiglia dell'accento
-   * "couple" (rosa → magenta → prugna), solo portata al massimo per un
-   * singolo punto focale, mentre tutto il resto resta sulla tela chiara
-   * con il solo badge icona come accento (vedi IconBadge).
-   */
-  --grad-hero: linear-gradient(135deg, #ff6f9c 0%, #d94f86 55%, #7c2d5e 100%);
 }
 
 @theme inline {

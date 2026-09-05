@@ -11,6 +11,8 @@ import {
   type AppNotification,
 } from "@/lib/notifications-actions";
 import MoodRevealSheet from "@/components/MoodRevealSheet";
+import IconBadge from "@/components/ui/IconBadge";
+import { Bell } from "@/components/ui/icons";
 import type { Database, NotificationType } from "@/types/database";
 
 type NotificationRow = Database["public"]["Tables"]["notifications"]["Row"];
@@ -170,10 +172,9 @@ export default function AppTopBar({ userId }: { userId: string }) {
           <button
             type="button"
             onClick={() => (panelOpen ? setPanelOpen(false) : openPanel())}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
             aria-label={unreadCount > 0 ? `Notifiche, ${unreadCount} non lette` : "Notifiche"}
           >
-            🔔
+            <IconBadge icon={Bell} className="shadow-sm transition active:scale-95" />
           </button>
           {unreadCount > 0 && (
             <span className="pointer-events-none absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-couple px-1 text-[10px] font-bold text-white ring-2 ring-base">

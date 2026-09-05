@@ -80,7 +80,7 @@ export default function MoodCheckIn() {
   if (loadError || !mood || mood.myMood !== null || dismissed) return null;
 
   return (
-    <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-soft)" }}>
+    <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-tint)" }}>
       <div className="flex items-center gap-2">
         <IconBadge icon={Smile} size={32} variant="onTint" />
         <h2 className="text-sm font-bold text-ink">Come va oggi?</h2>
