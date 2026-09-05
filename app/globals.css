@@ -31,25 +31,6 @@
 
   --radius-app: 20px;
   --shadow-soft: 0 8px 24px -8px rgb(58 44 48 / 0.12);
-
-  /*
-   * Sfumature "widget" — restyling design brief v2 (vedi
-   * https://claude.ai/code/artifact/8965fdcf-b344-4c66-9a3d-345904c83cc5),
-   * corrette dopo il primo giro: UNA sola tematica cromatica per tutta
-   * l'app (non un colore diverso e scollegato per ogni widget) — tutte le
-   * sfumature vivono nello spettro rosa → rosso → viola, mai su blu o
-   * verde. I widget si distinguono per tonalità all'interno di questa
-   * stessa famiglia, non per tinta diversa. Un solo token per sfumatura
-   * (già il valore `linear-gradient` completo) così i componenti lo usano
-   * direttamente come `background-image: var(--grad-rose)` senza bisogno
-   * di ricostruirlo lato JS.
-   */
-  --grad-rose: linear-gradient(140deg, #ff6f9c, #c2296b); /* ricordi (pensieri & foto) */
-  --grad-blush: linear-gradient(140deg, #ff8fb3, #d94f86); /* check-in umore */
-  --grad-crimson: linear-gradient(140deg, #ff5f6d, #b3123c); /* prossimi impegni */
-  --grad-plum: linear-gradient(140deg, #d6609c, #7c3aa1); /* countdown/traguardi */
-  --grad-violet: linear-gradient(140deg, #c084fc, #7c2d9e); /* quiz */
-  --grad-coral: linear-gradient(140deg, #ff8a70, #e0483f); /* wishlist */
 }
 
 @theme inline {

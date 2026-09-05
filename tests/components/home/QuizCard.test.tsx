@@ -119,7 +119,7 @@ describe("QuizCard", () => {
     ).toBeInTheDocument();
   });
 
-  it("da rivelato, mostra entrambi i confronti e i due bottoni di conferma se la mia ipotesi su di me non è ancora confermata", async () => {
+  it("da rivelato, mostra la card coperta con solo la domanda finché non si tocca per scoprire le risposte", async () => {
     mockGetTodaysQuiz.mockResolvedValue({
       questionId: "q1",
       prompt: "Domanda",
@@ -127,7 +127,11 @@ describe("QuizCard", () => {
       partner: { answerId: "a2", truth: "Blu", guess: "Rosso", guessCorrect: null },
       revealed: true,
     });
+    const user = userEvent.setup();
     renderCard();
+
+    expect(await screen.findByRole("button", { name: "Scopri le risposte" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Scopri le risposte" }));
 
     expect(await screen.findByText("Hai indovinato!")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ha indovinato" })).toBeInTheDocument();
@@ -152,7 +156,8 @@ describe("QuizCard", () => {
     const user = userEvent.setup();
     renderCard();
 
-    await user.click(await screen.findByRole("button", { name: "Ha indovinato" }));
+    await user.click(await screen.findByRole("button", { name: "Scopri le risposte" }));
+    await user.click(screen.getByRole("button", { name: "Ha indovinato" }));
 
     await waitFor(() => expect(mockConfirmQuizGuess).toHaveBeenCalledWith("a2", true));
     expect(await screen.findByText("Hai confermato: ha indovinato")).toBeInTheDocument();

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
+import IconBadge from "@/components/ui/IconBadge";
+import { Smile } from "@/components/ui/icons";
 import { getTodaysMood, logTodaysMood, type TodaysMood } from "@/lib/mood-actions";
 import { MOOD_LABEL, MOOD_VALUES } from "@/lib/mood-display";
 import { toDateKey } from "@/lib/calendar-dates";
@@ -78,9 +80,12 @@ export default function MoodCheckIn() {
   if (loadError || !mood || mood.myMood !== null || dismissed) return null;
 
   return (
-    <Card gradient="blush" className="flex flex-col gap-3">
-      <h2 className="text-sm font-bold">Come va oggi?</h2>
-      {submitError && <p className="text-xs text-white">{submitError}</p>}
+    <Card className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <IconBadge icon={Smile} size={32} />
+        <h2 className="text-sm font-bold text-ink">Come va oggi?</h2>
+      </div>
+      {submitError && <p className="text-xs text-danger">{submitError}</p>}
       <div className="flex flex-wrap justify-center gap-2">
         {MOOD_VALUES.map((value) => (
           <button
@@ -89,13 +94,13 @@ export default function MoodCheckIn() {
             disabled={saving}
             onClick={() => handlePick(value)}
             aria-label={MOOD_LABEL[value]}
-            className="rounded-full bg-white/20 px-4 py-2 text-sm font-semibold transition active:scale-90 disabled:opacity-50"
+            className="rounded-full bg-base px-4 py-2 text-sm font-semibold text-ink transition active:scale-90 disabled:opacity-50"
           >
             {MOOD_LABEL[value]}
           </button>
         ))}
       </div>
-      <button type="button" onClick={handleDismiss} className="text-center text-xs text-white/80 underline">
+      <button type="button" onClick={handleDismiss} className="text-center text-xs text-ink-soft underline">
         Più tardi
       </button>
     </Card>
