@@ -144,86 +144,80 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
           {submitError && <p className="text-xs text-danger">{submitError}</p>}
 
           {quiz.revealed && quiz.mine && quiz.partner ? (
-            <div className="relative [perspective:1200px]">
-              <div
-                className={`relative transition-transform duration-500 [transform-style:preserve-3d] ${
-                  flipped ? "[transform:rotateY(180deg)]" : ""
-                }`}
+            !flipped ? (
+              <button
+                type="button"
+                onClick={() => setFlipped(true)}
+                aria-label="Scopri le risposte"
+                className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-base px-4 py-10 text-center transition active:scale-[0.98]"
               >
-                <div className="flex flex-col gap-3 [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                  <div className="rounded-2xl bg-base px-3 py-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-couple">Tu</p>
-                    <p className="mt-1 text-sm text-ink">{quiz.mine.guess}</p>
-                    <p className="mt-2 text-xs text-ink-soft">
-                      Verità di {partnerName}: {quiz.partner.truth}
-                    </p>
+                <p className="text-base font-semibold text-ink">{quiz.prompt}</p>
+                <span className="text-xs font-bold uppercase tracking-wide text-couple">Tocca per scoprire</span>
+              </button>
+            ) : (
+              <div className="flex flex-col gap-3 animate-toast-in">
+                <div className="rounded-2xl bg-base px-3 py-3">
+                  <p className="text-xs font-bold uppercase tracking-wide text-couple">Tu</p>
+                  <p className="mt-1 text-sm text-ink">{quiz.mine.guess}</p>
+                  <p className="mt-2 text-xs text-ink-soft">
+                    Verità di {partnerName}: {quiz.partner.truth}
+                  </p>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-ink-soft">
+                    {quiz.mine.guessCorrect === null ? (
+                      `In attesa che ${partnerName} confermi`
+                    ) : quiz.mine.guessCorrect ? (
+                      <>
+                        <Check size={13} strokeWidth={2.4} className="text-success" /> Hai indovinato!
+                      </>
+                    ) : (
+                      <>
+                        <X size={13} strokeWidth={2.4} className="text-danger" /> Non hai indovinato
+                      </>
+                    )}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-base px-3 py-3">
+                  <p className="text-xs font-bold uppercase tracking-wide text-couple">{partnerName}</p>
+                  <p className="mt-1 text-sm text-ink">{quiz.partner.guess}</p>
+                  <p className="mt-2 text-xs text-ink-soft">La tua verità: {quiz.mine.truth}</p>
+                  {quiz.partner.guessCorrect === null ? (
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        disabled={confirmingId === quiz.partner.answerId}
+                        onClick={() => quiz.partner && handleConfirm(quiz.partner.answerId, true)}
+                        className="flex-1 rounded-[var(--radius-app)] bg-couple px-3 py-2 text-xs font-semibold text-white transition active:scale-[0.98] disabled:opacity-50"
+                      >
+                        Ha indovinato
+                      </button>
+                      <button
+                        type="button"
+                        disabled={confirmingId === quiz.partner.answerId}
+                        onClick={() => quiz.partner && handleConfirm(quiz.partner.answerId, false)}
+                        className="flex-1 rounded-[var(--radius-app)] border border-border bg-surface px-3 py-2 text-xs font-semibold text-ink transition active:scale-[0.98] disabled:opacity-50"
+                      >
+                        No
+                      </button>
+                    </div>
+                  ) : (
                     <p className="mt-1 flex items-center gap-1 text-xs text-ink-soft">
-                      {quiz.mine.guessCorrect === null ? (
-                        `In attesa che ${partnerName} confermi`
-                      ) : quiz.mine.guessCorrect ? (
+                      {quiz.partner.guessCorrect ? (
                         <>
-                          <Check size={13} strokeWidth={2.4} className="text-success" /> Hai indovinato!
+                          <Check size={13} strokeWidth={2.4} className="text-success" /> Hai confermato: ha
+                          indovinato
                         </>
                       ) : (
                         <>
-                          <X size={13} strokeWidth={2.4} className="text-danger" /> Non hai indovinato
+                          <X size={13} strokeWidth={2.4} className="text-danger" /> Hai confermato: non ha
+                          indovinato
                         </>
                       )}
                     </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-base px-3 py-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-couple">{partnerName}</p>
-                    <p className="mt-1 text-sm text-ink">{quiz.partner.guess}</p>
-                    <p className="mt-2 text-xs text-ink-soft">La tua verità: {quiz.mine.truth}</p>
-                    {quiz.partner.guessCorrect === null ? (
-                      <div className="mt-2 flex gap-2">
-                        <button
-                          type="button"
-                          disabled={confirmingId === quiz.partner.answerId}
-                          onClick={() => quiz.partner && handleConfirm(quiz.partner.answerId, true)}
-                          className="flex-1 rounded-[var(--radius-app)] bg-couple px-3 py-2 text-xs font-semibold text-white transition active:scale-[0.98] disabled:opacity-50"
-                        >
-                          Ha indovinato
-                        </button>
-                        <button
-                          type="button"
-                          disabled={confirmingId === quiz.partner.answerId}
-                          onClick={() => quiz.partner && handleConfirm(quiz.partner.answerId, false)}
-                          className="flex-1 rounded-[var(--radius-app)] border border-border bg-surface px-3 py-2 text-xs font-semibold text-ink transition active:scale-[0.98] disabled:opacity-50"
-                        >
-                          No
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="mt-1 flex items-center gap-1 text-xs text-ink-soft">
-                        {quiz.partner.guessCorrect ? (
-                          <>
-                            <Check size={13} strokeWidth={2.4} className="text-success" /> Hai confermato: ha
-                            indovinato
-                          </>
-                        ) : (
-                          <>
-                            <X size={13} strokeWidth={2.4} className="text-danger" /> Hai confermato: non ha
-                            indovinato
-                          </>
-                        )}
-                      </p>
-                    )}
-                  </div>
+                  )}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => setFlipped(true)}
-                  aria-label="Scopri le risposte"
-                  className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-base px-4 text-center [backface-visibility:hidden]"
-                >
-                  <p className="text-base font-semibold text-ink">{quiz.prompt}</p>
-                  <span className="text-xs font-bold uppercase tracking-wide text-couple">Tocca per scoprire</span>
-                </button>
               </div>
-            </div>
+            )
           ) : quiz.mine !== null ? (
             <p className="rounded-2xl bg-base px-3 py-3 text-center text-xs text-ink-soft">
               Hai scritto! Appena scrive anche {partnerName} vedrete le ipotesi svelate.
