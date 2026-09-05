@@ -44,7 +44,7 @@ function ToggleRow({
         onClick={onToggle}
         aria-pressed={enabled}
         className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition active:scale-[0.98] disabled:opacity-50 ${
-          enabled ? "bg-couple text-white" : "bg-surface border border-border text-ink-soft"
+          enabled ? "bg-couple text-white" : "bg-surface on-surface border border-border text-ink-soft"
         }`}
       >
         {enabled ? "Attivo" : "Disattivato"}

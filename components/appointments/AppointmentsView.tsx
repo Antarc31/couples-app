@@ -137,7 +137,7 @@ export default function AppointmentsView() {
               key={v}
               onClick={() => setTab(v)}
               className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
-                tab === v ? "bg-surface text-ink shadow-sm" : "text-ink-soft"
+                tab === v ? "bg-surface on-surface text-ink shadow-sm" : "text-ink-soft"
               }`}
             >
               {v === "confermato" ? "Confermati" : "Idee"}
@@ -204,7 +204,7 @@ export default function AppointmentsView() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") setSelectedAppointment(a);
               }}
-              className="flex cursor-pointer flex-col overflow-hidden rounded-[var(--radius-app)] bg-surface shadow-[var(--shadow-soft)]"
+              className="flex cursor-pointer flex-col overflow-hidden rounded-[var(--radius-app)] bg-surface on-surface shadow-[var(--shadow-soft)]"
             >
               <div className="flex h-28 items-center justify-center bg-partner-a-soft/50 text-4xl">{tagEmoji(a.tag)}</div>
               <div className="flex flex-1 flex-col gap-2 p-3">
@@ -242,7 +242,7 @@ export default function AppointmentsView() {
                 setFabOpen(false);
                 setFormState({ mode: "idea" });
               }}
-              className="flex items-center gap-2 rounded-full bg-surface px-4 py-2.5 text-sm font-semibold text-ink shadow-[var(--shadow-soft)] transition active:scale-95"
+              className="flex items-center gap-2 rounded-full bg-surface on-surface px-4 py-2.5 text-sm font-semibold text-ink shadow-[var(--shadow-soft)] transition active:scale-95"
             >
               💡 Nuova idea
             </button>
@@ -251,7 +251,7 @@ export default function AppointmentsView() {
                 setFabOpen(false);
                 setFormState({ mode: "confirmed" });
               }}
-              className="flex items-center gap-2 rounded-full bg-surface px-4 py-2.5 text-sm font-semibold text-ink shadow-[var(--shadow-soft)] transition active:scale-95"
+              className="flex items-center gap-2 rounded-full bg-surface on-surface px-4 py-2.5 text-sm font-semibold text-ink shadow-[var(--shadow-soft)] transition active:scale-95"
             >
               📍 Appuntamento confermato
             </button>

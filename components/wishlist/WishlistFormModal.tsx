@@ -95,7 +95,7 @@ export default function WishlistFormModal({ onClose, onSaved }: WishlistFormModa
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-scrim/30 backdrop-blur-sm sm:items-center" onClick={onClose}>
       <div
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-surface on-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-border sm:hidden" />
@@ -152,7 +152,7 @@ export default function WishlistFormModal({ onClose, onSaved }: WishlistFormModa
               <select
                 value={linkedEventId}
                 onChange={(e) => setLinkedEventId(e.target.value)}
-                className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] text-ink outline-none focus:border-partner-a focus:ring-2 focus:ring-partner-a-soft"
+                className="w-full rounded-2xl border border-border bg-surface on-surface px-4 py-3 text-[15px] text-ink outline-none focus:border-partner-a focus:ring-2 focus:ring-partner-a-soft"
               >
                 <option value="">Nessun evento collegato</option>
                 {upcomingEvents.map((ev) => (
@@ -196,7 +196,7 @@ export default function WishlistFormModal({ onClose, onSaved }: WishlistFormModa
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
-            className="w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] text-ink placeholder:text-ink-soft outline-none focus:border-partner-a focus:ring-2 focus:ring-partner-a-soft"
+            className="w-full resize-none rounded-2xl border border-border bg-surface on-surface px-4 py-3 text-[15px] text-ink placeholder:text-ink-soft outline-none focus:border-partner-a focus:ring-2 focus:ring-partner-a-soft"
           />
 
           {error && <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}

@@ -25,6 +25,7 @@ import WeekTimeline from "@/components/calendar/WeekTimeline";
 import EventDetailSheet from "@/components/calendar/EventDetailSheet";
 import SlotSuggestions from "@/components/calendar/SlotSuggestions";
 import Toast from "@/components/ui/Toast";
+import { Search } from "@/components/ui/icons";
 
 type View = "day" | "week" | "month";
 
@@ -190,7 +191,7 @@ export default function CalendarView({
               key={v}
               onClick={() => setView(v)}
               className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
-                view === v ? "bg-surface text-ink shadow-sm" : "text-ink-soft"
+                view === v ? "bg-surface on-surface text-ink shadow-sm" : "text-ink-soft"
               }`}
             >
               {VIEW_LABELS[v]}
@@ -198,13 +199,6 @@ export default function CalendarView({
           ))}
         </div>
       </div>
-
-      <button
-        onClick={() => setShowFreeSlots(true)}
-        className="self-start rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-sm transition active:scale-95"
-      >
-        🔎 Trova buchi liberi
-      </button>
 
       {/* Legenda */}
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-soft">
@@ -221,7 +215,7 @@ export default function CalendarView({
           <div className="flex items-center justify-between">
             <button
               onClick={() => setMonthAnchor((m) => addMonths(m, -1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface on-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Mese precedente"
             >
               ‹
@@ -229,7 +223,7 @@ export default function CalendarView({
             <p className="text-sm font-bold capitalize text-ink">{formatMonthLabel(monthAnchor)}</p>
             <button
               onClick={() => setMonthAnchor((m) => addMonths(m, 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface on-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Mese successivo"
             >
               ›
@@ -255,7 +249,7 @@ export default function CalendarView({
                   onClick={() => setAgendaDate(day)}
                   className={`flex aspect-square flex-col items-center justify-start gap-1 rounded-2xl pt-1.5 text-xs transition ${
                     inMonth ? "text-ink" : "text-ink-soft/40"
-                  } ${isToday ? "bg-couple-soft font-bold" : "hover:bg-partner-a-soft/30"}`}
+                  } ${isToday ? "on-surface bg-couple-soft font-bold" : "hover:bg-partner-a-soft/30"}`}
                 >
                   <span>{day.getDate()}</span>
                   {/* Piano UX punto 2: barre (chi ha impegni, non solo "quanti") invece
@@ -284,7 +278,7 @@ export default function CalendarView({
           <div className="flex items-center justify-between">
             <button
               onClick={() => setSelectedDate((d) => addDays(d, -7))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface on-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Settimana precedente"
             >
               ‹
@@ -294,7 +288,7 @@ export default function CalendarView({
             </p>
             <button
               onClick={() => setSelectedDate((d) => addDays(d, 7))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface on-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Settimana successiva"
             >
               ›
@@ -315,7 +309,7 @@ export default function CalendarView({
           <div className="flex items-center justify-between">
             <button
               onClick={() => setSelectedDate((d) => addDays(d, -1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface on-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Giorno precedente"
             >
               ‹
@@ -323,7 +317,7 @@ export default function CalendarView({
             <p className="text-sm font-bold capitalize text-ink">{formatDayLabel(selectedDate)}</p>
             <button
               onClick={() => setSelectedDate((d) => addDays(d, 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface on-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Giorno successivo"
             >
               ›
@@ -339,6 +333,18 @@ export default function CalendarView({
           {loading && <p className="text-center text-xs text-ink-soft">Carico eventi…</p>}
         </div>
       )}
+
+      {/* Ancorato vicino al FAB "+" (non più una pillola isolata in cima
+          alla pagina): stesso accento dell'app (couple), un filo più
+          tenue per restare un'azione secondaria rispetto a "nuovo
+          evento". */}
+      <button
+        onClick={() => setShowFreeSlots(true)}
+        className="fixed bottom-40 right-5 z-20 flex items-center gap-2 rounded-full bg-couple-soft on-surface px-4 py-2.5 text-sm font-semibold text-couple shadow-[var(--shadow-soft)] transition active:scale-95"
+      >
+        <Search size={16} strokeWidth={2.2} />
+        Trova buchi liberi
+      </button>
 
       <button
         onClick={() => {
@@ -371,7 +377,7 @@ export default function CalendarView({
           onClick={() => setShowFreeSlots(false)}
         >
           <div
-            className="max-h-[80vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
+            className="max-h-[80vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-surface on-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-border sm:hidden" />

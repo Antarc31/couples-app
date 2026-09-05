@@ -67,7 +67,7 @@ export default function EventDetailSheet({ event, selfId, colorCtx, onClose, onE
       onClick={onClose}
     >
       <div
-        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
+        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-surface on-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-border sm:hidden" />
@@ -100,7 +100,7 @@ export default function EventDetailSheet({ event, selfId, colorCtx, onClose, onE
             {event.tag ? ` · ${event.tag}` : ""}
           </p>
           {event.recurrence !== "nessuna" && (
-            <p className="inline-flex w-fit items-center gap-1 rounded-full bg-special-soft px-2.5 py-1 text-xs font-semibold text-ink">
+            <p className="inline-flex w-fit items-center gap-1 rounded-full bg-special-soft on-surface px-2.5 py-1 text-xs font-semibold text-ink">
               🔁{" "}
               {formatRecurrenceSummary(
                 event.recurrence,
@@ -119,7 +119,7 @@ export default function EventDetailSheet({ event, selfId, colorCtx, onClose, onE
         </div>
 
         {linkedSurprise && (
-          <p className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-couple-soft px-3 py-1.5 text-xs font-semibold text-ink">
+          <p className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-couple-soft on-surface px-3 py-1.5 text-xs font-semibold text-ink">
             🎁{" "}
             {linkedSurprise.createdBy === selfId
               ? "Hai una sorpresa in arrivo per questo giorno"

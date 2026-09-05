@@ -83,7 +83,7 @@ export default function WeekTimeline({ days, events, colorCtx, onEventClick, onD
                 onClick={() => onDayClick?.(day)}
                 aria-label={formatDayLabel(day)}
                 className={`flex flex-col items-center rounded-xl py-1 text-xs transition ${
-                  isToday ? "bg-couple-soft font-bold text-ink" : "bg-surface text-ink-soft"
+                  isToday ? "on-surface bg-couple-soft font-bold text-ink" : "bg-surface on-surface text-ink-soft"
                 }`}
               >
                 <span className="capitalize">{WEEKDAY_LABELS[i]}</span>

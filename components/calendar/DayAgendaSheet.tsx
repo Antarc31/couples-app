@@ -20,7 +20,7 @@ export default function DayAgendaSheet({ date, events, colorCtx, onClose, onAddE
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-scrim/30 backdrop-blur-sm sm:items-center" onClick={onClose}>
       <div
-        className="max-h-[80vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
+        className="max-h-[80vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-surface on-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-border sm:hidden" />

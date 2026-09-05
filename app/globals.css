@@ -7,34 +7,36 @@
  * non vincolati al genere: nel codice si parla sempre di "partner A/B".
  */
 :root {
-  /* base — stesso rosa finora usato per le card dei widget di Home
-     (couple-soft): l'utente ha chiesto di spostarlo sullo sfondo di
-     pagina, lasciando alle card un rosa un filo più acceso (vedi
-     --color-couple-tint) così restano distinguibili dalla tela sotto. */
-  --color-base: #fbdde3;
-  --color-surface: #ffffff;
-  --color-ink: #3a2c30;
-  --color-ink-soft: #7a6b6f;
-  --color-border: #f0e2e0;
+  /* Tema scuro rosa di tutta l'app (riferimento fornito dall'utente:
+     sfondo scuro, tutto quello che sta sopra — card, righe interne — via
+     via più chiaro). Era scoperto alla sola Home in un primo momento,
+     poi esteso a ogni schermata su richiesta esplicita: questi sono ora
+     i token di default dell'intera app, non un'eccezione. */
+  --color-base: #7a2c52;
+  --color-surface: #f6d9e5;
+  --color-ink: #ffffff;
+  --color-ink-soft: #f3c6d9;
+  --color-border: #d493ac;
   /* Sempre scuro, a prescindere dal tema: usato SOLO come velo/sfondo per
      overlay e sfondi foto (bg-scrim/NN, from-scrim/NN), mai come colore di
-     testo — a differenza di --color-ink, che nel tema scuro della Home
-     diventa bianco. Tenerli separati evita che un overlay "sempre scuro"
-     diventi bianco per errore quando --color-ink si inverte. */
+     testo — a differenza di --color-ink, che qui è bianco. Tenerli
+     separati evita che un overlay "sempre scuro" diventi bianco per
+     errore. */
   --color-scrim: #3a2c30;
 
-  /* palette funzionale (vedi PLAN.md) */
+  /* palette funzionale (vedi PLAN.md) — badge/pillole/evidenze pallide,
+     pensate per restare chiare e leggibili sopra lo sfondo scuro. */
   --color-partner-a: #f7a6c4; /* rosa tenue — default */
   --color-partner-a-soft: #fde3ee;
   --color-partner-b: #a6c8f0; /* azzurro tenue — default */
   --color-partner-b-soft: #e5eefb;
   --color-couple: #e8677d; /* corallo — eventi di coppia */
   --color-couple-soft: #fbdde3;
-  /* Sfondo delle card widget in Home — un'unica tinta per tutte, mai una
-     diversa per widget: più accesa di couple-soft (che ora è lo sfondo di
-     pagina), più tenue del couple pieno; il testo scuro (text-ink) resta
-     leggibile sopra. */
-  --color-couple-tint: #f5aec1;
+  /* Sfondo delle card widget di Home — un'unica tinta per tutte, mai una
+     diversa per widget: più scura di couple-soft (usato per badge/
+     evidenze chiare), più chiara dello sfondo di pagina. Testo bianco
+     sopra. */
+  --color-couple-tint: #a8466e;
   --color-special: #e8b86d; /* oro — date speciali */
   --color-special-soft: #fbecd6;
   --color-cycle: #c9b6e4; /* lavanda — ciclo (privacy) */
@@ -48,37 +50,25 @@
 }
 
 /*
- * Tema scuro della Home (riferimento fornito dall'utente: sfondo rosa
- * scuro, tutto quello che sta sopra — card, righe interne — via via più
- * chiaro). Applicato SOLO alla Home (classe sul wrapper della pagina,
- * vedi app/(app)/home/page.tsx), non a tutta l'app: ridefinisce local-
- * mente gli stessi identici token che ogni widget già usa (bg-base,
- * bg-surface, text-ink, text-ink-soft, --color-couple-tint), quindi la
- * cascata CSS fa tutto il lavoro — zero modifiche ai componenti dei
- * widget. Tre livelli via via più chiari, dal più scuro (sfondo pagina)
- * al più chiaro (righe/pannelli interni): stessa gerarchia di
- * profondità dello screenshot di riferimento.
+ * `--color-surface` è chiaro (vedi sopra): ogni contenitore bg-surface con
+ * testo dentro (righe di lista, textarea, box, card senza tinta propria —
+ * vedi components/ui/Card.tsx) ha bisogno di testo scuro sopra, non
+ * bianco. Questa classe reimposta localmente text-ink/text-ink-soft su
+ * scuro per quel sottoalbero; il resto della pagina (sfondo, badge,
+ * bottoni pieni) resta bianco su scuro come da tema.
+ *
+ * Ridefinisce anche --color-base: da tempo immemore dell'app viene usato
+ * per inset "leggermente incassati" DENTRO una card (es. il riquadro
+ * orario/categoria di EventDetailSheet) — prima una tinta chiara appena
+ * diversa dal bianco della card, ora invece lo sfondo scuro di pagina.
+ * Dentro un pannello già chiaro (.on-surface) quell'inset deve restare
+ * chiaro, solo un filo più intenso della superficie che lo ospita, non
+ * un buco scuro con testo scuro sopra invisibile.
  */
-.theme-home {
-  --color-base: #7a2c52;
-  --color-couple-tint: #a8466e;
-  --color-surface: #f6d9e5;
-  --color-ink: #ffffff;
-  --color-ink-soft: #f3c6d9;
-  --color-border: #d493ac;
-}
-
-/*
- * Le righe/pannelli interni (bg-surface) sono ora chiari (per leggibilità
- * — un rosa scuro sopra un rosa scuro era comunque poco leggibile anche
- * schiarendolo un po'): il testo lì dentro deve tornare scuro, non
- * bianco. Classe da aggiungere a ogni contenitore bg-surface che contiene
- * testo (righe di lista, textarea, box di confronto...) — il resto della
- * card (badge, sfondo, bottoni pieni) resta bianco su rosa come prima.
- */
-.theme-home .on-surface {
+.on-surface {
   --color-ink: #3a2c30;
   --color-ink-soft: #7a6b6f;
+  --color-base: #efc0d4;
 }
 
 @theme inline {

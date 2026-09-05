@@ -74,7 +74,7 @@ export default function AppTabBar() {
 
   return (
     <nav
-      className="sticky bottom-0 z-30 flex justify-around border-t border-border bg-surface/95 backdrop-blur px-1 pt-1.5 shadow-[0_-8px_24px_-12px_rgb(58_44_48_/_0.12)]"
+      className="sticky bottom-0 z-30 flex justify-around border-t border-border bg-surface/95 on-surface backdrop-blur px-1 pt-1.5 shadow-[0_-8px_24px_-12px_rgb(58_44_48_/_0.12)]"
       style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0.4rem)" }}
       aria-label="Navigazione principale"
     >

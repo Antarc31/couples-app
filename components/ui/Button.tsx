@@ -9,7 +9,7 @@ const variants: Record<Variant, string> = {
   primary:
     "bg-couple text-white shadow-[var(--shadow-soft)] hover:brightness-105",
   secondary:
-    "bg-surface text-ink border border-border hover:bg-partner-a-soft/40",
+    "bg-surface on-surface text-ink border border-border hover:bg-partner-a-soft/40",
   ghost: "text-ink-soft hover:text-ink",
 };
 

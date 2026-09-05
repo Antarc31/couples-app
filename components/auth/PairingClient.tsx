@@ -105,7 +105,7 @@ export default function PairingClient() {
             type="button"
             onClick={() => setTab(t)}
             className={`flex-1 rounded-xl py-2 text-sm font-semibold transition ${
-              tab === t ? "bg-surface text-ink shadow-sm" : "text-ink-soft"
+              tab === t ? "bg-surface on-surface text-ink shadow-sm" : "text-ink-soft"
             }`}
           >
             {t === "generate" ? "Genera codice" : "Ho un codice"}
@@ -118,7 +118,7 @@ export default function PairingClient() {
           {code ? (
             <>
               <p className="text-sm text-ink-soft">Condividi questo codice col tuo partner:</p>
-              <p className="rounded-2xl bg-partner-b-soft px-6 py-3 font-mono text-3xl font-extrabold tracking-[0.3em] text-ink">
+              <p className="rounded-2xl bg-partner-b-soft on-surface px-6 py-3 font-mono text-3xl font-extrabold tracking-[0.3em] text-ink">
                 {code}
               </p>
               <Button variant="secondary" onClick={handleCopy} className="w-full">

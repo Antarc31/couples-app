@@ -86,7 +86,7 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
             {giftTitles.map((title, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-1 rounded-full bg-special-soft px-3 py-1 text-xs font-semibold text-ink"
+                className="inline-flex items-center gap-1 rounded-full bg-special-soft on-surface px-3 py-1 text-xs font-semibold text-ink"
               >
                 <Gift size={13} strokeWidth={2.2} />
                 {title}

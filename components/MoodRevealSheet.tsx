@@ -53,7 +53,7 @@ export default function MoodRevealSheet({ sourceId, onClose, onNotReady }: MoodR
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-scrim/30 backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose}>
       <div
-        className="flex w-full flex-col gap-4 rounded-t-[28px] bg-surface p-5 sm:max-w-sm sm:rounded-2xl"
+        className="flex w-full flex-col gap-4 rounded-t-[28px] bg-surface on-surface p-5 sm:max-w-sm sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
