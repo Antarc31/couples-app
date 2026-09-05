@@ -294,7 +294,7 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
 
         <div className="relative h-72 w-full select-none">
           {loading ? (
-            <div className="flex h-full items-center justify-center rounded-[28px] bg-surface text-sm text-ink-soft">
+            <div className="flex h-full items-center justify-center rounded-[28px] bg-surface on-surface text-sm text-ink-soft">
               Carico i ricordi…
             </div>
           ) : error ? (
@@ -302,7 +302,7 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
               {error}
             </div>
           ) : thoughts.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center gap-2 rounded-[28px] bg-surface text-center text-sm text-ink-soft">
+            <div className="flex h-full flex-col items-center justify-center gap-2 rounded-[28px] bg-surface on-surface text-center text-sm text-ink-soft">
               <MessageCircle size={30} strokeWidth={1.8} />
               Ancora nessun ricordo, manda il primo!
             </div>
@@ -329,7 +329,7 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
                       }
                     : {})}
                   className={`absolute inset-0 flex flex-col overflow-hidden rounded-[28px] shadow-[var(--shadow-soft)] ${
-                    t.type === "photo" ? "bg-ink" : "bg-surface"
+                    t.type === "photo" ? "bg-scrim" : "bg-surface on-surface"
                   } ${isTop ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
                   style={{
                     zIndex: visible.length - i,
@@ -353,14 +353,14 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
                           <Camera size={36} strokeWidth={1.8} />
                         </div>
                       )}
-                      <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-ink/55 to-transparent p-3 pr-14">
+                      <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-scrim/55 to-transparent p-3 pr-14">
                         <p className="flex items-center gap-1 text-xs font-semibold text-white/95">
                           <Camera size={13} strokeWidth={2.2} />
                           {t.senderId === selfId ? "Tu" : t.senderName} · {formatThoughtTimestamp(t.createdAt)}
                         </p>
                       </div>
                       {caption && (
-                        <p className="pointer-events-none absolute inset-x-0 bottom-12 bg-gradient-to-t from-ink/60 to-transparent px-4 pb-2 pt-8 text-sm text-white">
+                        <p className="pointer-events-none absolute inset-x-0 bottom-12 bg-gradient-to-t from-scrim/60 to-transparent px-4 pb-2 pt-8 text-sm text-white">
                           {caption}
                         </p>
                       )}
@@ -393,7 +393,7 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
         </div>
 
         {!loading && !error && thoughts.length > 0 && topIndex === thoughts.length - 1 && (
-          <div className="flex items-center justify-between gap-2 rounded-2xl bg-surface px-3 py-2">
+          <div className="flex items-center justify-between gap-2 rounded-2xl bg-surface on-surface px-3 py-2">
             <p className="text-xs text-ink-soft">Hai visto tutti i ricordi</p>
             <button
               type="button"
@@ -432,11 +432,11 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
 
       {showMenu && (
         <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-ink/30 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-40 flex items-end justify-center bg-scrim/30 backdrop-blur-sm sm:items-center"
           onClick={() => setShowMenu(false)}
         >
           <div
-            className="w-full max-w-md rounded-t-[28px] bg-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
+            className="w-full max-w-md rounded-t-[28px] bg-surface on-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-border sm:hidden" />
@@ -469,11 +469,11 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
 
       {showCompose && (
         <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-ink/30 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-40 flex items-end justify-center bg-scrim/30 backdrop-blur-sm sm:items-center"
           onClick={() => setShowCompose(false)}
         >
           <div
-            className="w-full max-w-md rounded-t-[28px] bg-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
+            className="w-full max-w-md rounded-t-[28px] bg-surface on-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-border sm:hidden" />
@@ -485,7 +485,7 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 rows={3}
-                className="w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] text-ink placeholder:text-ink-soft outline-none focus:border-partner-a focus:ring-2 focus:ring-partner-a-soft"
+                className="w-full resize-none rounded-2xl border border-border bg-surface on-surface px-4 py-3 text-[15px] text-ink placeholder:text-ink-soft outline-none focus:border-partner-a focus:ring-2 focus:ring-partner-a-soft"
               />
               {sendError && (
                 <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{sendError}</p>

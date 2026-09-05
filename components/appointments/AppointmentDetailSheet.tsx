@@ -54,7 +54,7 @@ export default function AppointmentDetailSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-scrim/30 backdrop-blur-sm sm:items-center"
       onClick={onClose}
     >
       <div

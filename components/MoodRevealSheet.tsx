@@ -24,7 +24,7 @@ interface MoodRevealSheetProps {
  * rispondi, quindi questo è l'UNICO posto dove si vede davvero il risultato
  * — su richiesta esplicita dell'utente ("fallo apparire solo nelle
  * notifiche"). Stesso markup bottom-sheet già usato in tutto il progetto
- * (fixed inset-0 bg-ink/30 backdrop-blur-sm + rounded-t-[28px]).
+ * (fixed inset-0 bg-scrim/30 backdrop-blur-sm + rounded-t-[28px]).
  */
 export default function MoodRevealSheet({ sourceId, onClose, onNotReady }: MoodRevealSheetProps) {
   const [reveal, setReveal] = useState<MoodReveal | null>(null);
@@ -51,7 +51,7 @@ export default function MoodRevealSheet({ sourceId, onClose, onNotReady }: MoodR
   }, [sourceId]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-ink/30 backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end bg-scrim/30 backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose}>
       <div
         className="flex w-full flex-col gap-4 rounded-t-[28px] bg-surface p-5 sm:max-w-sm sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}

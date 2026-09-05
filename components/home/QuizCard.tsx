@@ -114,7 +114,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
       </div>
 
       {scores && (
-        <div className="flex items-center justify-center gap-5 rounded-2xl bg-surface px-4 py-3">
+        <div className="flex items-center justify-center gap-5 rounded-2xl bg-surface on-surface px-4 py-3">
           <div className="flex flex-col items-center gap-0.5">
             <span className="flex h-5 items-center justify-center text-couple">
               {scores.mine > scores.partner && <Trophy size={15} strokeWidth={2.2} />}
@@ -143,7 +143,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
         <p className="text-xs text-ink-soft">Caricamento…</p>
       ) : (
         <>
-          {submitError && <p className="rounded-xl bg-surface px-3 py-2 text-xs font-semibold text-danger">{submitError}</p>}
+          {submitError && <p className="rounded-xl bg-surface on-surface px-3 py-2 text-xs font-semibold text-danger">{submitError}</p>}
 
           {quiz.mine === null ? (
             !flipped ? (
@@ -151,7 +151,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                 type="button"
                 onClick={() => setFlipped(true)}
                 aria-label="Rispondi alla domanda"
-                className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface px-4 py-10 text-center transition active:scale-[0.98]"
+                className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface on-surface px-4 py-10 text-center transition active:scale-[0.98]"
               >
                 <p className="text-base font-semibold text-ink">{quiz.prompt}</p>
                 <span className="text-xs font-bold uppercase tracking-wide text-couple">Tocca per rispondere</span>
@@ -167,7 +167,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                     onChange={(e) => setTruthDraft(e.target.value)}
                     placeholder="La verità su di te…"
                     rows={2}
-                    className="w-full resize-none rounded-2xl bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-soft outline-none"
+                    className="w-full resize-none rounded-2xl bg-surface on-surface px-3 py-2 text-sm text-ink placeholder:text-ink-soft outline-none"
                   />
                 </label>
                 <label className="flex flex-col gap-1">
@@ -179,7 +179,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                     onChange={(e) => setGuessDraft(e.target.value)}
                     placeholder={`Cosa risponderebbe ${partnerName}?`}
                     rows={2}
-                    className="w-full resize-none rounded-2xl bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-soft outline-none"
+                    className="w-full resize-none rounded-2xl bg-surface on-surface px-3 py-2 text-sm text-ink placeholder:text-ink-soft outline-none"
                   />
                 </label>
                 <Button
@@ -199,14 +199,14 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                 type="button"
                 onClick={() => setFlipped(true)}
                 aria-label="Scopri le risposte"
-                className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface px-4 py-10 text-center transition active:scale-[0.98]"
+                className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface on-surface px-4 py-10 text-center transition active:scale-[0.98]"
               >
                 <p className="text-base font-semibold text-ink">{quiz.prompt}</p>
                 <span className="text-xs font-bold uppercase tracking-wide text-couple">Tocca per scoprire</span>
               </button>
             ) : (
               <div className="flex flex-col gap-3 animate-toast-in">
-                <div className="rounded-2xl bg-surface px-3 py-3">
+                <div className="rounded-2xl bg-surface on-surface px-3 py-3">
                   <p className="text-xs font-bold uppercase tracking-wide text-couple">Tu</p>
                   <p className="mt-1 text-sm text-ink">{quiz.mine.guess}</p>
                   <p className="mt-2 text-xs text-ink-soft">
@@ -227,7 +227,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-surface px-3 py-3">
+                <div className="rounded-2xl bg-surface on-surface px-3 py-3">
                   <p className="text-xs font-bold uppercase tracking-wide text-couple">{partnerName}</p>
                   <p className="mt-1 text-sm text-ink">{quiz.partner.guess}</p>
                   <p className="mt-2 text-xs text-ink-soft">La tua verità: {quiz.mine.truth}</p>
@@ -245,7 +245,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                         type="button"
                         disabled={confirmingId === quiz.partner.answerId}
                         onClick={() => quiz.partner && handleConfirm(quiz.partner.answerId, false)}
-                        className="flex-1 rounded-[var(--radius-app)] border border-border bg-surface px-3 py-2 text-xs font-semibold text-ink transition active:scale-[0.98] disabled:opacity-50"
+                        className="flex-1 rounded-[var(--radius-app)] border border-border bg-surface on-surface px-3 py-2 text-xs font-semibold text-ink transition active:scale-[0.98] disabled:opacity-50"
                       >
                         No
                       </button>
@@ -269,7 +269,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
               </div>
             )
           ) : (
-            <div className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface px-4 py-10 text-center">
+            <div className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface on-surface px-4 py-10 text-center">
               <p className="text-base font-semibold text-ink">{quiz.prompt}</p>
               <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
                 Hai risposto! In attesa di {partnerName}…

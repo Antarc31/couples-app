@@ -24,7 +24,7 @@ function formatFullTimestamp(iso: string): string {
  * con IntersectionObserver — quando entra nel viewport si carica la pagina
  * successiva (cursore = `created_at` dell'ultima foto già mostrata).
  * Tap su una foto apre un overlay fullscreen (stesso pattern modal di
- * EventDetailSheet/i menu di MemoriesDeck: fixed inset-0, bg-ink/30,
+ * EventDetailSheet/i menu di MemoriesDeck: fixed inset-0, bg-scrim/30,
  * backdrop-blur, click fuori per chiudere).
  */
 export default function PhotoGallery({ selfId }: { selfId: string }) {
@@ -122,7 +122,7 @@ export default function PhotoGallery({ selfId }: { selfId: string }) {
                 data-testid="gallery-photo"
                 onClick={() => setSelected(photo)}
                 aria-label={`Apri foto di ${photo.senderId === selfId ? "Tu" : photo.senderName}`}
-                className="aspect-square overflow-hidden rounded-xl bg-ink transition active:scale-[0.97]"
+                className="aspect-square overflow-hidden rounded-xl bg-scrim transition active:scale-[0.97]"
               >
                 {photo.photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- signed URL temporanea, non ottimizzabile da next/image
@@ -146,7 +146,7 @@ export default function PhotoGallery({ selfId }: { selfId: string }) {
 
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-ink/85 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-scrim/85 backdrop-blur-sm"
           onClick={() => setSelected(null)}
         >
           <button
@@ -161,7 +161,7 @@ export default function PhotoGallery({ selfId }: { selfId: string }) {
               // eslint-disable-next-line @next/next/no-img-element -- signed URL temporanea, non ottimizzabile da next/image
               <img src={selected.photoUrl} alt="" className="max-h-[70vh] w-full rounded-2xl object-contain" />
             ) : (
-              <div className="flex h-64 w-full items-center justify-center rounded-2xl bg-surface text-ink-soft">
+              <div className="flex h-64 w-full items-center justify-center rounded-2xl bg-surface on-surface text-ink-soft">
                 <ImageIcon size={36} strokeWidth={1.8} />
               </div>
             )}

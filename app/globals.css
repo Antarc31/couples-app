@@ -16,6 +16,12 @@
   --color-ink: #3a2c30;
   --color-ink-soft: #7a6b6f;
   --color-border: #f0e2e0;
+  /* Sempre scuro, a prescindere dal tema: usato SOLO come velo/sfondo per
+     overlay e sfondi foto (bg-scrim/NN, from-scrim/NN), mai come colore di
+     testo — a differenza di --color-ink, che nel tema scuro della Home
+     diventa bianco. Tenerli separati evita che un overlay "sempre scuro"
+     diventi bianco per errore quando --color-ink si inverte. */
+  --color-scrim: #3a2c30;
 
   /* palette funzionale (vedi PLAN.md) */
   --color-partner-a: #f7a6c4; /* rosa tenue — default */
@@ -55,11 +61,24 @@
  */
 .theme-home {
   --color-base: #7a2c52;
-  --color-couple-tint: #9b3e69;
-  --color-surface: #b8567f;
+  --color-couple-tint: #a8466e;
+  --color-surface: #f6d9e5;
   --color-ink: #ffffff;
   --color-ink-soft: #f3c6d9;
   --color-border: #d493ac;
+}
+
+/*
+ * Le righe/pannelli interni (bg-surface) sono ora chiari (per leggibilità
+ * — un rosa scuro sopra un rosa scuro era comunque poco leggibile anche
+ * schiarendolo un po'): il testo lì dentro deve tornare scuro, non
+ * bianco. Classe da aggiungere a ogni contenitore bg-surface che contiene
+ * testo (righe di lista, textarea, box di confronto...) — il resto della
+ * card (badge, sfondo, bottoni pieni) resta bianco su rosa come prima.
+ */
+.theme-home .on-surface {
+  --color-ink: #3a2c30;
+  --color-ink-soft: #7a6b6f;
 }
 
 @theme inline {
@@ -68,6 +87,7 @@
   --color-ink: var(--color-ink);
   --color-ink-soft: var(--color-ink-soft);
   --color-border: var(--color-border);
+  --color-scrim: var(--color-scrim);
 
   --color-partner-a: var(--color-partner-a);
   --color-partner-a-soft: var(--color-partner-a-soft);

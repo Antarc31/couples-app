@@ -186,7 +186,7 @@ export default function AppTopBar({ userId }: { userId: string }) {
 
       {panelOpen && (
         <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-ink/30 backdrop-blur-sm sm:items-start sm:justify-end sm:p-4"
+          className="fixed inset-0 z-40 flex items-end justify-center bg-scrim/30 backdrop-blur-sm sm:items-start sm:justify-end sm:p-4"
           style={{ paddingTop: "max(env(safe-area-inset-top), 0.5rem)" }}
           onClick={() => setPanelOpen(false)}
         >

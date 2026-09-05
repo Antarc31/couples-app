@@ -26,7 +26,7 @@ export default function Toast({ message, variant = "neutral", durationMs = 2500,
       role="status"
       aria-live="polite"
       className={`fixed inset-x-0 bottom-24 z-50 mx-auto w-fit max-w-[calc(100vw-2rem)] rounded-full px-4 py-2.5 text-sm font-semibold shadow-[var(--shadow-soft)] ${
-        variant === "coppia" ? "animate-toast-pop bg-couple text-white" : "animate-toast-in bg-ink text-white"
+        variant === "coppia" ? "animate-toast-pop bg-couple text-white" : "animate-toast-in bg-scrim text-white"
       }`}
     >
       {message}

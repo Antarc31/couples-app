@@ -43,13 +43,13 @@ export default function WishlistPreviewCard({ items, selfId, partnerName }: Wish
         </Link>
       </div>
       {items.length === 0 ? (
-        <p className="rounded-2xl bg-surface px-3 py-3 text-center text-xs text-ink-soft">
+        <p className="rounded-2xl bg-surface on-surface px-3 py-3 text-center text-xs text-ink-soft">
           Ancora nulla in wishlist. Aggiungine una!
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
           {items.map((item) => (
-            <li key={item.id} className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-2">
+            <li key={item.id} className="flex items-center gap-3 rounded-2xl bg-surface on-surface px-3 py-2">
               <Gift size={18} strokeWidth={2.2} className="shrink-0 text-couple" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-ink">
