@@ -143,8 +143,7 @@ export default function WishlistView({ selfId, partnerName }: WishlistViewProps)
 
   return (
     <div className="flex flex-1 flex-col gap-4 px-4 pt-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-extrabold text-ink">Wishlist</h1>
+      <div className="flex justify-end">
         <button
           onClick={() => setShowArchive((v) => !v)}
           className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   listNotifications,
@@ -34,6 +34,21 @@ const TYPE_DESTINATION: Record<NotificationType, string> = {
   wishlist: "/wishlist",
   quiz: "/home",
   mood_checkin: "/home",
+};
+
+/**
+ * Titolo di pagina spostato qui dalle singole schermate (su richiesta
+ * dell'utente, per liberare spazio verticale nel contenuto) — solo le 5
+ * rotte principali della tab bar, corrispondenza esatta: una rotta
+ * annidata come /home/foto ha già il proprio titolo in pagina (con
+ * freccia indietro) e non deve mostrarne un secondo qui.
+ */
+const PAGE_TITLES: Record<string, string> = {
+  "/home": "Home",
+  "/calendario": "Calendario",
+  "/appuntamenti": "Appuntamenti",
+  "/wishlist": "Wishlist",
+  "/profilo": "Profilo",
 };
 
 function mapRowToNotification(row: NotificationRow): AppNotification {
@@ -72,6 +87,8 @@ function formatRelativeTime(iso: string): string {
  */
 export default function AppTopBar({ userId }: { userId: string }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const pageTitle = PAGE_TITLES[pathname];
   const [unreadCount, setUnreadCount] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -165,9 +182,10 @@ export default function AppTopBar({ userId }: { userId: string }) {
           oscurato dietro al pannello. bg-base/95 (colore semi-trasparente,
           non un filtro) resta invece innocuo. */}
       <div
-        className="sticky top-0 z-30 flex w-full items-center justify-end border-b border-border bg-base/95 px-4 py-2"
+        className="sticky top-0 z-30 flex w-full items-center justify-between border-b border-border bg-base/95 px-4 py-2"
         style={{ paddingTop: "max(env(safe-area-inset-top), 0.5rem)" }}
       >
+        <h1 className="text-lg font-extrabold text-ink">{pageTitle}</h1>
         <div className="relative">
           <button
             type="button"

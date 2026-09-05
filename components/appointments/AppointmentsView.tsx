@@ -129,21 +129,18 @@ export default function AppointmentsView() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 px-4 pt-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-extrabold text-ink">Appuntamenti</h1>
-        <div className="flex rounded-2xl bg-partner-a-soft/50 p-1">
-          {(["confermato", "idea"] as const).map((v) => (
-            <button
-              key={v}
-              onClick={() => setTab(v)}
-              className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
-                tab === v ? "bg-surface on-surface text-ink shadow-sm" : "text-ink-soft"
-              }`}
-            >
-              {v === "confermato" ? "Confermati" : "Idee"}
-            </button>
-          ))}
-        </div>
+      <div className="flex w-full rounded-2xl bg-partner-a-soft/50 p-1">
+        {(["confermato", "idea"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setTab(v)}
+            className={`flex-1 rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
+              tab === v ? "bg-surface on-surface text-ink shadow-sm" : "text-ink-soft"
+            }`}
+          >
+            {v === "confermato" ? "Confermati" : "Idee"}
+          </button>
+        ))}
       </div>
 
       {error && <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}

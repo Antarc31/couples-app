@@ -183,21 +183,18 @@ export default function CalendarView({
 
   return (
     <div className="flex flex-1 flex-col gap-4 px-4 pt-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-extrabold text-ink">Calendario</h1>
-        <div className="flex rounded-2xl bg-partner-a-soft/50 p-1">
-          {(["day", "week", "month"] as const).map((v) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
-                view === v ? "bg-surface on-surface text-ink shadow-sm" : "text-ink-soft"
-              }`}
-            >
-              {VIEW_LABELS[v]}
-            </button>
-          ))}
-        </div>
+      <div className="flex w-full rounded-2xl bg-partner-a-soft/50 p-1">
+        {(["day", "week", "month"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`flex-1 rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
+              view === v ? "bg-surface on-surface text-ink shadow-sm" : "text-ink-soft"
+            }`}
+          >
+            {VIEW_LABELS[v]}
+          </button>
+        ))}
       </div>
 
       {/* Legenda */}
@@ -334,13 +331,13 @@ export default function CalendarView({
         </div>
       )}
 
-      {/* Ancorato vicino al FAB "+" (non più una pillola isolata in cima
-          alla pagina): stesso accento dell'app (couple), un filo più
-          tenue per restare un'azione secondaria rispetto a "nuovo
-          evento". */}
+      {/* Stessa riga del FAB "+", ancorato in basso a sinistra (non più una
+          pillola isolata in cima alla pagina): stesso accento dell'app
+          (couple), un filo più tenue per restare un'azione secondaria
+          rispetto a "nuovo evento". */}
       <button
         onClick={() => setShowFreeSlots(true)}
-        className="fixed bottom-40 right-5 z-20 flex items-center gap-2 rounded-full bg-couple-soft on-surface px-4 py-2.5 text-sm font-semibold text-couple shadow-[var(--shadow-soft)] transition active:scale-95"
+        className="fixed bottom-20 left-5 z-20 flex items-center gap-2 rounded-full bg-couple-soft on-surface px-4 py-2.5 text-sm font-semibold text-couple shadow-[var(--shadow-soft)] transition active:scale-95"
       >
         <Search size={16} strokeWidth={2.2} />
         Trova buchi liberi

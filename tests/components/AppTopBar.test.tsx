@@ -27,6 +27,7 @@ const mockPush = jest.fn<void, [string]>();
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
+  usePathname: () => "/home",
 }));
 
 const mockListNotifications = jest.fn<Promise<AppNotification[] | ActionError>, [limit?: number]>();
