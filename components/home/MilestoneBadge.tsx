@@ -13,8 +13,11 @@ interface MilestoneBadgeProps {
 export default function MilestoneBadge({ nextMilestone }: MilestoneBadgeProps) {
   if (!nextMilestone) return null;
   return (
-    <div className="flex items-center gap-3 rounded-[var(--radius-app)] bg-surface px-4 py-3 shadow-[var(--shadow-soft)]">
-      <IconBadge icon={Trophy} />
+    <div
+      className="flex items-center gap-3 rounded-[var(--radius-app)] px-4 py-3 shadow-[var(--shadow-soft)]"
+      style={{ backgroundColor: "var(--color-couple-soft)" }}
+    >
+      <IconBadge icon={Trophy} variant="onTint" />
       <p className="text-sm font-bold text-ink">
         {nextMilestone.daysUntil === 0 ? "Oggi" : `Tra ${nextMilestone.daysUntil} giorni`}{" "}
         <span className="font-semibold text-ink-soft">· {nextMilestone.label}</span>

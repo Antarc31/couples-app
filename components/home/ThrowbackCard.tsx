@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
+import IconBadge from "@/components/ui/IconBadge";
 import { Clock, ImageIcon, MessageCircle, Gift, X } from "@/components/ui/icons";
 import { getThrowbackForToday, type Thought } from "@/lib/messages-actions";
 
@@ -17,8 +18,8 @@ interface ThrowbackCardProps {
  * MemoriesDeck). Nessun output — né skeleton né messaggio d'errore — se non
  * c'è nulla da mostrare quel giorno: è un bonus silenzioso, mai una card
  * vuota che occupa spazio a caso (stesso "opt-out facile" di CountdownHeader).
- * Card lasciata bianca (nessun gradiente): il contenuto — foto vere — è già
- * ricco di suo, un fondo colorato pieno competerebbe invece di valorizzarlo.
+ * Stessa tinta couple-soft delle altre card di Home; le righe interne
+ * restano bianche (bg-surface) perché è lì che vivono le foto vere.
  */
 export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
   const [thoughts, setThoughts] = useState<Thought[]>([]);
@@ -41,11 +42,11 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
 
   return (
     <>
-      <Card className="flex flex-col gap-3">
-        <h2 className="flex items-center gap-1.5 text-sm font-bold text-ink">
-          <Clock size={16} strokeWidth={2.2} />
-          Un anno fa oggi
-        </h2>
+      <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-soft)" }}>
+        <div className="flex items-center gap-2">
+          <IconBadge icon={Clock} size={32} variant="onTint" />
+          <h2 className="text-sm font-bold text-ink">Un anno fa oggi</h2>
+        </div>
         {thoughts.length > 0 && (
           <ul className="flex flex-col gap-2">
             {thoughts.map((thought) => (
@@ -53,7 +54,7 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
                 <button
                   type="button"
                   onClick={() => thought.type === "photo" && setSelected(thought)}
-                  className="flex w-full items-center gap-3 rounded-2xl bg-base px-3 py-2 text-left"
+                  className="flex w-full items-center gap-3 rounded-2xl bg-surface px-3 py-2 text-left"
                 >
                   {thought.type === "photo" ? (
                     thought.photoUrl ? (
@@ -64,7 +65,7 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
                         className="h-12 w-12 shrink-0 rounded-xl object-cover"
                       />
                     ) : (
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface text-ink-soft">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-base text-ink-soft">
                         <ImageIcon size={18} strokeWidth={2} />
                       </div>
                     )

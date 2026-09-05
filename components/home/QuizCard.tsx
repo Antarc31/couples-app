@@ -104,14 +104,14 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
   }
 
   return (
-    <Card className="flex flex-col gap-3">
+    <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-soft)" }}>
       <div className="flex items-center gap-2">
-        <IconBadge icon={Brain} size={32} />
+        <IconBadge icon={Brain} size={32} variant="onTint" />
         <h2 className="text-sm font-bold text-ink">Indovina il partner</h2>
       </div>
 
       {scores && (scores.mine > 0 || scores.partner > 0) && (
-        <div className="flex items-center justify-center gap-5 rounded-2xl bg-base px-4 py-3">
+        <div className="flex items-center justify-center gap-5 rounded-2xl bg-surface px-4 py-3">
           <div className="flex flex-col items-center gap-0.5">
             <span className="flex h-5 items-center justify-center text-couple">
               {scores.mine > scores.partner && <Trophy size={15} strokeWidth={2.2} />}
@@ -149,14 +149,14 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                 type="button"
                 onClick={() => setFlipped(true)}
                 aria-label="Scopri le risposte"
-                className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-base px-4 py-10 text-center transition active:scale-[0.98]"
+                className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface px-4 py-10 text-center transition active:scale-[0.98]"
               >
                 <p className="text-base font-semibold text-ink">{quiz.prompt}</p>
                 <span className="text-xs font-bold uppercase tracking-wide text-couple">Tocca per scoprire</span>
               </button>
             ) : (
               <div className="flex flex-col gap-3 animate-toast-in">
-                <div className="rounded-2xl bg-base px-3 py-3">
+                <div className="rounded-2xl bg-surface px-3 py-3">
                   <p className="text-xs font-bold uppercase tracking-wide text-couple">Tu</p>
                   <p className="mt-1 text-sm text-ink">{quiz.mine.guess}</p>
                   <p className="mt-2 text-xs text-ink-soft">
@@ -177,7 +177,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-base px-3 py-3">
+                <div className="rounded-2xl bg-surface px-3 py-3">
                   <p className="text-xs font-bold uppercase tracking-wide text-couple">{partnerName}</p>
                   <p className="mt-1 text-sm text-ink">{quiz.partner.guess}</p>
                   <p className="mt-2 text-xs text-ink-soft">La tua verità: {quiz.mine.truth}</p>
@@ -219,7 +219,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
               </div>
             )
           ) : quiz.mine !== null ? (
-            <p className="rounded-2xl bg-base px-3 py-3 text-center text-xs text-ink-soft">
+            <p className="rounded-2xl bg-surface px-3 py-3 text-center text-xs text-ink-soft">
               Hai scritto! Appena scrive anche {partnerName} vedrete le ipotesi svelate.
             </p>
           ) : (
@@ -231,7 +231,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                   onChange={(e) => setTruthDraft(e.target.value)}
                   placeholder="La verità su di te…"
                   rows={2}
-                  className="w-full resize-none rounded-2xl bg-base px-3 py-2 text-sm text-ink outline-none"
+                  className="w-full resize-none rounded-2xl bg-surface px-3 py-2 text-sm text-ink outline-none"
                 />
               </label>
               <label className="flex flex-col gap-1">
@@ -243,7 +243,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                   onChange={(e) => setGuessDraft(e.target.value)}
                   placeholder={`Cosa risponderebbe ${partnerName}?`}
                   rows={2}
-                  className="w-full resize-none rounded-2xl bg-base px-3 py-2 text-sm text-ink outline-none"
+                  className="w-full resize-none rounded-2xl bg-surface px-3 py-2 text-sm text-ink outline-none"
                 />
               </label>
               <Button
