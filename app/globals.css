@@ -31,6 +31,22 @@
 
   --radius-app: 20px;
   --shadow-soft: 0 8px 24px -8px rgb(58 44 48 / 0.12);
+
+  /*
+   * Sfumature "widget" — restyling design brief v2 (vedi
+   * https://claude.ai/code/artifact/8965fdcf-b344-4c66-9a3d-345904c83cc5):
+   * ogni tipo di contenuto ha un colore proprio, pieno, non più un accento
+   * sottile su sfondo bianco. Un solo token per sfumatura (già il valore
+   * `linear-gradient` completo, non due hex separati) così i componenti lo
+   * usano direttamente come `background-image: var(--grad-rose)` senza
+   * bisogno di ricostruirlo lato JS.
+   */
+  --grad-rose: linear-gradient(140deg, #ff6f9c, #c22e63); /* pensiero del giorno */
+  --grad-violet: linear-gradient(140deg, #9b8cf2, #5b3fb0); /* countdown/traguardi */
+  --grad-teal: linear-gradient(140deg, #3fd6bd, #128f82); /* check-in umore */
+  --grad-amber: linear-gradient(140deg, #ffc857, #f2822e); /* quiz — testo scuro sopra */
+  --grad-indigo: linear-gradient(140deg, #6c7bf5, #2f3ea3); /* calendario/impegni */
+  --grad-coral: linear-gradient(140deg, #ff8a70, #e0483f); /* wishlist */
 }
 
 @theme inline {
