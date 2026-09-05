@@ -41,6 +41,27 @@
   --shadow-soft: 0 8px 24px -8px rgb(58 44 48 / 0.12);
 }
 
+/*
+ * Tema scuro della Home (riferimento fornito dall'utente: sfondo rosa
+ * scuro, tutto quello che sta sopra — card, righe interne — via via più
+ * chiaro). Applicato SOLO alla Home (classe sul wrapper della pagina,
+ * vedi app/(app)/home/page.tsx), non a tutta l'app: ridefinisce local-
+ * mente gli stessi identici token che ogni widget già usa (bg-base,
+ * bg-surface, text-ink, text-ink-soft, --color-couple-tint), quindi la
+ * cascata CSS fa tutto il lavoro — zero modifiche ai componenti dei
+ * widget. Tre livelli via via più chiari, dal più scuro (sfondo pagina)
+ * al più chiaro (righe/pannelli interni): stessa gerarchia di
+ * profondità dello screenshot di riferimento.
+ */
+.theme-home {
+  --color-base: #7a2c52;
+  --color-couple-tint: #9b3e69;
+  --color-surface: #b8567f;
+  --color-ink: #ffffff;
+  --color-ink-soft: #f3c6d9;
+  --color-border: #d493ac;
+}
+
 @theme inline {
   --color-base: var(--color-base);
   --color-surface: var(--color-surface);

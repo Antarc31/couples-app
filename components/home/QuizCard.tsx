@@ -167,7 +167,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                     onChange={(e) => setTruthDraft(e.target.value)}
                     placeholder="La verità su di te…"
                     rows={2}
-                    className="w-full resize-none rounded-2xl bg-surface px-3 py-2 text-sm text-ink outline-none"
+                    className="w-full resize-none rounded-2xl bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-soft outline-none"
                   />
                 </label>
                 <label className="flex flex-col gap-1">
@@ -179,7 +179,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                     onChange={(e) => setGuessDraft(e.target.value)}
                     placeholder={`Cosa risponderebbe ${partnerName}?`}
                     rows={2}
-                    className="w-full resize-none rounded-2xl bg-surface px-3 py-2 text-sm text-ink outline-none"
+                    className="w-full resize-none rounded-2xl bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-soft outline-none"
                   />
                 </label>
                 <Button

@@ -17,7 +17,7 @@ export default async function PhotoGalleryPage() {
   if (!data || !data.couple) redirect("/pairing");
 
   return (
-    <div className="flex flex-1 flex-col gap-4 px-4 pt-5 pb-24">
+    <div className="theme-home flex flex-1 flex-col gap-4 bg-base px-4 pt-5 pb-24">
       <div className="flex items-center gap-3">
         <Link
           href="/home"
