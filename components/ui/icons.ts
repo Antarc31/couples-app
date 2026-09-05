@@ -38,4 +38,8 @@ export {
   Link2,
   Home,
   User,
+  Trophy,
+  Camera,
+  Image as ImageIcon,
+  Brain,
 } from "lucide-react";

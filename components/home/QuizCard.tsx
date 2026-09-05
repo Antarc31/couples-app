@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import { Brain, Trophy, Check, X } from "@/components/ui/icons";
 import { createClient } from "@/lib/supabase/client";
 import {
   getTodaysQuiz,
@@ -95,25 +96,32 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
   }
 
   return (
-    <Card className="flex flex-col gap-3">
-      <h2 className="text-sm font-bold text-ink">🧠 Quiz: indovina il partner</h2>
+    <Card gradient="amber" className="flex flex-col gap-3">
+      <h2 className="flex items-center gap-1.5 text-sm font-bold">
+        <Brain size={16} strokeWidth={2.2} />
+        Indovina il partner
+      </h2>
 
       {scores && (scores.mine > 0 || scores.partner > 0) && (
-        <div className="flex items-center justify-center gap-5 rounded-2xl bg-base px-4 py-3">
+        <div className="flex items-center justify-center gap-5 rounded-2xl bg-white/40 px-4 py-3">
           <div className="flex flex-col items-center gap-0.5">
-            <span className="h-5 text-base leading-none">{scores.mine > scores.partner ? "🏆" : ""}</span>
+            <span className="flex h-5 items-center justify-center">
+              {scores.mine > scores.partner && <Trophy size={15} strokeWidth={2.2} />}
+            </span>
             <span className="text-2xl font-extrabold" style={{ color: selfColor }}>
               {scores.mine}
             </span>
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Tu</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide">Tu</span>
           </div>
-          <span className="text-base font-bold text-ink-soft">—</span>
+          <span className="text-base font-bold">—</span>
           <div className="flex flex-col items-center gap-0.5">
-            <span className="h-5 text-base leading-none">{scores.partner > scores.mine ? "🏆" : ""}</span>
+            <span className="flex h-5 items-center justify-center">
+              {scores.partner > scores.mine && <Trophy size={15} strokeWidth={2.2} />}
+            </span>
             <span className="text-2xl font-extrabold" style={{ color: partnerColor }}>
               {scores.partner}
             </span>
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">{partnerName}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide">{partnerName}</span>
           </div>
         </div>
       )}
@@ -121,46 +129,52 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
       {loadError ? (
         <p className="text-xs text-danger">{loadError}</p>
       ) : !quiz ? (
-        <p className="text-xs text-ink-soft">Caricamento…</p>
+        <p className="text-xs opacity-70">Caricamento…</p>
       ) : (
         <>
-          <p className="text-sm text-ink">{quiz.prompt}</p>
+          <p className="text-sm">{quiz.prompt}</p>
           {submitError && <p className="text-xs text-danger">{submitError}</p>}
 
           {quiz.revealed && quiz.mine && quiz.partner ? (
             <div className="flex flex-col gap-3">
-              <div className="rounded-2xl bg-base px-3 py-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+              <div className="rounded-2xl bg-white/40 px-3 py-2">
+                <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
                   La tua ipotesi su {partnerName}
                 </p>
-                <p className="text-sm text-ink">{quiz.mine.guess}</p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                <p className="text-sm">{quiz.mine.guess}</p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-wide opacity-70">
                   La verità di {partnerName}
                 </p>
-                <p className="text-sm text-ink">{quiz.partner.truth}</p>
-                <p className="mt-1 text-xs text-ink-soft">
-                  {quiz.mine.guessCorrect === null
-                    ? `In attesa che ${partnerName} confermi`
-                    : quiz.mine.guessCorrect
-                      ? "✅ Hai indovinato!"
-                      : "❌ Non hai indovinato"}
+                <p className="text-sm">{quiz.partner.truth}</p>
+                <p className="mt-1 flex items-center gap-1 text-xs opacity-80">
+                  {quiz.mine.guessCorrect === null ? (
+                    `In attesa che ${partnerName} confermi`
+                  ) : quiz.mine.guessCorrect ? (
+                    <>
+                      <Check size={13} strokeWidth={2.4} /> Hai indovinato!
+                    </>
+                  ) : (
+                    <>
+                      <X size={13} strokeWidth={2.4} /> Non hai indovinato
+                    </>
+                  )}
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-base px-3 py-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+              <div className="rounded-2xl bg-white/40 px-3 py-2">
+                <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
                   L&apos;ipotesi di {partnerName} su di te
                 </p>
-                <p className="text-sm text-ink">{quiz.partner.guess}</p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">La tua verità</p>
-                <p className="text-sm text-ink">{quiz.mine.truth}</p>
+                <p className="text-sm">{quiz.partner.guess}</p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-wide opacity-70">La tua verità</p>
+                <p className="text-sm">{quiz.mine.truth}</p>
                 {quiz.partner.guessCorrect === null ? (
                   <div className="mt-2 flex gap-2">
                     <button
                       type="button"
                       disabled={confirmingId === quiz.partner.answerId}
                       onClick={() => quiz.partner && handleConfirm(quiz.partner.answerId, true)}
-                      className="flex-1 rounded-[var(--radius-app)] bg-couple px-3 py-2 text-xs font-semibold text-white transition active:scale-[0.98] disabled:opacity-50"
+                      className="flex-1 rounded-[var(--radius-app)] bg-[#3a2100] px-3 py-2 text-xs font-semibold text-white transition active:scale-[0.98] disabled:opacity-50"
                     >
                       Ha indovinato
                     </button>
@@ -168,36 +182,44 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                       type="button"
                       disabled={confirmingId === quiz.partner.answerId}
                       onClick={() => quiz.partner && handleConfirm(quiz.partner.answerId, false)}
-                      className="flex-1 rounded-[var(--radius-app)] bg-surface border border-border px-3 py-2 text-xs font-semibold text-ink transition active:scale-[0.98] disabled:opacity-50"
+                      className="flex-1 rounded-[var(--radius-app)] bg-white/60 px-3 py-2 text-xs font-semibold transition active:scale-[0.98] disabled:opacity-50"
                     >
                       No
                     </button>
                   </div>
                 ) : (
-                  <p className="mt-1 text-xs text-ink-soft">
-                    {quiz.partner.guessCorrect ? "✅ Hai confermato: ha indovinato" : "❌ Hai confermato: non ha indovinato"}
+                  <p className="mt-1 flex items-center gap-1 text-xs opacity-80">
+                    {quiz.partner.guessCorrect ? (
+                      <>
+                        <Check size={13} strokeWidth={2.4} /> Hai confermato: ha indovinato
+                      </>
+                    ) : (
+                      <>
+                        <X size={13} strokeWidth={2.4} /> Hai confermato: non ha indovinato
+                      </>
+                    )}
                   </p>
                 )}
               </div>
             </div>
           ) : quiz.mine !== null ? (
-            <p className="rounded-2xl bg-base px-3 py-3 text-center text-xs text-ink-soft">
+            <p className="rounded-2xl bg-white/40 px-3 py-3 text-center text-xs opacity-80">
               Hai scritto! Appena scrive anche {partnerName} vedrete le ipotesi svelate.
             </p>
           ) : (
             <div className="flex flex-col gap-2">
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">La tua risposta vera</span>
+                <span className="text-xs font-semibold uppercase tracking-wide opacity-70">La tua risposta vera</span>
                 <textarea
                   value={truthDraft}
                   onChange={(e) => setTruthDraft(e.target.value)}
                   placeholder="La verità su di te…"
                   rows={2}
-                  className="w-full resize-none rounded-2xl bg-base px-3 py-2 text-sm text-ink outline-none"
+                  className="w-full resize-none rounded-2xl bg-white/40 px-3 py-2 text-sm text-[#3a2100] placeholder:text-[#3a2100]/50 outline-none"
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                <span className="text-xs font-semibold uppercase tracking-wide opacity-70">
                   La tua ipotesi su {partnerName}
                 </span>
                 <textarea
@@ -205,7 +227,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                   onChange={(e) => setGuessDraft(e.target.value)}
                   placeholder={`Cosa risponderebbe ${partnerName}?`}
                   rows={2}
-                  className="w-full resize-none rounded-2xl bg-base px-3 py-2 text-sm text-ink outline-none"
+                  className="w-full resize-none rounded-2xl bg-white/40 px-3 py-2 text-sm text-[#3a2100] placeholder:text-[#3a2100]/50 outline-none"
                 />
               </label>
               <Button

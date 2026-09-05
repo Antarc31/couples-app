@@ -82,7 +82,11 @@ describe("QuizCard", () => {
     expect(await screen.findByText("1")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText("Sam")).toBeInTheDocument();
-    expect(screen.getByText("🏆")).toBeInTheDocument(); // scores.partner (2) > scores.mine (1)
+    // scores.partner (2) > scores.mine (1): il trofeo compare solo sopra il suo punteggio.
+    const partnerScoreBlock = screen.getByText("Sam").closest("div");
+    const selfScoreBlock = screen.getByText("Tu").closest("div");
+    expect(partnerScoreBlock?.querySelector("svg")).toBeInTheDocument();
+    expect(selfScoreBlock?.querySelector("svg")).not.toBeInTheDocument();
   });
 
   it("non mostra il blocco punteggio se entrambi sono a zero", async () => {
@@ -97,7 +101,7 @@ describe("QuizCard", () => {
     renderCard();
 
     await screen.findByText("Domanda");
-    expect(screen.queryByText("🏆")).not.toBeInTheDocument();
+    expect(screen.queryByText("Tu")).not.toBeInTheDocument();
   });
 
   it("mostra 'in attesa' quando ho scritto ma il partner no", async () => {
@@ -125,7 +129,7 @@ describe("QuizCard", () => {
     });
     renderCard();
 
-    expect(await screen.findByText("✅ Hai indovinato!")).toBeInTheDocument();
+    expect(await screen.findByText("Hai indovinato!")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ha indovinato" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No" })).toBeInTheDocument();
   });
@@ -151,7 +155,7 @@ describe("QuizCard", () => {
     await user.click(await screen.findByRole("button", { name: "Ha indovinato" }));
 
     await waitFor(() => expect(mockConfirmQuizGuess).toHaveBeenCalledWith("a2", true));
-    expect(await screen.findByText("✅ Hai confermato: ha indovinato")).toBeInTheDocument();
+    expect(await screen.findByText("Hai confermato: ha indovinato")).toBeInTheDocument();
   });
 
   it("invia verità e ipotesi e aggiorna lo stato con il risultato del refetch", async () => {

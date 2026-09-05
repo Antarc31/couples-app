@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type ComponentType,
   type FormEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
@@ -18,11 +19,12 @@ import {
 } from "@/lib/messages-actions";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import { MessageCircle, Camera, Clock, Plus } from "@/components/ui/icons";
 
-const TYPE_ICON: Record<Thought["type"], string> = {
-  text: "💌",
-  photo: "📷",
-  reminder: "⏰",
+const TYPE_ICON: Record<Thought["type"], ComponentType<{ size?: number; strokeWidth?: number; className?: string }>> = {
+  text: MessageCircle,
+  photo: Camera,
+  reminder: Clock,
 };
 
 /** Content di default salvato per le foto senza didascalia (vedi sendPhotoThought) — non va mostrato come testo. */
@@ -299,7 +301,7 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
             </div>
           ) : thoughts.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 rounded-[28px] bg-partner-a-soft/30 text-center text-sm text-ink-soft">
-              <span className="text-3xl">💌</span>
+              <MessageCircle size={30} strokeWidth={1.8} />
               Ancora nessun ricordo, manda il primo!
             </div>
           ) : (
@@ -345,12 +347,14 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center text-4xl">📷</div>
+                        <div className="flex h-full w-full items-center justify-center text-white/60">
+                          <Camera size={36} strokeWidth={1.8} />
+                        </div>
                       )}
                       <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-ink/55 to-transparent p-3 pr-14">
-                        <p className="text-xs font-semibold text-white/95">
-                          {TYPE_ICON.photo} {t.senderId === selfId ? "Tu" : t.senderName} ·{" "}
-                          {formatThoughtTimestamp(t.createdAt)}
+                        <p className="flex items-center gap-1 text-xs font-semibold text-white/95">
+                          <Camera size={13} strokeWidth={2.2} />
+                          {t.senderId === selfId ? "Tu" : t.senderName} · {formatThoughtTimestamp(t.createdAt)}
                         </p>
                       </div>
                       {caption && (
@@ -368,9 +372,12 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
                   ) : (
                     <div className="flex h-full flex-col gap-3 p-5">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-xs font-semibold text-ink-soft">
-                          {TYPE_ICON[t.type]} {t.senderId === selfId ? "Tu" : t.senderName} ·{" "}
-                          {formatThoughtTimestamp(t.createdAt)}
+                        <p className="flex items-center gap-1 text-xs font-semibold text-ink-soft">
+                          {(() => {
+                            const TypeIcon = TYPE_ICON[t.type];
+                            return <TypeIcon size={13} strokeWidth={2.2} />;
+                          })()}
+                          {t.senderId === selfId ? "Tu" : t.senderName} · {formatThoughtTimestamp(t.createdAt)}
                         </p>
                         <HeartButton liked={t.likedByMe} popping={poppingId === t.id} onClick={() => toggleLike(t.id)} />
                       </div>
@@ -385,7 +392,7 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
 
         {!loading && !error && thoughts.length > 0 && topIndex === thoughts.length - 1 && (
           <div className="flex items-center justify-between gap-2 rounded-2xl bg-partner-a-soft/30 px-3 py-2">
-            <p className="text-xs text-ink-soft">Hai visto tutti i ricordi 💗</p>
+            <p className="text-xs text-ink-soft">Hai visto tutti i ricordi</p>
             <button
               type="button"
               onClick={() => setShowMenu(true)}
@@ -412,10 +419,11 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
           Home, dato che si muove insieme alla card. */}
       <button
         onClick={() => setShowMenu(true)}
-        className="absolute bottom-3 right-3 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-couple text-3xl leading-none text-white shadow-[var(--shadow-soft)] ring-4 ring-base transition active:scale-95"
+        className="absolute bottom-3 right-3 z-20 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[var(--shadow-soft)] ring-4 ring-base transition active:scale-95"
+        style={{ backgroundImage: "var(--grad-rose)" }}
         aria-label="Aggiungi un pensiero o una foto"
       >
-        +
+        <Plus size={26} strokeWidth={2.4} />
       </button>
       </div>
 
@@ -439,7 +447,7 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
                 }}
                 className="flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-left text-[15px] font-semibold text-ink transition active:scale-[0.98] hover:bg-partner-a-soft/40"
               >
-                <span className="text-xl">💌</span> Manda un pensiero
+                <MessageCircle size={20} strokeWidth={2} className="text-couple" /> Manda un pensiero
               </button>
               <button
                 type="button"
@@ -449,7 +457,7 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
                 }}
                 className="flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-left text-[15px] font-semibold text-ink transition active:scale-[0.98] hover:bg-partner-a-soft/40"
               >
-                <span className="text-xl">📷</span> Manda una foto
+                <Camera size={20} strokeWidth={2} className="text-couple" /> Manda una foto
               </button>
             </div>
           </div>
@@ -484,7 +492,7 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
                   Annulla
                 </Button>
                 <Button type="submit" className="flex-1" disabled={!draft.trim() || sending}>
-                  {sending ? "Invio…" : "Invia 💗"}
+                  {sending ? "Invio…" : "Invia"}
                 </Button>
               </div>
             </form>

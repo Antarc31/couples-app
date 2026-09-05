@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
 import { getTodaysMood, logTodaysMood, type TodaysMood } from "@/lib/mood-actions";
-import { MOOD_EMOJI, MOOD_LABEL, MOOD_VALUES } from "@/lib/mood-display";
+import { MOOD_LABEL, MOOD_VALUES } from "@/lib/mood-display";
 import { toDateKey } from "@/lib/calendar-dates";
 import type { MoodType } from "@/types/database";
 
@@ -36,6 +36,10 @@ function dismissToday(): void {
  * da questo componente), su richiesta esplicita dell'utente. Per questo
  * niente più sottoscrizione realtime qui: non c'è più nulla in Home da
  * aggiornare dal vivo una volta risposto.
+ *
+ * Restyling design brief v2: niente più emoji come bottone (regola "niente
+ * emoji nell'interfaccia") — MOOD_LABEL forniva già un'etichetta breve per
+ * ciascun mood, usata qui come pillola di testo al posto del glifo.
  */
 export default function MoodCheckIn() {
   const [mood, setMood] = useState<TodaysMood | null>(null);
@@ -74,9 +78,9 @@ export default function MoodCheckIn() {
   if (loadError || !mood || mood.myMood !== null || dismissed) return null;
 
   return (
-    <Card className="flex flex-col gap-3">
-      <h2 className="text-sm font-bold text-ink">💛 Come ti senti oggi?</h2>
-      {submitError && <p className="text-xs text-danger">{submitError}</p>}
+    <Card gradient="teal" className="flex flex-col gap-3">
+      <h2 className="text-sm font-bold">Come va oggi?</h2>
+      {submitError && <p className="text-xs text-white">{submitError}</p>}
       <div className="flex flex-wrap justify-center gap-2">
         {MOOD_VALUES.map((value) => (
           <button
@@ -85,13 +89,13 @@ export default function MoodCheckIn() {
             disabled={saving}
             onClick={() => handlePick(value)}
             aria-label={MOOD_LABEL[value]}
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-base text-2xl transition active:scale-90 disabled:opacity-50"
+            className="rounded-full bg-white/20 px-4 py-2 text-sm font-semibold transition active:scale-90 disabled:opacity-50"
           >
-            {MOOD_EMOJI[value]}
+            {MOOD_LABEL[value]}
           </button>
         ))}
       </div>
-      <button type="button" onClick={handleDismiss} className="text-center text-xs text-ink-soft underline">
+      <button type="button" onClick={handleDismiss} className="text-center text-xs text-white/80 underline">
         Più tardi
       </button>
     </Card>

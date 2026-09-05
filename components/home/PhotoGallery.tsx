@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listPhotoMemories, type Thought } from "@/lib/messages-actions";
+import { ImageIcon, X } from "@/components/ui/icons";
 
 const PAGE_SIZE = 24;
 /** Content di default salvato per le foto senza didascalia (vedi sendPhotoThought in lib/messages-actions.ts). */
@@ -108,7 +109,7 @@ export default function PhotoGallery({ selfId }: { selfId: string }) {
         <div className="flex h-40 items-center justify-center text-sm text-ink-soft">Carico le foto…</div>
       ) : photos.length === 0 && !error ? (
         <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-[28px] bg-partner-a-soft/30 text-center text-sm text-ink-soft">
-          <span className="text-3xl">📷</span>
+          <ImageIcon size={30} strokeWidth={1.8} />
           Nessuna foto ancora, mandane una dalla Home!
         </div>
       ) : (
@@ -127,7 +128,9 @@ export default function PhotoGallery({ selfId }: { selfId: string }) {
                   // eslint-disable-next-line @next/next/no-img-element -- signed URL temporanea, non ottimizzabile da next/image
                   <img src={photo.photoUrl} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-2xl">📷</div>
+                  <div className="flex h-full w-full items-center justify-center text-white/60">
+                    <ImageIcon size={20} strokeWidth={1.8} />
+                  </div>
                 )}
               </button>
             ))}
@@ -148,17 +151,19 @@ export default function PhotoGallery({ selfId }: { selfId: string }) {
         >
           <button
             onClick={() => setSelected(null)}
-            className="absolute right-4 top-4 text-2xl text-white"
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center text-white"
             aria-label="Chiudi"
           >
-            ✕
+            <X size={22} strokeWidth={2.2} />
           </button>
           <div className="flex max-h-[85vh] w-full max-w-lg flex-col items-center gap-3 px-4" onClick={(e) => e.stopPropagation()}>
             {selected.photoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- signed URL temporanea, non ottimizzabile da next/image
               <img src={selected.photoUrl} alt="" className="max-h-[70vh] w-full rounded-2xl object-contain" />
             ) : (
-              <div className="flex h-64 w-full items-center justify-center rounded-2xl bg-surface text-4xl">📷</div>
+              <div className="flex h-64 w-full items-center justify-center rounded-2xl bg-surface text-ink-soft">
+                <ImageIcon size={36} strokeWidth={1.8} />
+              </div>
             )}
             <div className="w-full text-center text-white">
               {selected.content !== DEFAULT_PHOTO_CONTENT && (

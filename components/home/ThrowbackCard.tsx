@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
+import { Clock, ImageIcon, MessageCircle, Gift, X } from "@/components/ui/icons";
 import { getThrowbackForToday, type Thought } from "@/lib/messages-actions";
 
 const MAX_THOUGHTS = 3;
@@ -16,6 +17,8 @@ interface ThrowbackCardProps {
  * MemoriesDeck). Nessun output — né skeleton né messaggio d'errore — se non
  * c'è nulla da mostrare quel giorno: è un bonus silenzioso, mai una card
  * vuota che occupa spazio a caso (stesso "opt-out facile" di CountdownHeader).
+ * Card lasciata bianca (nessun gradiente): il contenuto — foto vere — è già
+ * ricco di suo, un fondo colorato pieno competerebbe invece di valorizzarlo.
  */
 export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
   const [thoughts, setThoughts] = useState<Thought[]>([]);
@@ -39,7 +42,10 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
   return (
     <>
       <Card className="flex flex-col gap-3">
-        <h2 className="text-sm font-bold text-ink">📼 Un anno fa oggi</h2>
+        <h2 className="flex items-center gap-1.5 text-sm font-bold text-ink">
+          <Clock size={16} strokeWidth={2.2} />
+          Un anno fa oggi
+        </h2>
         {thoughts.length > 0 && (
           <ul className="flex flex-col gap-2">
             {thoughts.map((thought) => (
@@ -58,12 +64,12 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
                         className="h-12 w-12 shrink-0 rounded-xl object-cover"
                       />
                     ) : (
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface text-lg">
-                        📷
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface text-ink-soft">
+                        <ImageIcon size={18} strokeWidth={2} />
                       </div>
                     )
                   ) : (
-                    <span className="text-xl">💭</span>
+                    <MessageCircle size={20} strokeWidth={2} className="shrink-0 text-ink-soft" />
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm text-ink">{thought.content}</p>
@@ -77,8 +83,12 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
         {giftTitles.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {giftTitles.map((title, i) => (
-              <span key={i} className="rounded-full bg-special-soft px-3 py-1 text-xs font-semibold text-ink">
-                🎁 {title}
+              <span
+                key={i}
+                className="inline-flex items-center gap-1 rounded-full bg-special-soft px-3 py-1 text-xs font-semibold text-ink"
+              >
+                <Gift size={13} strokeWidth={2.2} />
+                {title}
               </span>
             ))}
           </div>
@@ -92,10 +102,10 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
         >
           <button
             onClick={() => setSelected(null)}
-            className="absolute right-4 top-4 text-2xl text-white"
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center text-white"
             aria-label="Chiudi"
           >
-            ✕
+            <X size={22} strokeWidth={2.2} />
           </button>
           <div
             className="flex max-h-[85vh] w-full max-w-lg flex-col items-center gap-3 px-4"
@@ -105,7 +115,9 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
               // eslint-disable-next-line @next/next/no-img-element -- signed URL temporanea, non ottimizzabile da next/image
               <img src={selected.photoUrl} alt="" className="max-h-[70vh] w-full rounded-2xl object-contain" />
             ) : (
-              <div className="flex h-64 w-full items-center justify-center rounded-2xl bg-surface text-4xl">📷</div>
+              <div className="flex h-64 w-full items-center justify-center rounded-2xl bg-surface text-ink-soft">
+                <ImageIcon size={36} strokeWidth={1.8} />
+              </div>
             )}
             <div className="w-full text-center text-white">
               <p className="text-base font-medium">{selected.content}</p>
