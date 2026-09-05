@@ -12,11 +12,11 @@
      via più chiaro). Era scoperto alla sola Home in un primo momento,
      poi esteso a ogni schermata su richiesta esplicita: questi sono ora
      i token di default dell'intera app, non un'eccezione. */
-  --color-base: #7a2c52;
-  --color-surface: #f6d9e5;
+  --color-base: #96395f;
+  --color-surface: #f9e2ec;
   --color-ink: #ffffff;
   --color-ink-soft: #f3c6d9;
-  --color-border: #d493ac;
+  --color-border: #ddabbe;
   /* Sempre scuro, a prescindere dal tema: usato SOLO come velo/sfondo per
      overlay e sfondi foto (bg-scrim/NN, from-scrim/NN), mai come colore di
      testo — a differenza di --color-ink, che qui è bianco. Tenerli
@@ -36,7 +36,7 @@
      diversa per widget: più scura di couple-soft (usato per badge/
      evidenze chiare), più chiara dello sfondo di pagina. Testo bianco
      sopra. */
-  --color-couple-tint: #a8466e;
+  --color-couple-tint: #b04f78;
   --color-special: #e8b86d; /* oro — date speciali */
   --color-special-soft: #fbecd6;
   --color-cycle: #c9b6e4; /* lavanda — ciclo (privacy) */
@@ -68,7 +68,7 @@
 .on-surface {
   --color-ink: #3a2c30;
   --color-ink-soft: #7a6b6f;
-  --color-base: #efc0d4;
+  --color-base: #f3ccdc;
 }
 
 @theme inline {
