@@ -23,6 +23,9 @@ interface QuizCardProps {
   partnerColor: string;
 }
 
+/** Colore scuro di testo per i pannelli traslucidi (bg-white/40) sopra la card viola — il testo bianco ereditato dalla card non basta lì, serve un colore proprio. */
+const PANEL_TEXT = "text-[#5b2172]";
+
 /** Quiz giornaliero "indovina il partner" (Fase B, redesign). Self-fetch client-side + realtime su quiz_answers per rivelazione/conferma senza refresh. */
 export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, partnerColor }: QuizCardProps) {
   const [quiz, setQuiz] = useState<TodaysQuiz | null>(null);
@@ -96,14 +99,14 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
   }
 
   return (
-    <Card gradient="amber" className="flex flex-col gap-3">
+    <Card gradient="violet" className="flex flex-col gap-3">
       <h2 className="flex items-center gap-1.5 text-sm font-bold">
         <Brain size={16} strokeWidth={2.2} />
         Indovina il partner
       </h2>
 
       {scores && (scores.mine > 0 || scores.partner > 0) && (
-        <div className="flex items-center justify-center gap-5 rounded-2xl bg-white/40 px-4 py-3">
+        <div className={`flex items-center justify-center gap-5 rounded-2xl bg-white/40 px-4 py-3 ${PANEL_TEXT}`}>
           <div className="flex flex-col items-center gap-0.5">
             <span className="flex h-5 items-center justify-center">
               {scores.mine > scores.partner && <Trophy size={15} strokeWidth={2.2} />}
@@ -127,17 +130,17 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
       )}
 
       {loadError ? (
-        <p className="text-xs text-danger">{loadError}</p>
+        <p className="rounded-xl bg-white/90 px-3 py-2 text-xs font-semibold text-danger">{loadError}</p>
       ) : !quiz ? (
-        <p className="text-xs opacity-70">Caricamento…</p>
+        <p className="text-xs text-white/80">Caricamento…</p>
       ) : (
         <>
           <p className="text-sm">{quiz.prompt}</p>
-          {submitError && <p className="text-xs text-danger">{submitError}</p>}
+          {submitError && <p className="rounded-xl bg-white/90 px-3 py-2 text-xs font-semibold text-danger">{submitError}</p>}
 
           {quiz.revealed && quiz.mine && quiz.partner ? (
             <div className="flex flex-col gap-3">
-              <div className="rounded-2xl bg-white/40 px-3 py-2">
+              <div className={`rounded-2xl bg-white/40 px-3 py-2 ${PANEL_TEXT}`}>
                 <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
                   La tua ipotesi su {partnerName}
                 </p>
@@ -161,7 +164,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-white/40 px-3 py-2">
+              <div className={`rounded-2xl bg-white/40 px-3 py-2 ${PANEL_TEXT}`}>
                 <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
                   L&apos;ipotesi di {partnerName} su di te
                 </p>
@@ -174,7 +177,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                       type="button"
                       disabled={confirmingId === quiz.partner.answerId}
                       onClick={() => quiz.partner && handleConfirm(quiz.partner.answerId, true)}
-                      className="flex-1 rounded-[var(--radius-app)] bg-[#3a2100] px-3 py-2 text-xs font-semibold text-white transition active:scale-[0.98] disabled:opacity-50"
+                      className="flex-1 rounded-[var(--radius-app)] bg-[#5b2172] px-3 py-2 text-xs font-semibold text-white transition active:scale-[0.98] disabled:opacity-50"
                     >
                       Ha indovinato
                     </button>
@@ -182,7 +185,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                       type="button"
                       disabled={confirmingId === quiz.partner.answerId}
                       onClick={() => quiz.partner && handleConfirm(quiz.partner.answerId, false)}
-                      className="flex-1 rounded-[var(--radius-app)] bg-white/60 px-3 py-2 text-xs font-semibold transition active:scale-[0.98] disabled:opacity-50"
+                      className={`flex-1 rounded-[var(--radius-app)] bg-white px-3 py-2 text-xs font-semibold transition active:scale-[0.98] disabled:opacity-50 ${PANEL_TEXT}`}
                     >
                       No
                     </button>
@@ -203,23 +206,25 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
               </div>
             </div>
           ) : quiz.mine !== null ? (
-            <p className="rounded-2xl bg-white/40 px-3 py-3 text-center text-xs opacity-80">
+            <p className={`rounded-2xl bg-white/40 px-3 py-3 text-center text-xs opacity-90 ${PANEL_TEXT}`}>
               Hai scritto! Appena scrive anche {partnerName} vedrete le ipotesi svelate.
             </p>
           ) : (
             <div className="flex flex-col gap-2">
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-semibold uppercase tracking-wide opacity-70">La tua risposta vera</span>
+                <span className="text-xs font-semibold uppercase tracking-wide text-white/80">
+                  La tua risposta vera
+                </span>
                 <textarea
                   value={truthDraft}
                   onChange={(e) => setTruthDraft(e.target.value)}
                   placeholder="La verità su di te…"
                   rows={2}
-                  className="w-full resize-none rounded-2xl bg-white/40 px-3 py-2 text-sm text-[#3a2100] placeholder:text-[#3a2100]/50 outline-none"
+                  className={`w-full resize-none rounded-2xl bg-white/40 px-3 py-2 text-sm placeholder:opacity-50 outline-none ${PANEL_TEXT}`}
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-semibold uppercase tracking-wide opacity-70">
+                <span className="text-xs font-semibold uppercase tracking-wide text-white/80">
                   La tua ipotesi su {partnerName}
                 </span>
                 <textarea
@@ -227,7 +232,7 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
                   onChange={(e) => setGuessDraft(e.target.value)}
                   placeholder={`Cosa risponderebbe ${partnerName}?`}
                   rows={2}
-                  className="w-full resize-none rounded-2xl bg-white/40 px-3 py-2 text-sm text-[#3a2100] placeholder:text-[#3a2100]/50 outline-none"
+                  className={`w-full resize-none rounded-2xl bg-white/40 px-3 py-2 text-sm placeholder:opacity-50 outline-none ${PANEL_TEXT}`}
                 />
               </label>
               <Button

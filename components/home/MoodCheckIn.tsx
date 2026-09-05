@@ -78,7 +78,7 @@ export default function MoodCheckIn() {
   if (loadError || !mood || mood.myMood !== null || dismissed) return null;
 
   return (
-    <Card gradient="teal" className="flex flex-col gap-3">
+    <Card gradient="blush" className="flex flex-col gap-3">
       <h2 className="text-sm font-bold">Come va oggi?</h2>
       {submitError && <p className="text-xs text-white">{submitError}</p>}
       <div className="flex flex-wrap justify-center gap-2">

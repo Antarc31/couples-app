@@ -289,12 +289,12 @@ describe("MemoriesDeck", () => {
     expect(await screen.findByText(/Ancora nessun ricordo/)).toBeInTheDocument();
   });
 
-  it("mostra un link 'Vedi tutte le foto' verso /home/foto", async () => {
+  it("mostra un link 'Tutte le foto' verso /home/foto", async () => {
     mockListRecentThoughts.mockResolvedValue([textThought]);
     render(<MemoriesDeck partnerName="Sam" selfId="me" />);
     await screen.findByText("Ciao amore");
 
-    const link = screen.getByRole("link", { name: "Vedi tutte le foto" });
+    const link = screen.getByRole("link", { name: "Tutte le foto" });
     expect(link).toHaveAttribute("href", "/home/foto");
   });
 

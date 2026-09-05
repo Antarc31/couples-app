@@ -10,7 +10,7 @@ interface UpcomingEventsCardProps {
 
 export default function UpcomingEventsCard({ events, colorCtx }: UpcomingEventsCardProps) {
   return (
-    <Card gradient="indigo" className="flex flex-col gap-3">
+    <Card gradient="crimson" className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold">Prossimi impegni</h2>
         <Link href="/calendario" className="text-xs font-semibold text-white/85 underline underline-offset-2">

@@ -5,22 +5,27 @@ interface CountdownHeaderProps {
 }
 
 /**
- * Pillola di countdown per la prossima data speciale (compleanno/
- * anniversario/mesiversario). Restyling design brief v2: sfondo pieno
- * viola (stesso token di MilestoneBadge, sono la stessa famiglia di
- * contenuto — "countdown a qualcosa che conta") invece del pallido oro di
- * prima, icona Lucide invece dell'emoji 🎉. Nessun output se non c'è una
- * prossima data speciale.
+ * Banner per la prossima data speciale (compleanno/anniversario/
+ * mesiversario). Non più una pillola stretta di testo — un badge
+ * circolare per l'icona più spazio intorno, stesso trattamento di
+ * MilestoneBadge (stesso token colore: sono la stessa famiglia di
+ * contenuto, "countdown a qualcosa che conta"). Nessun output se non c'è
+ * una prossima data speciale.
  */
 export default function CountdownHeader({ nextSpecial }: CountdownHeaderProps) {
   if (!nextSpecial) return null;
   return (
-    <p
-      className="inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-white"
-      style={{ backgroundImage: "var(--grad-violet)" }}
+    <div
+      className="flex items-center gap-3 rounded-[var(--radius-app)] px-4 py-3 text-white"
+      style={{ backgroundImage: "var(--grad-plum)" }}
     >
-      <PartyPopper size={13} strokeWidth={2.4} />
-      {nextSpecial.daysUntil === 0 ? "Oggi" : `Tra ${nextSpecial.daysUntil} giorni`} · {nextSpecial.label}
-    </p>
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/25">
+        <PartyPopper size={17} strokeWidth={2.2} />
+      </div>
+      <p className="text-sm font-bold">
+        {nextSpecial.daysUntil === 0 ? "Oggi" : `Tra ${nextSpecial.daysUntil} giorni`}{" "}
+        <span className="font-semibold text-white/85">· {nextSpecial.label}</span>
+      </p>
+    </div>
   );
 }
