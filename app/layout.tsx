@@ -1,12 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { Nunito } from "next/font/google";
+import { Instrument_Serif, Caveat, Space_Grotesk } from "next/font/google";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
-const nunito = Nunito({
-  variable: "--font-nunito",
+/**
+ * Tre font, tre ruoli precisi (redesign "Diario di coppia"): Space
+ * Grotesk sostituisce Nunito come font di base dell'app (corpo testo,
+ * bottoni, tab bar, input); Instrument Serif italic è riservato al
+ * numero enorme del countdown in Home; Caveat (a mano) copre titoli di
+ * sezione e sticker. Mai mescolati con font generici altrove.
+ */
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: "400",
+  style: ["italic"],
+});
+
+const caveat = Caveat({
+  variable: "--font-caveat",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+});
+
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -27,12 +47,15 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#FFF8F6",
+  themeColor: "#F8ECF1",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="it" className={`${nunito.variable} h-full antialiased`}>
+    <html
+      lang="it"
+      className={`${instrumentSerif.variable} ${caveat.variable} ${spaceGrotesk.variable} h-full antialiased`}
+    >
       <body className="min-h-full flex flex-col bg-base text-ink font-sans">
         <ServiceWorkerRegister />
         {children}

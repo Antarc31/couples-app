@@ -209,7 +209,7 @@ export default function AppTopBar({ userId }: { userId: string }) {
           onClick={() => setPanelOpen(false)}
         >
           <div
-            className="flex max-h-[75vh] w-full flex-col overflow-hidden rounded-t-[28px] bg-surface on-surface shadow-[var(--shadow-soft)] sm:mt-12 sm:max-h-[70vh] sm:w-80 sm:rounded-2xl"
+            className="flex max-h-[75vh] w-full flex-col overflow-hidden rounded-t-[28px] bg-surface shadow-[var(--shadow-soft)] sm:mt-12 sm:max-h-[70vh] sm:w-80 sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-border sm:hidden" />

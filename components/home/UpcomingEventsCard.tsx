@@ -12,7 +12,7 @@ interface UpcomingEventsCardProps {
 
 export default function UpcomingEventsCard({ events, colorCtx }: UpcomingEventsCardProps) {
   return (
-    <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-tint)" }}>
+    <Card className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <IconBadge icon={CalendarDays} size={32} variant="onTint" />
@@ -28,7 +28,7 @@ export default function UpcomingEventsCard({ events, colorCtx }: UpcomingEventsC
       ) : (
         <ul className="flex flex-col gap-2">
           {events.map((ev) => (
-            <li key={ev.id} className="flex items-center gap-3 rounded-2xl bg-surface on-surface px-3 py-2">
+            <li key={ev.id} className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-2">
               <span
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: eventColor(ev, colorCtx) }}

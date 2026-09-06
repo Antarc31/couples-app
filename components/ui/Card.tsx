@@ -3,21 +3,17 @@ import type { HTMLAttributes } from "react";
 type CardProps = HTMLAttributes<HTMLDivElement>;
 
 /**
- * `bg-surface` (il token) è ora chiaro ovunque nell'app (tema scuro
- * globale, vedi app/globals.css) — una card senza sfondo personalizzato
- * finisce quindi "chiara sopra scuro" e le serve testo scuro sopra
- * (`.on-surface`, che reimposta text-ink/text-ink-soft). Chi invece passa
- * un proprio `style.backgroundColor` (i widget di Home con la loro tinta
- * couple-tint) sa già di che colore ha bisogno il testo e non riceve
- * questa classe — evita di dover pensare a "on-surface" ovunque nel resto
- * del codebase: la scelta corretta è quella di default.
+ * "Paper card" del redesign "Diario di coppia": sfondo carta (bg-surface),
+ * bordo TRATTEGGIATO (non solido) — il contenitore base per quasi ogni
+ * blocco dell'app. Niente più tinte personalizzate per widget (il tema
+ * scuro dei giri precedenti le usava per differenziare le card di Home):
+ * qui la personalità arriva da sticker/polaroid/tratteggi, ogni card resta
+ * la stessa carta chiara.
  */
-export default function Card({ className = "", style, ...props }: CardProps) {
-  const hasCustomBackground = Boolean(style?.backgroundColor);
+export default function Card({ className = "", ...props }: CardProps) {
   return (
     <div
-      className={`rounded-[var(--radius-app)] bg-surface p-4 shadow-[var(--shadow-soft)] ${hasCustomBackground ? "" : "on-surface"} ${className}`}
-      style={style}
+      className={`rounded-[var(--radius-app)] border border-dashed border-[color:var(--color-border)] bg-surface p-4 shadow-[var(--shadow-card)] ${className}`}
       {...props}
     />
   );

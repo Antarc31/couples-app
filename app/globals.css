@@ -7,36 +7,40 @@
  * non vincolati al genere: nel codice si parla sempre di "partner A/B".
  */
 :root {
-  /* Tema scuro rosa di tutta l'app (riferimento fornito dall'utente:
-     sfondo scuro, tutto quello che sta sopra — card, righe interne — via
-     via più chiaro). Era scoperto alla sola Home in un primo momento,
-     poi esteso a ogni schermata su richiesta esplicita: questi sono ora
-     i token di default dell'intera app, non un'eccezione. */
-  --color-base: #96395f;
-  --color-surface: #f9e2ec;
-  --color-ink: #ffffff;
-  --color-ink-soft: #f3c6d9;
-  --color-border: #ddabbe;
+  /* "Diario di coppia" — scrapbook monocromatico porpora (carta, polaroid,
+     nastro washi, adesivi, scritte a mano). Sostituisce il tema scuro dei
+     giri precedenti: si torna a "carta chiara, testo scuro" di default,
+     la personalità arriva dai pattern decorativi (sticker, tratteggi,
+     rotazioni), non da un fondo tinto. */
+  --color-base: #edd3df; /* fallback solido sotto al gradiente pagina, vedi .bg-diary */
+  --color-surface: #fbf6f9; /* "paper" */
+  --color-ink: #3a1029;
+  --color-ink-soft: #82566d; /* "text2" */
+  --color-ink-soft-dark: #66435a; /* "text2Dark" — etichette uppercase, sotto-caption sticker */
+  --color-border: rgba(58, 16, 41, 0.28); /* bordo tratteggiato delle card */
   /* Sempre scuro, a prescindere dal tema: usato SOLO come velo/sfondo per
      overlay e sfondi foto (bg-scrim/NN, from-scrim/NN), mai come colore di
-     testo — a differenza di --color-ink, che qui è bianco. Tenerli
-     separati evita che un overlay "sempre scuro" diventi bianco per
-     errore. */
+     testo. */
   --color-scrim: #3a2c30;
 
-  /* palette funzionale (vedi PLAN.md) — badge/pillole/evidenze pallide,
-     pensate per restare chiare e leggibili sopra lo sfondo scuro. */
+  /* gradiente di sfondo pagina, vedi .bg-diary */
+  --color-bg-gradient-start: #f8ecf1;
+  --color-bg-gradient-end: #edd3df;
+  --color-dot-texture: rgba(58, 16, 41, 0.05);
+  --shadow-card: 0 8px 24px -8px rgba(58, 16, 41, 0.1);
+  --shadow-strong: 0 10px 20px -6px rgba(58, 16, 41, 0.22);
+  --shadow-accent: 0 10px 22px -6px rgba(156, 46, 102, 0.35);
+
+  /* palette funzionale (vedi PLAN.md) — badge/pillole/evidenze pallide */
   --color-partner-a: #f7a6c4; /* rosa tenue — default */
   --color-partner-a-soft: #fde3ee;
   --color-partner-b: #a6c8f0; /* azzurro tenue — default */
   --color-partner-b-soft: #e5eefb;
-  --color-couple: #e8677d; /* corallo — eventi di coppia */
-  --color-couple-soft: #fbdde3;
-  /* Sfondo delle card widget di Home — un'unica tinta per tutte, mai una
-     diversa per widget: più scura di couple-soft (usato per badge/
-     evidenze chiare), più chiara dello sfondo di pagina. Testo bianco
-     sopra. */
-  --color-couple-tint: #b04f78;
+  /* "accent" del brief: brand dell'app (bottoni/FAB/link) — è anche,
+     concettualmente, "il colore di coppia" già usato per gli eventi
+     categoria 'coppia': stesso token di sempre, colore aggiornato. */
+  --color-couple: #9c2e66;
+  --color-couple-soft: #d89db8; /* "accentSoft" */
   --color-special: #e8b86d; /* oro — date speciali */
   --color-special-soft: #fbecd6;
   --color-cycle: #c9b6e4; /* lavanda — ciclo (privacy) */
@@ -49,33 +53,12 @@
   --shadow-soft: 0 8px 24px -8px rgb(58 44 48 / 0.12);
 }
 
-/*
- * `--color-surface` è chiaro (vedi sopra): ogni contenitore bg-surface con
- * testo dentro (righe di lista, textarea, box, card senza tinta propria —
- * vedi components/ui/Card.tsx) ha bisogno di testo scuro sopra, non
- * bianco. Questa classe reimposta localmente text-ink/text-ink-soft su
- * scuro per quel sottoalbero; il resto della pagina (sfondo, badge,
- * bottoni pieni) resta bianco su scuro come da tema.
- *
- * Ridefinisce anche --color-base: da tempo immemore dell'app viene usato
- * per inset "leggermente incassati" DENTRO una card (es. il riquadro
- * orario/categoria di EventDetailSheet) — prima una tinta chiara appena
- * diversa dal bianco della card, ora invece lo sfondo scuro di pagina.
- * Dentro un pannello già chiaro (.on-surface) quell'inset deve restare
- * chiaro, solo un filo più intenso della superficie che lo ospita, non
- * un buco scuro con testo scuro sopra invisibile.
- */
-.on-surface {
-  --color-ink: #3a2c30;
-  --color-ink-soft: #7a6b6f;
-  --color-base: #f3ccdc;
-}
-
 @theme inline {
   --color-base: var(--color-base);
   --color-surface: var(--color-surface);
   --color-ink: var(--color-ink);
   --color-ink-soft: var(--color-ink-soft);
+  --color-ink-soft-dark: var(--color-ink-soft-dark);
   --color-border: var(--color-border);
   --color-scrim: var(--color-scrim);
 
@@ -96,12 +79,32 @@
   --radius-app: var(--radius-app);
   --shadow-soft: var(--shadow-soft);
 
-  --font-sans: var(--font-nunito);
+  /* Spazio Grotesk è il font di base dell'app (corpo testo, bottoni, tab
+     bar, input) — Instrument Serif italic (font-hero) e Caveat (font-hand)
+     restano riservati ai ruoli descritti nel brief, mai mescolati altrove. */
+  --font-sans: var(--font-space-grotesk);
+  --font-hero: var(--font-instrument-serif);
+  --font-hand: var(--font-caveat);
 }
 
 body {
   background: var(--color-base);
   color: var(--color-ink);
+}
+
+/*
+ * Sfondo "carta" di ogni pagina: gradiente diagonale tenue più una
+ * texture a puntini (radial-gradient ripetuto a griglia) — sostituisce
+ * bg-base semplice sui wrapper di pagina.
+ */
+.bg-diary {
+  background-color: var(--color-base);
+  background-image:
+    radial-gradient(circle, var(--color-dot-texture) 1px, transparent 1.5px),
+    linear-gradient(165deg, var(--color-bg-gradient-start), var(--color-bg-gradient-end));
+  background-size:
+    16px 16px,
+    100% 100%;
 }
 
 /* utility: nasconde la scrollbar per gli strip orizzontali (foto, impegni) */

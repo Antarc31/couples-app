@@ -189,7 +189,7 @@ export default function CalendarView({
             key={v}
             onClick={() => setView(v)}
             className={`flex-1 rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
-              view === v ? "bg-surface on-surface text-ink shadow-sm" : "text-ink-soft"
+              view === v ? "bg-surface text-ink shadow-sm" : "text-ink-soft"
             }`}
           >
             {VIEW_LABELS[v]}
@@ -212,7 +212,7 @@ export default function CalendarView({
           <div className="flex items-center justify-between">
             <button
               onClick={() => setMonthAnchor((m) => addMonths(m, -1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface on-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Mese precedente"
             >
               ‹
@@ -220,7 +220,7 @@ export default function CalendarView({
             <p className="text-sm font-bold capitalize text-ink">{formatMonthLabel(monthAnchor)}</p>
             <button
               onClick={() => setMonthAnchor((m) => addMonths(m, 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface on-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Mese successivo"
             >
               ›
@@ -246,7 +246,7 @@ export default function CalendarView({
                   onClick={() => setAgendaDate(day)}
                   className={`flex aspect-square flex-col items-center justify-start gap-1 rounded-2xl pt-1.5 text-xs transition ${
                     inMonth ? "text-ink" : "text-ink-soft/40"
-                  } ${isToday ? "on-surface bg-couple-soft font-bold" : "hover:bg-partner-a-soft/30"}`}
+                  } ${isToday ? "bg-couple-soft font-bold" : "hover:bg-partner-a-soft/30"}`}
                 >
                   <span>{day.getDate()}</span>
                   {/* Piano UX punto 2: barre (chi ha impegni, non solo "quanti") invece
@@ -275,7 +275,7 @@ export default function CalendarView({
           <div className="flex items-center justify-between">
             <button
               onClick={() => setSelectedDate((d) => addDays(d, -7))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface on-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Settimana precedente"
             >
               ‹
@@ -285,7 +285,7 @@ export default function CalendarView({
             </p>
             <button
               onClick={() => setSelectedDate((d) => addDays(d, 7))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface on-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Settimana successiva"
             >
               ›
@@ -306,7 +306,7 @@ export default function CalendarView({
           <div className="flex items-center justify-between">
             <button
               onClick={() => setSelectedDate((d) => addDays(d, -1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface on-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Giorno precedente"
             >
               ‹
@@ -314,7 +314,7 @@ export default function CalendarView({
             <p className="text-sm font-bold capitalize text-ink">{formatDayLabel(selectedDate)}</p>
             <button
               onClick={() => setSelectedDate((d) => addDays(d, 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface on-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Giorno successivo"
             >
               ›
@@ -337,7 +337,7 @@ export default function CalendarView({
           rispetto a "nuovo evento". */}
       <button
         onClick={() => setShowFreeSlots(true)}
-        className="fixed bottom-20 left-5 z-20 flex items-center gap-2 rounded-full bg-couple-soft on-surface px-4 py-2.5 text-sm font-semibold text-couple shadow-[var(--shadow-soft)] transition active:scale-95"
+        className="fixed bottom-20 left-5 z-20 flex items-center gap-2 rounded-full bg-couple-soft px-4 py-2.5 text-sm font-semibold text-couple shadow-[var(--shadow-soft)] transition active:scale-95"
       >
         <Search size={16} strokeWidth={2.2} />
         Trova buchi liberi
@@ -374,7 +374,7 @@ export default function CalendarView({
           onClick={() => setShowFreeSlots(false)}
         >
           <div
-            className="max-h-[80vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-surface on-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
+            className="max-h-[80vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-surface p-5 shadow-[var(--shadow-soft)] sm:rounded-[28px]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-border sm:hidden" />

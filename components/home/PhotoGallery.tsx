@@ -161,7 +161,7 @@ export default function PhotoGallery({ selfId }: { selfId: string }) {
               // eslint-disable-next-line @next/next/no-img-element -- signed URL temporanea, non ottimizzabile da next/image
               <img src={selected.photoUrl} alt="" className="max-h-[70vh] w-full rounded-2xl object-contain" />
             ) : (
-              <div className="flex h-64 w-full items-center justify-center rounded-2xl bg-surface on-surface text-ink-soft">
+              <div className="flex h-64 w-full items-center justify-center rounded-2xl bg-surface text-ink-soft">
                 <ImageIcon size={36} strokeWidth={1.8} />
               </div>
             )}

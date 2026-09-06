@@ -180,7 +180,7 @@ export default function DayTimeline({ day, events, colorCtx, onEventClick }: Day
               tabIndex={0}
               onClick={() => handleActivate(ev)}
               onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleActivate(ev)}
-              className="flex cursor-pointer items-center gap-2 rounded-xl bg-surface on-surface px-3 py-2 text-sm transition active:scale-[0.98]"
+              className="flex cursor-pointer items-center gap-2 rounded-xl bg-surface px-3 py-2 text-sm transition active:scale-[0.98]"
             >
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: eventColor(ev, colorCtx) }} />
               <span className="font-semibold text-ink">{ev.title}</span>

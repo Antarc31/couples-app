@@ -47,7 +47,7 @@ export default function LeaveCoupleButton() {
               type="button"
               onClick={() => setConfirming(false)}
               disabled={leaving}
-              className="flex-1 rounded-[var(--radius-app)] bg-surface on-surface px-5 py-3 text-[15px] font-semibold text-ink border border-border transition active:scale-[0.98] disabled:opacity-50"
+              className="flex-1 rounded-[var(--radius-app)] bg-surface px-5 py-3 text-[15px] font-semibold text-ink border border-border transition active:scale-[0.98] disabled:opacity-50"
             >
               Annulla
             </button>

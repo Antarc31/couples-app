@@ -26,7 +26,7 @@ const PRIORITY_LABELS: Record<WishlistFeedItem["priority"], string> = {
 
 const PRIORITY_STYLES: Record<WishlistFeedItem["priority"], string> = {
   bassa: "bg-base text-ink-soft",
-  media: "bg-partner-b-soft on-surface text-ink",
+  media: "bg-partner-b-soft text-ink",
   alta: "bg-couple-soft text-couple",
 };
 
@@ -161,7 +161,7 @@ export default function WishlistView({ selfId, partnerName }: WishlistViewProps)
               key={f}
               onClick={() => setFilter(f)}
               className={`flex-1 rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
-                filter === f ? "bg-surface on-surface text-ink shadow-sm" : "text-ink-soft"
+                filter === f ? "bg-surface text-ink shadow-sm" : "text-ink-soft"
               }`}
             >
               {f === "self" ? "Per me" : f === "partner" ? `Per ${partnerName}` : "Per entrambi"}
@@ -201,14 +201,14 @@ export default function WishlistView({ selfId, partnerName }: WishlistViewProps)
                       {formatPrice(item.price) ? ` · ${formatPrice(item.price)}` : ""}
                     </p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-partner-a-soft on-surface px-2 py-0.5 text-[11px] font-semibold text-ink-soft">
+                      <span className="rounded-full bg-partner-a-soft px-2 py-0.5 text-[11px] font-semibold text-ink-soft">
                         {targetLabel(item, selfId, partnerName)}
                       </span>
                       <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${PRIORITY_STYLES[item.priority]}`}>
                         {PRIORITY_LABELS[item.priority]}
                       </span>
                       {item.isSurprise && item.createdBy === selfId && (
-                        <span className="rounded-full bg-cycle-soft on-surface px-2 py-0.5 text-[11px] font-semibold text-ink-soft">
+                        <span className="rounded-full bg-cycle-soft px-2 py-0.5 text-[11px] font-semibold text-ink-soft">
                           🎁 sorpresa
                         </span>
                       )}

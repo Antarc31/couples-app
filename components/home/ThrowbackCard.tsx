@@ -42,7 +42,7 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
 
   return (
     <>
-      <Card className="flex flex-col gap-3" style={{ backgroundColor: "var(--color-couple-tint)" }}>
+      <Card className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <IconBadge icon={Clock} size={32} variant="onTint" />
           <h2 className="text-sm font-bold text-ink">Un anno fa oggi</h2>
@@ -54,7 +54,7 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
                 <button
                   type="button"
                   onClick={() => thought.type === "photo" && setSelected(thought)}
-                  className="flex w-full items-center gap-3 rounded-2xl bg-surface on-surface px-3 py-2 text-left"
+                  className="flex w-full items-center gap-3 rounded-2xl bg-surface px-3 py-2 text-left"
                 >
                   {thought.type === "photo" ? (
                     thought.photoUrl ? (
@@ -86,7 +86,7 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
             {giftTitles.map((title, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-1 rounded-full bg-special-soft on-surface px-3 py-1 text-xs font-semibold text-ink"
+                className="inline-flex items-center gap-1 rounded-full bg-special-soft px-3 py-1 text-xs font-semibold text-ink"
               >
                 <Gift size={13} strokeWidth={2.2} />
                 {title}
@@ -116,7 +116,7 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
               // eslint-disable-next-line @next/next/no-img-element -- signed URL temporanea, non ottimizzabile da next/image
               <img src={selected.photoUrl} alt="" className="max-h-[70vh] w-full rounded-2xl object-contain" />
             ) : (
-              <div className="flex h-64 w-full items-center justify-center rounded-2xl bg-surface on-surface text-ink-soft">
+              <div className="flex h-64 w-full items-center justify-center rounded-2xl bg-surface text-ink-soft">
                 <ImageIcon size={36} strokeWidth={1.8} />
               </div>
             )}

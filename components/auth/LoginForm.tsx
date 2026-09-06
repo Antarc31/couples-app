@@ -122,7 +122,7 @@ export default function LoginForm({ initialError = null }: LoginFormProps) {
               setNotice(null);
             }}
             className={`flex-1 rounded-xl py-2 text-sm font-semibold transition ${
-              mode === m ? "bg-surface on-surface text-ink shadow-sm" : "text-ink-soft"
+              mode === m ? "bg-surface text-ink shadow-sm" : "text-ink-soft"
             }`}
           >
             {m === "login" ? "Accedi" : "Registrati"}
