@@ -391,7 +391,7 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
         </div>
 
         {!loading && !error && thoughts.length > 0 && topIndex === thoughts.length - 1 && (
-          <div className="flex items-center justify-between gap-2 rounded-2xl border border-dashed border-[color:var(--color-border)] bg-surface px-3 py-2">
+          <div className="flex items-center justify-between gap-2 rounded-2xl border border-dashed border-[color:var(--color-border)] bg-surface py-2 pl-3 pr-20">
             <p className="text-xs text-ink-soft">Hai visto tutti i ricordi</p>
             <button
               type="button"
