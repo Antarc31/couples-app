@@ -398,7 +398,7 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
               onClick={() => setShowMenu(true)}
               className="shrink-0 rounded-full bg-couple px-3 py-1.5 text-xs font-semibold text-white transition active:scale-95"
             >
-              Mandane uno nuovo
+              Mandane uno
             </button>
           </div>
         )}

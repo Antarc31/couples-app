@@ -321,14 +321,14 @@ describe("MemoriesDeck", () => {
     await waitFor(() => expect(screen.getByText("2/2")).toBeInTheDocument());
   });
 
-  it("sull'ultimo ricordo mostra l'invito 'Mandane uno nuovo', che apre lo stesso menu del '+'", async () => {
+  it("sull'ultimo ricordo mostra l'invito 'Mandane uno', che apre lo stesso menu del '+'", async () => {
     const user = userEvent.setup();
     mockListRecentThoughts.mockResolvedValue([textThought]);
     render(<MemoriesDeck partnerName="Sam" selfId="me" />);
     await screen.findByText("Ciao amore");
 
     expect(screen.getByText(/Hai visto tutti i ricordi/)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Mandane uno nuovo" }));
+    await user.click(screen.getByRole("button", { name: "Mandane uno" }));
 
     expect(screen.getByRole("button", { name: /Manda un pensiero/ })).toBeInTheDocument();
   });

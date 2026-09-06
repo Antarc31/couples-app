@@ -23,7 +23,10 @@ const MAX_ALL_DAY_CHIPS = 2;
 // segnalato dall'utente: prima partiva alle 6) ma scrolla internamente
 // invece di rimpicciolirsi per stare tutta a schermo.
 const GRID_MAX_HEIGHT = "55vh";
-const GRID_TEMPLATE_COLUMNS = "grid-cols-[28px_repeat(7,minmax(0,1fr))]";
+// Spaziatore di 28px anche a destra (oltre a quello a sinistra per le
+// etichette ora): senza, le 7 colonne giorno risultano spinte verso destra
+// invece di stare centrate rispetto all'asse verticale della pagina.
+const GRID_TEMPLATE_COLUMNS = "grid-cols-[28px_repeat(7,minmax(0,1fr))_28px]";
 
 interface WeekTimelineProps {
   /** 7 giorni consecutivi lun -> dom (lib/calendar-dates.ts: weekDays()). */
@@ -109,6 +112,7 @@ export default function WeekTimeline({ days, events, colorCtx, onEventClick, onD
             </div>
           );
         })}
+        <div />
       </div>
 
       <div
@@ -171,6 +175,7 @@ export default function WeekTimeline({ days, events, colorCtx, onEventClick, onD
               </div>
             );
           })}
+          <div />
         </div>
       </div>
     </div>
