@@ -22,12 +22,23 @@ interface QuizCardProps {
   /** Stesso colore usato nel Calendario per distinguere i due partner (profiles.color) — riusato qui per il punteggio invece del corallo generico "di coppia". */
   selfColor: string;
   partnerColor: string;
+  /** Precaricati da app/(app)/home/page.tsx lato server — se assenti (fallback), il componente si arrangia col proprio fetch client-side come prima. */
+  initialQuiz?: TodaysQuiz;
+  initialScores?: QuizScores;
 }
 
 /** Quiz giornaliero "indovina il partner" (Fase B, redesign). Self-fetch client-side + realtime su quiz_answers per rivelazione/conferma senza refresh. */
-export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, partnerColor }: QuizCardProps) {
-  const [quiz, setQuiz] = useState<TodaysQuiz | null>(null);
-  const [scores, setScores] = useState<QuizScores | null>(null);
+export default function QuizCard({
+  partnerName,
+  partnerId,
+  coupleId,
+  selfColor,
+  partnerColor,
+  initialQuiz,
+  initialScores,
+}: QuizCardProps) {
+  const [quiz, setQuiz] = useState<TodaysQuiz | null>(initialQuiz ?? null);
+  const [scores, setScores] = useState<QuizScores | null>(initialScores ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [truthDraft, setTruthDraft] = useState("");
   const [guessDraft, setGuessDraft] = useState("");
@@ -53,7 +64,10 @@ export default function QuizCard({ partnerName, partnerId, coupleId, selfColor, 
   }
 
   useEffect(() => {
-    refetch();
+    // initialQuiz precaricato lato server (vedi home/page.tsx): niente
+    // fetch iniziale duplicato, il realtime sotto tiene comunque tutto
+    // aggiornato da qui in poi.
+    if (initialQuiz === undefined) refetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

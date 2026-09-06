@@ -43,19 +43,27 @@ function dismissToday(): void {
  * emoji nell'interfaccia") — MOOD_LABEL forniva già un'etichetta breve per
  * ciascun mood, usata qui come pillola di testo al posto del glifo.
  */
-export default function MoodCheckIn() {
-  const [mood, setMood] = useState<TodaysMood | null>(null);
+interface MoodCheckInProps {
+  /** Precaricato da app/(app)/home/page.tsx lato server — se assente (fallback), il componente si arrangia col proprio fetch client-side come prima. */
+  initialMood?: TodaysMood;
+}
+
+export default function MoodCheckIn({ initialMood }: MoodCheckInProps) {
+  const [mood, setMood] = useState<TodaysMood | null>(initialMood ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    getTodaysMood().then((result) => {
-      if ("error" in result) setLoadError(result.error);
-      else setMood(result);
-    });
+    if (initialMood === undefined) {
+      getTodaysMood().then((result) => {
+        if ("error" in result) setLoadError(result.error);
+        else setMood(result);
+      });
+    }
     setDismissed(isDismissedToday());
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialMood è solo il seed iniziale (server), non va ri-osservato.
   }, []);
 
   async function handlePick(value: MoodType) {

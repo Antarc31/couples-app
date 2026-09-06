@@ -96,6 +96,13 @@ beforeEach(() => {
 });
 
 describe("MemoriesDeck", () => {
+  it("con initialThoughts mostra subito il mazzetto e non chiama listRecentThoughts", async () => {
+    render(<MemoriesDeck partnerName="Sam" selfId="me" initialThoughts={[textThought]} />);
+
+    await screen.findByText("Ciao amore");
+    expect(mockListRecentThoughts).not.toHaveBeenCalled();
+  });
+
   it("invia un pensiero di testo e lo mostra come card in cima al mazzetto", async () => {
     const user = userEvent.setup();
     mockListRecentThoughts.mockResolvedValue([textThought]);

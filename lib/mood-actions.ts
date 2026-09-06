@@ -14,9 +14,16 @@
  * necessariamente "oggi" (l'utente potrebbe aprirla il giorno dopo).
  */
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { toDateKey } from "@/lib/calendar-dates";
-import type { MoodType } from "@/types/database";
+import type { Database, MoodType } from "@/types/database";
+
+/** Vedi lib/messages-actions.ts per il perché di questo contesto opzionale (chiamata da Home lato server). */
+interface ServerFetchContext {
+  client: SupabaseClient<Database>;
+  userId: string;
+}
 
 export interface ActionError {
   error: string;
@@ -41,10 +48,9 @@ function partnerDisplayName(row: MoodRow): string | null {
 }
 
 /** Stato del check-in per una data specifica (self-riga sempre visibile, partner solo se rivelato — RLS). */
-export async function getMoodForDate(checkinDate: string): Promise<TodaysMood | ActionError> {
-  const supabase = createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  const myId = userData?.user?.id;
+export async function getMoodForDate(checkinDate: string, ctx?: ServerFetchContext): Promise<TodaysMood | ActionError> {
+  const supabase = ctx?.client ?? createClient();
+  const myId = ctx?.userId ?? (await supabase.auth.getUser()).data.user?.id;
   if (!myId) return { error: "Utente non autenticato" };
 
   const { data, error } = await supabase
@@ -66,8 +72,8 @@ export async function getMoodForDate(checkinDate: string): Promise<TodaysMood | 
 }
 
 /** Stato del check-in di oggi. */
-export async function getTodaysMood(): Promise<TodaysMood | ActionError> {
-  return getMoodForDate(toDateKey(new Date()));
+export async function getTodaysMood(ctx?: ServerFetchContext): Promise<TodaysMood | ActionError> {
+  return getMoodForDate(toDateKey(new Date()), ctx);
 }
 
 /** Registra il mood di oggi (uno solo, immutabile) e ritorna lo stato aggiornato. */

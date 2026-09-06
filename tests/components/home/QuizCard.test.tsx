@@ -53,6 +53,30 @@ function renderCard() {
 }
 
 describe("QuizCard", () => {
+  it("con initialQuiz/initialScores mostra subito il contenuto e non chiama getTodaysQuiz/getQuizScores", async () => {
+    render(
+      <QuizCard
+        partnerName="Sam"
+        partnerId="partner-1"
+        coupleId="c1"
+        selfColor="#a6c8f0"
+        partnerColor="#f7a6c4"
+        initialQuiz={{
+          questionId: "q1",
+          prompt: "Qual è il mio colore preferito?",
+          mine: null,
+          partner: null,
+          revealed: false,
+        }}
+        initialScores={{ mine: 3, partner: 1 }}
+      />,
+    );
+
+    expect(await screen.findByText("Qual è il mio colore preferito?")).toBeInTheDocument();
+    expect(mockGetTodaysQuiz).not.toHaveBeenCalled();
+    expect(mockGetQuizScores).not.toHaveBeenCalled();
+  });
+
   it("mostra solo la domanda finché non si tocca per rispondere, poi i due campi (verità + ipotesi)", async () => {
     mockGetTodaysQuiz.mockResolvedValue({
       questionId: "q1",

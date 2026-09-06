@@ -32,6 +32,15 @@ beforeEach(() => {
 });
 
 describe("MoodCheckIn", () => {
+  it("con initialMood mostra subito la card e non chiama getTodaysMood", async () => {
+    render(
+      <MoodCheckIn initialMood={{ myMood: null, partnerMood: null, partnerName: null, revealed: false }} />,
+    );
+
+    expect(await screen.findByText("come va oggi?")).toBeInTheDocument();
+    expect(mockGetTodaysMood).not.toHaveBeenCalled();
+  });
+
   it("non renderizza nulla mentre carica o se la chiamata fallisce", async () => {
     mockGetTodaysMood.mockResolvedValue({ error: "Errore di rete" });
     const { container } = render(<MoodCheckIn />);

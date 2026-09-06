@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
 import IconBadge from "@/components/ui/IconBadge";
 import { Clock, ImageIcon, MessageCircle, Gift, X } from "@/components/ui/icons";
-import { getThrowbackForToday, type Thought } from "@/lib/messages-actions";
+import { getThrowbackForToday, type Thought, type Throwback } from "@/lib/messages-actions";
 
 const MAX_THOUGHTS = 3;
 
 interface ThrowbackCardProps {
   selfId: string;
+  /** Precaricato da app/(app)/home/page.tsx lato server — se assente (fallback), il componente si arrangia col proprio fetch client-side come prima. */
+  initialThrowback?: Throwback;
 }
 
 /**
@@ -21,12 +23,15 @@ interface ThrowbackCardProps {
  * Stessa tinta couple-tint delle altre card di Home; le righe interne
  * restano bianche (bg-surface) perché è lì che vivono le foto vere.
  */
-export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
-  const [thoughts, setThoughts] = useState<Thought[]>([]);
-  const [giftTitles, setGiftTitles] = useState<string[]>([]);
+export default function ThrowbackCard({ selfId, initialThrowback }: ThrowbackCardProps) {
+  const [thoughts, setThoughts] = useState<Thought[]>(
+    initialThrowback ? initialThrowback.thoughts.slice(0, MAX_THOUGHTS) : [],
+  );
+  const [giftTitles, setGiftTitles] = useState<string[]>(initialThrowback?.giftTitles ?? []);
   const [selected, setSelected] = useState<Thought | null>(null);
 
   useEffect(() => {
+    if (initialThrowback !== undefined) return;
     let cancelled = false;
     getThrowbackForToday().then((result) => {
       if (cancelled || "error" in result) return;
@@ -36,6 +41,7 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialThrowback è solo il seed iniziale (server), non va ri-osservato.
   }, []);
 
   if (thoughts.length === 0 && giftTitles.length === 0) return null;

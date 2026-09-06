@@ -11,9 +11,24 @@
  * componenti client-side, non da Server Actions.
  */
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { sameDayLastYear } from "@/lib/calendar-dates";
-import type { MessageType } from "@/types/database";
+import type { Database, MessageType } from "@/types/database";
+
+/**
+ * Contesto opzionale per chiamare listRecentThoughts/getThrowbackForToday
+ * anche da un Server Component (Home: vedi app/(app)/home/page.tsx), invece
+ * che solo dal browser come da progettazione originale di questo file.
+ * Passato = usa il client e lo userId già disponibili lato server (niente
+ * doppio round-trip auth.getUser(), già risolto da getCurrentCoupleData()
+ * nel layout/pagina chiamante). Omesso = comportamento invariato: client
+ * browser creato qui, utente risolto con una propria auth.getUser().
+ */
+interface ServerFetchContext {
+  client: SupabaseClient<Database>;
+  userId: string;
+}
 
 /** Bucket Storage privato per le foto (supabase/migrations/20260901050000_couple_photos_storage.sql). */
 const PHOTO_BUCKET = "couple-photos";
@@ -67,7 +82,7 @@ interface MessageRow {
  * invece di far fallire l'intera chiamata.
  */
 async function resolveSignedPhotoUrls(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient<Database>,
   paths: string[],
 ): Promise<Map<string, string | null>> {
   const signedUrlByPath = new Map<string, string | null>();
@@ -102,10 +117,9 @@ function mapRowToThought(row: MessageRow, myId: string, signedUrlByPath: Map<str
 }
 
 /** Ultimi messaggi della coppia, più recenti prima. Le foto arrivano già con signed URL risolta. */
-export async function listRecentThoughts(limit = 20): Promise<Thought[] | ActionError> {
-  const supabase = createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  const myId = userData?.user?.id;
+export async function listRecentThoughts(limit = 20, ctx?: ServerFetchContext): Promise<Thought[] | ActionError> {
+  const supabase = ctx?.client ?? createClient();
+  const myId = ctx?.userId ?? (await supabase.auth.getUser()).data.user?.id;
   if (!myId) return { error: "Utente non autenticato" };
 
   const { data, error } = await supabase
@@ -296,10 +310,9 @@ export interface Throwback {
  * Ritorna liste vuote se non c'è nulla quel giorno — il chiamante
  * (ThrowbackCard) decide di non renderizzare nulla in quel caso.
  */
-export async function getThrowbackForToday(): Promise<Throwback | ActionError> {
-  const supabase = createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  const myId = userData?.user?.id;
+export async function getThrowbackForToday(ctx?: ServerFetchContext): Promise<Throwback | ActionError> {
+  const supabase = ctx?.client ?? createClient();
+  const myId = ctx?.userId ?? (await supabase.auth.getUser()).data.user?.id;
   if (!myId) return { error: "Utente non autenticato" };
 
   const { start, end } = sameDayLastYear();

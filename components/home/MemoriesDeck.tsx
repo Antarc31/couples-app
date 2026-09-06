@@ -115,9 +115,16 @@ function HeartButton({
  * progetto): oltre una soglia di distanza o velocità la card scivola via e
  * si passa alla successiva, altrimenti torna elasticamente al centro.
  */
-export default function MemoriesDeck({ partnerName, selfId }: { partnerName: string; selfId: string }) {
-  const [thoughts, setThoughts] = useState<Thought[]>([]);
-  const [loading, setLoading] = useState(true);
+interface MemoriesDeckProps {
+  partnerName: string;
+  selfId: string;
+  /** Precaricati da app/(app)/home/page.tsx lato server — se assente (fallback), il componente si arrangia col proprio fetch client-side come prima. */
+  initialThoughts?: Thought[];
+}
+
+export default function MemoriesDeck({ partnerName, selfId, initialThoughts }: MemoriesDeckProps) {
+  const [thoughts, setThoughts] = useState<Thought[]>(initialThoughts ?? []);
+  const [loading, setLoading] = useState(initialThoughts === undefined);
   const [error, setError] = useState<string | null>(null);
   const [topIndex, setTopIndex] = useState(0);
 
@@ -143,6 +150,7 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
   const [poppingId, setPoppingId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialThoughts !== undefined) return;
     let cancelled = false;
     (async () => {
       const result = await listRecentThoughts();
@@ -157,6 +165,7 @@ export default function MemoriesDeck({ partnerName, selfId }: { partnerName: str
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialThoughts è solo il seed iniziale (server), non va ri-osservato: cambiare prop non deve ri-triggerare un fetch.
   }, []);
 
   const visible = thoughts.slice(topIndex, topIndex + STACK_VISIBLE);

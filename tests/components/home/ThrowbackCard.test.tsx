@@ -49,6 +49,19 @@ beforeEach(() => {
 });
 
 describe("ThrowbackCard", () => {
+  it("con initialThrowback mostra subito il contenuto e non chiama getThrowbackForToday", async () => {
+    render(
+      <ThrowbackCard
+        selfId="me"
+        initialThrowback={{ thoughts: [textThought], giftTitles: ["Un anello"] }}
+      />,
+    );
+
+    await screen.findByText("Un anno fa qui");
+    expect(screen.getByText("Un anello")).toBeInTheDocument();
+    expect(mockGetThrowbackForToday).not.toHaveBeenCalled();
+  });
+
   it("non renderizza nulla se non c'è contenuto", async () => {
     mockGetThrowbackForToday.mockResolvedValue({ thoughts: [], giftTitles: [] });
     const { container } = render(<ThrowbackCard selfId="me" />);

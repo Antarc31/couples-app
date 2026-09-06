@@ -14,11 +14,19 @@
  * funzione, error mapping a {error: string}.
  */
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { toDateKey } from "@/lib/calendar-dates";
+import type { Database } from "@/types/database";
 
 export interface ActionError {
   error: string;
+}
+
+/** Vedi lib/messages-actions.ts per il perché di questo contesto opzionale (chiamata da Home lato server). */
+interface ServerFetchContext {
+  client: SupabaseClient<Database>;
+  userId: string;
 }
 
 export interface QuizSide {
@@ -62,10 +70,9 @@ function mapRowToSide(row: QuizAnswerRow): QuizSide {
 }
 
 /** Domanda di oggi + stato delle risposte (la mia sempre visibile, quella del partner solo se ha scritto anche lui/lei oggi — RLS). */
-export async function getTodaysQuiz(): Promise<TodaysQuiz | ActionError> {
-  const supabase = createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  const myId = userData?.user?.id;
+export async function getTodaysQuiz(ctx?: ServerFetchContext): Promise<TodaysQuiz | ActionError> {
+  const supabase = ctx?.client ?? createClient();
+  const myId = ctx?.userId ?? (await supabase.auth.getUser()).data.user?.id;
   if (!myId) return { error: "Utente non autenticato" };
 
   const { data: questions, error: questionsError } = await supabase
@@ -147,10 +154,9 @@ export interface QuizScores {
 }
 
 /** Punteggio individuale cumulativo: conteggio delle ipotesi confermate corrette, per profilo. Nessuna tabella punteggio: sempre corretto per costruzione. */
-export async function getQuizScores(partnerId: string): Promise<QuizScores | ActionError> {
-  const supabase = createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  const myId = userData?.user?.id;
+export async function getQuizScores(partnerId: string, ctx?: ServerFetchContext): Promise<QuizScores | ActionError> {
+  const supabase = ctx?.client ?? createClient();
+  const myId = ctx?.userId ?? (await supabase.auth.getUser()).data.user?.id;
   if (!myId) return { error: "Utente non autenticato" };
 
   const [mineResult, partnerResult] = await Promise.all([
