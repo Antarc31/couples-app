@@ -44,8 +44,8 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
     <>
       <Card className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
-          <IconBadge icon={Clock} size={32} variant="onTint" />
-          <h2 className="text-sm font-bold text-ink">Un anno fa oggi</h2>
+          <IconBadge icon={Clock} size={32} />
+          <h2 className="font-hand text-xl leading-none text-ink">un anno fa oggi</h2>
         </div>
         {thoughts.length > 0 && (
           <ul className="flex flex-col gap-2">
@@ -54,7 +54,7 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
                 <button
                   type="button"
                   onClick={() => thought.type === "photo" && setSelected(thought)}
-                  className="flex w-full items-center gap-3 rounded-2xl bg-surface px-3 py-2 text-left"
+                  className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-[color:var(--color-border)] bg-surface px-3 py-2 text-left"
                 >
                   {thought.type === "photo" ? (
                     thought.photoUrl ? (
@@ -86,7 +86,7 @@ export default function ThrowbackCard({ selfId }: ThrowbackCardProps) {
             {giftTitles.map((title, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-1 rounded-full bg-special-soft px-3 py-1 text-xs font-semibold text-ink"
+                className="inline-flex items-center gap-1 rounded-full border border-dashed border-[color:var(--color-border)] bg-special-soft px-3 py-1 text-xs font-semibold text-ink"
               >
                 <Gift size={13} strokeWidth={2.2} />
                 {title}

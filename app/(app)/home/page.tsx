@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentCoupleData } from "@/lib/current-couple";
 import { createClient } from "@/lib/supabase/server";
 import { daysBetween, nextOccurrence, nextMilestone } from "@/lib/calendar-dates";
-import CountdownHeader from "@/components/home/CountdownHeader";
-import MilestoneBadge from "@/components/home/MilestoneBadge";
+import CountdownHero from "@/components/home/CountdownHero";
 import MemoriesDeck from "@/components/home/MemoriesDeck";
 import ThrowbackCard from "@/components/home/ThrowbackCard";
 import QuizCard from "@/components/home/QuizCard";
@@ -66,9 +65,8 @@ export default async function HomePage() {
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-4 bg-base px-4 pt-5 pb-24">
-      <CountdownHeader nextSpecial={nextSpecial} />
-      <MilestoneBadge nextMilestone={nextMilestoneDisplay} />
+    <div className="bg-diary flex flex-1 flex-col gap-4 px-4 pt-5 pb-24">
+      <CountdownHero nextSpecial={nextSpecial} nextMilestone={nextMilestoneDisplay} />
       <MemoriesDeck partnerName={data.partner?.displayName ?? "il tuo partner"} selfId={data.userId} />
       <ThrowbackCard selfId={data.userId} />
       {data.couple.quizEnabled && data.partner && (

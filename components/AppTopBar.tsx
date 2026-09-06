@@ -185,17 +185,38 @@ export default function AppTopBar({ userId }: { userId: string }) {
         className="sticky top-0 z-30 flex w-full items-center justify-between border-b border-border bg-base/95 px-4 py-2"
         style={{ paddingTop: "max(env(safe-area-inset-top), 0.5rem)" }}
       >
-        <h1 className="text-lg font-extrabold text-ink">{pageTitle}</h1>
-        <div className="relative">
+        {pageTitle && (
+          <div>
+            <h1 className="text-[27px] font-bold leading-tight text-ink">{pageTitle}</h1>
+            {/* Sottolineatura "a mano": un'onda SVG invece di un tratto dritto, leggermente ruotata. */}
+            <svg
+              viewBox="0 0 70 10"
+              width="56"
+              height="8"
+              className="-mt-1 text-couple"
+              style={{ transform: "rotate(-1.5deg)" }}
+              aria-hidden="true"
+            >
+              <path
+                d="M2 6 C 12 1, 20 1, 28 6 S 44 11, 52 6 S 66 1, 68 5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+        )}
+        <div className="relative ml-auto">
           <button
             type="button"
             onClick={() => (panelOpen ? setPanelOpen(false) : openPanel())}
             aria-label={unreadCount > 0 ? `Notifiche, ${unreadCount} non lette` : "Notifiche"}
           >
-            <IconBadge icon={Bell} className="shadow-sm transition active:scale-95" />
+            <IconBadge icon={Bell} size={44} className="shadow-[var(--shadow-accent)] transition active:scale-95" />
           </button>
           {unreadCount > 0 && (
-            <span className="pointer-events-none absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-couple px-1 text-[10px] font-bold text-white ring-2 ring-base">
+            <span className="pointer-events-none absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-couple px-1 text-[10px] font-bold text-surface ring-2 ring-base">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}

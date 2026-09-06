@@ -82,8 +82,8 @@ export default function MoodCheckIn() {
   return (
     <Card className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <IconBadge icon={Smile} size={32} variant="onTint" />
-        <h2 className="text-sm font-bold text-ink">Come va oggi?</h2>
+        <IconBadge icon={Smile} size={32} />
+        <h2 className="font-hand text-xl leading-none text-ink">come va oggi?</h2>
       </div>
       {submitError && <p className="text-xs text-danger">{submitError}</p>}
       <div className="flex flex-wrap justify-center gap-2">
@@ -94,7 +94,7 @@ export default function MoodCheckIn() {
             disabled={saving}
             onClick={() => handlePick(value)}
             aria-label={MOOD_LABEL[value]}
-            className="rounded-full bg-surface px-4 py-2 text-sm font-semibold text-ink transition active:scale-90 disabled:opacity-50"
+            className="rounded-full border border-dashed border-[color:var(--color-border)] bg-surface px-4 py-2 text-sm font-semibold text-ink transition active:scale-90 disabled:opacity-50"
           >
             {MOOD_LABEL[value]}
           </button>

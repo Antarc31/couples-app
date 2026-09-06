@@ -108,7 +108,7 @@ export default function PhotoGallery({ selfId }: { selfId: string }) {
       {loading ? (
         <div className="flex h-40 items-center justify-center text-sm text-ink-soft">Carico le foto…</div>
       ) : photos.length === 0 && !error ? (
-        <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-[28px] bg-partner-a-soft/30 text-center text-sm text-ink-soft">
+        <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-[28px] border border-dashed border-[color:var(--color-border)] bg-surface text-center text-sm text-ink-soft">
           <ImageIcon size={30} strokeWidth={1.8} />
           Nessuna foto ancora, mandane una dalla Home!
         </div>
@@ -122,7 +122,7 @@ export default function PhotoGallery({ selfId }: { selfId: string }) {
                 data-testid="gallery-photo"
                 onClick={() => setSelected(photo)}
                 aria-label={`Apri foto di ${photo.senderId === selfId ? "Tu" : photo.senderName}`}
-                className="aspect-square overflow-hidden rounded-xl bg-scrim transition active:scale-[0.97]"
+                className="aspect-square overflow-hidden rounded-xl border border-dashed border-[color:var(--color-border)] bg-scrim transition active:scale-[0.97]"
               >
                 {photo.photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- signed URL temporanea, non ottimizzabile da next/image

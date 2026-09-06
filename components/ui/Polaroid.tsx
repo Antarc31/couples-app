@@ -18,7 +18,7 @@ interface PolaroidProps {
 export default function Polaroid({ children, caption, rotate = -3, className = "" }: PolaroidProps) {
   return (
     <div
-      className={`relative rounded-sm bg-surface p-2.5 pb-7 shadow-[var(--shadow-strong)] ${className}`}
+      className={`relative flex flex-col rounded-sm bg-surface p-2.5 pb-7 shadow-[var(--shadow-strong)] ${className}`}
       style={{ transform: `rotate(${rotate}deg)` }}
     >
       {/* Nastro washi: righe diagonali ripetute, ruotato indipendentemente dalla polaroid sotto. */}
@@ -30,8 +30,8 @@ export default function Polaroid({ children, caption, rotate = -3, className = "
             "repeating-linear-gradient(45deg, var(--color-couple) 0 6px, var(--color-couple-soft) 6px 12px)",
         }}
       />
-      <div className="overflow-hidden rounded-[2px]">{children}</div>
-      {caption && <p className="mt-2 text-center font-hand text-ink">{caption}</p>}
+      <div className="flex-1 overflow-hidden rounded-[2px]">{children}</div>
+      {caption && <p className="mt-2 text-center font-hand leading-tight text-ink">{caption}</p>}
     </div>
   );
 }

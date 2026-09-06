@@ -44,7 +44,7 @@ describe("MoodCheckIn", () => {
     mockGetTodaysMood.mockResolvedValue({ myMood: null, partnerMood: null, partnerName: null, revealed: false });
     render(<MoodCheckIn />);
 
-    expect(await screen.findByText("Come va oggi?")).toBeInTheDocument();
+    expect(await screen.findByText("come va oggi?")).toBeInTheDocument();
     expect(screen.getByLabelText("Felice")).toBeInTheDocument();
     expect(screen.getByLabelText("Innamorato/a")).toBeInTheDocument();
   });
@@ -85,7 +85,7 @@ describe("MoodCheckIn", () => {
     await user.click(await screen.findByText("Più tardi"));
 
     expect(mockLogTodaysMood).not.toHaveBeenCalled();
-    expect(screen.queryByText("Come va oggi?")).not.toBeInTheDocument();
+    expect(screen.queryByText("come va oggi?")).not.toBeInTheDocument();
   });
 
   it("non mostra la card al mount successivo nello stesso giorno se già rimandata", async () => {
@@ -99,6 +99,6 @@ describe("MoodCheckIn", () => {
     render(<MoodCheckIn />);
 
     await waitFor(() => expect(mockGetTodaysMood).toHaveBeenCalledTimes(2));
-    expect(screen.queryByText("Come va oggi?")).not.toBeInTheDocument();
+    expect(screen.queryByText("come va oggi?")).not.toBeInTheDocument();
   });
 });
