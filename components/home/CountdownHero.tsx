@@ -20,7 +20,7 @@ export default function CountdownHero({ nextSpecial, nextMilestone }: CountdownH
   if (!nextSpecial && !nextMilestone) return null;
 
   const sticker = nextMilestone && (
-    <Sticker rotate={-6} className={nextSpecial ? "absolute -bottom-4 right-3" : ""}>
+    <Sticker rotate={-6} className={nextSpecial ? "absolute -bottom-4 right-3 z-10" : ""}>
       <IconBadge icon={Trophy} size={28} />
       <span>
         <span className="block text-sm font-bold">{nextMilestone.label}</span>

@@ -193,7 +193,7 @@ export default function AppTopBar({ userId }: { userId: string }) {
               viewBox="0 0 70 10"
               width="56"
               height="8"
-              className="-mt-1 text-couple"
+              className="-mt-1 overflow-visible text-couple"
               style={{ transform: "rotate(-1.5deg)" }}
               aria-hidden="true"
             >

@@ -20,9 +20,9 @@ export default async function ProfiloPage() {
         >
           {(data.displayName ?? data.email)?.slice(0, 1).toUpperCase()}
         </span>
-        <div>
-          <p className="text-base font-bold text-ink">{data.displayName ?? "Senza nome"}</p>
-          <p className="text-sm text-ink-soft">{data.email}</p>
+        <div className="min-w-0">
+          <p className="break-words text-base font-bold text-ink">{data.displayName ?? "Senza nome"}</p>
+          <p className="break-words text-sm text-ink-soft">{data.email}</p>
         </div>
       </Card>
 
@@ -34,9 +34,9 @@ export default async function ProfiloPage() {
           >
             {(data.partner.displayName ?? "P").slice(0, 1).toUpperCase()}
           </span>
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Il tuo partner</p>
-            <p className="text-base font-bold text-ink">{data.partner.displayName ?? "Senza nome"}</p>
+            <p className="break-words text-base font-bold text-ink">{data.partner.displayName ?? "Senza nome"}</p>
           </div>
         </Card>
       )}

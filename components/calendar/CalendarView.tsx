@@ -198,7 +198,7 @@ export default function CalendarView({
       </div>
 
       {/* Legenda */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-soft">
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-xs text-ink-soft">
         <LegendDot color={selfColor} label={selfName} />
         {partnerId && <LegendDot color={partnerColor ?? "var(--color-partner-b)"} label={partnerName} />}
         <LegendDot color="var(--color-couple)" label="Di coppia" />
@@ -212,15 +212,15 @@ export default function CalendarView({
           <div className="flex items-center justify-between">
             <button
               onClick={() => setMonthAnchor((m) => addMonths(m, -1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Mese precedente"
             >
               ‹
             </button>
-            <p className="text-sm font-bold capitalize text-ink">{formatMonthLabel(monthAnchor)}</p>
+            <p className="flex-1 text-center text-sm font-bold capitalize text-ink">{formatMonthLabel(monthAnchor)}</p>
             <button
               onClick={() => setMonthAnchor((m) => addMonths(m, 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Mese successivo"
             >
               ›
@@ -275,17 +275,17 @@ export default function CalendarView({
           <div className="flex items-center justify-between">
             <button
               onClick={() => setSelectedDate((d) => addDays(d, -7))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Settimana precedente"
             >
               ‹
             </button>
-            <p className="text-sm font-bold capitalize text-ink">
+            <p className="flex-1 text-center text-sm font-bold capitalize text-ink">
               {formatWeekRangeLabel(weekDaysOfSelected[0], weekDaysOfSelected[6])}
             </p>
             <button
               onClick={() => setSelectedDate((d) => addDays(d, 7))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Settimana successiva"
             >
               ›
@@ -306,15 +306,15 @@ export default function CalendarView({
           <div className="flex items-center justify-between">
             <button
               onClick={() => setSelectedDate((d) => addDays(d, -1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Giorno precedente"
             >
               ‹
             </button>
-            <p className="text-sm font-bold capitalize text-ink">{formatDayLabel(selectedDate)}</p>
+            <p className="flex-1 text-center text-sm font-bold capitalize text-ink">{formatDayLabel(selectedDate)}</p>
             <button
               onClick={() => setSelectedDate((d) => addDays(d, 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface text-lg font-bold text-ink shadow-sm transition active:scale-95"
               aria-label="Giorno successivo"
             >
               ›
@@ -331,28 +331,32 @@ export default function CalendarView({
         </div>
       )}
 
-      {/* Stessa riga del FAB "+", ancorato in basso a sinistra (non più una
-          pillola isolata in cima alla pagina): stesso accento dell'app
-          (couple), un filo più tenue per restare un'azione secondaria
-          rispetto a "nuovo evento". */}
-      <button
-        onClick={() => setShowFreeSlots(true)}
-        className="fixed bottom-20 left-5 z-20 flex items-center gap-2 rounded-full bg-couple-soft px-4 py-2.5 text-sm font-semibold text-couple shadow-[var(--shadow-soft)] transition active:scale-95"
-      >
-        <Search size={16} strokeWidth={2.2} />
-        Trova buchi liberi
-      </button>
+      {/* Stessa riga del FAB "+", ancorato in basso (non più una pillola
+          isolata in cima alla pagina): stesso accento dell'app (couple), un
+          filo più tenue per restare un'azione secondaria rispetto a "nuovo
+          evento". items-center sull'intera riga allinea i centri verticali
+          dei due bottoni anche se hanno altezze diverse (pillola vs cerchio
+          56px). */}
+      <div className="fixed inset-x-5 bottom-20 z-20 flex items-center justify-between">
+        <button
+          onClick={() => setShowFreeSlots(true)}
+          className="flex items-center gap-2 rounded-full bg-couple-soft px-4 py-2.5 text-sm font-semibold text-couple shadow-[var(--shadow-soft)] transition active:scale-95"
+        >
+          <Search size={16} strokeWidth={2.2} />
+          Trova buchi liberi
+        </button>
 
-      <button
-        onClick={() => {
-          setPickedSlot(null);
-          setShowCreate(true);
-        }}
-        className="fixed bottom-20 right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-couple text-2xl font-bold text-white shadow-[var(--shadow-soft)] transition active:scale-95"
-        aria-label="Nuovo evento"
-      >
-        +
-      </button>
+        <button
+          onClick={() => {
+            setPickedSlot(null);
+            setShowCreate(true);
+          }}
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-couple text-2xl font-bold text-white shadow-[var(--shadow-soft)] transition active:scale-95"
+          aria-label="Nuovo evento"
+        >
+          +
+        </button>
+      </div>
 
       {agendaDate && (
         <DayAgendaSheet
