@@ -37,7 +37,7 @@ export default function CountdownHero({ nextSpecial, nextMilestone }: CountdownH
   return (
     <Card className="relative flex flex-col gap-0.5 pb-6">
       <div className="flex items-start justify-between">
-        <p className="text-lg text-couple">prossimo traguardo</p>
+        <p className="text-base text-couple">Prossimo traguardo</p>
         <Heart size={20} strokeWidth={2} className="text-couple" />
       </div>
       <p className="text-[72px] leading-[0.85] text-ink">

@@ -91,7 +91,7 @@ export default function MoodCheckIn({ initialMood }: MoodCheckInProps) {
     <Card className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <IconBadge icon={Smile} size={32} />
-        <h2 className="text-xl leading-none text-ink">come va oggi?</h2>
+        <h2 className="text-lg leading-none text-ink">Come va oggi?</h2>
       </div>
       {submitError && <p className="text-xs text-danger">{submitError}</p>}
       <div className="flex flex-wrap justify-center gap-2">

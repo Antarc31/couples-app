@@ -124,7 +124,7 @@ export default function QuizCard({
     <Card className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <IconBadge icon={Brain} size={32} />
-        <h2 className="text-xl leading-none text-ink">quiz del giorno</h2>
+        <h2 className="text-lg leading-none text-ink">Quiz del giorno</h2>
       </div>
 
       {scores && (
