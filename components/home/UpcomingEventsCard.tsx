@@ -16,7 +16,7 @@ export default function UpcomingEventsCard({ events, colorCtx }: UpcomingEventsC
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <IconBadge icon={CalendarDays} size={32} />
-          <h2 className="font-hand text-xl leading-none text-ink">prossimi impegni</h2>
+          <h2 className="text-xl leading-none text-ink">prossimi impegni</h2>
         </div>
         <Link href="/calendario" className="text-xs font-semibold text-couple underline underline-offset-2">
           calendario

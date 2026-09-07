@@ -283,7 +283,7 @@ export default function MemoriesDeck({ partnerName, selfId, initialThoughts }: M
       <Card className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h2 className="font-hand text-2xl leading-none text-ink">ricordi</h2>
+            <h2 className="text-2xl leading-none text-ink">ricordi</h2>
             {thoughts.length > 1 && (
               <span className="text-[11px] font-semibold text-ink-soft">
                 {topIndex + 1}/{thoughts.length}

@@ -12,9 +12,10 @@ interface CountdownHeroProps {
  * Countdown hero di Home (redesign "Diario di coppia"): unisce due dati
  * che prima vivevano in due componenti separati (CountdownHeader/
  * MilestoneBadge) in un solo composito, come nel riferimento — nextSpecial
- * come numero enorme (font-hero, Instrument Serif italic), nextMilestone
- * come adesivo ruotato che sporge dall'angolo. Se manca solo nextSpecial,
- * l'adesivo resta da solo, non sovrapposto a nulla.
+ * come numero enorme, nextMilestone come adesivo ruotato che sporge
+ * dall'angolo. Se manca solo nextSpecial, l'adesivo resta da solo, non
+ * sovrapposto a nulla. Stesso font base dell'app ovunque (font-hand/
+ * font-hero rimossi su richiesta esplicita dell'utente).
  */
 export default function CountdownHero({ nextSpecial, nextMilestone }: CountdownHeroProps) {
   if (!nextSpecial && !nextMilestone) return null;
@@ -36,10 +37,10 @@ export default function CountdownHero({ nextSpecial, nextMilestone }: CountdownH
   return (
     <Card className="relative flex flex-col gap-0.5 pb-6">
       <div className="flex items-start justify-between">
-        <p className="font-hand text-lg text-couple">prossimo traguardo</p>
+        <p className="text-lg text-couple">prossimo traguardo</p>
         <Heart size={20} strokeWidth={2} className="text-couple" />
       </div>
-      <p className="font-hero text-[72px] italic leading-[0.85] text-ink">
+      <p className="text-[72px] leading-[0.85] text-ink">
         {nextSpecial.daysUntil === 0 ? "Oggi" : nextSpecial.daysUntil}
       </p>
       {nextSpecial.daysUntil > 0 && <p className="text-sm font-bold uppercase tracking-wide text-ink">giorni</p>}

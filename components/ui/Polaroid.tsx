@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 interface PolaroidProps {
   /** Contenuto della "foto" (es. <img>, o un placeholder) — riempie il riquadro interno. */
   children: ReactNode;
-  /** Didascalia sotto la foto, dentro il bordo di carta — testo a mano (Caveat). */
+  /** Didascalia sotto la foto, dentro il bordo di carta. */
   caption?: ReactNode;
   rotate?: number;
   className?: string;
@@ -21,7 +21,7 @@ export default function Polaroid({ children, caption, rotate = -3, className = "
       style={{ transform: `rotate(${rotate}deg)` }}
     >
       <div className="flex-1 overflow-hidden rounded-[2px]">{children}</div>
-      {caption && <p className="mt-2 text-center font-hand leading-tight text-ink">{caption}</p>}
+      {caption && <p className="mt-2 text-center leading-tight text-ink">{caption}</p>}
     </div>
   );
 }

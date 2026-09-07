@@ -51,7 +51,7 @@ export default function ThrowbackCard({ selfId, initialThrowback }: ThrowbackCar
       <Card className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <IconBadge icon={Clock} size={32} />
-          <h2 className="font-hand text-xl leading-none text-ink">un anno fa oggi</h2>
+          <h2 className="text-xl leading-none text-ink">un anno fa oggi</h2>
         </div>
         {thoughts.length > 0 && (
           <ul className="flex flex-col gap-2">
