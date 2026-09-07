@@ -18,14 +18,20 @@ import { makeQueryBuilderMock } from "../helpers/supabase-query-mock";
 
 type MockGetUserResponse = { data: { user: { id: string } | null } };
 
-/** Mock della catena `.from("messages").select(...).order(...).limit(n)`. */
-function makeSelectOrderLimitMock(response: { data: unknown[] | null; error: { message: string } | null }) {
+/**
+ * Mock della catena `.from("messages").select(...).gte(...).lt(...).order(...).limit(n)`
+ * usata da listRecentThoughts (scoped al giorno corrente, non più "gli
+ * ultimi N di sempre" — vedi il commento in testa alla funzione).
+ */
+function makeTodayThoughtsMock(response: { data: unknown[] | null; error: { message: string } | null }) {
   const limit = jest.fn<Promise<typeof response>, [number]>().mockResolvedValue(response);
   const order = jest
     .fn<{ limit: typeof limit }, [column: string, opts?: unknown]>()
     .mockReturnValue({ limit });
-  const select = jest.fn<{ order: typeof order }, [columns: string]>().mockReturnValue({ order });
-  return { select, order, limit };
+  const lt = jest.fn<{ order: typeof order }, [column: string, value: string]>().mockReturnValue({ order });
+  const gte = jest.fn<{ lt: typeof lt }, [column: string, value: string]>().mockReturnValue({ lt });
+  const select = jest.fn<{ gte: typeof gte }, [columns: string]>().mockReturnValue({ gte });
+  return { select, gte, lt, order, limit };
 }
 
 /**
@@ -58,7 +64,7 @@ function makeInsertSelectSingleMock(response: { data: unknown; error: { message:
 
 type FromReturn =
   | ReturnType<typeof makeQueryBuilderMock>
-  | ReturnType<typeof makeSelectOrderLimitMock>
+  | ReturnType<typeof makeTodayThoughtsMock>
   | ReturnType<typeof makePhotoQueryMock>
   | ReturnType<typeof makeInsertSelectSingleMock>
   | ReturnType<typeof makeThrowbackMessagesMock>
@@ -156,10 +162,29 @@ describe("listRecentThoughts", () => {
     expect(mockSupabase.from).not.toHaveBeenCalled();
   });
 
+  it("filtra su created_at per il solo giorno corrente (mezzanotte-mezzanotte), non 'gli ultimi N di sempre'", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    const query = makeTodayThoughtsMock({ data: [], error: null });
+    mockSupabase.from.mockReturnValue(query);
+
+    await listRecentThoughts();
+
+    expect(query.gte).toHaveBeenCalledTimes(1);
+    expect(query.lt).toHaveBeenCalledTimes(1);
+    const [gteColumn, gteValue] = query.gte.mock.calls[0];
+    const [ltColumn, ltValue] = query.lt.mock.calls[0];
+    expect(gteColumn).toBe("created_at");
+    expect(ltColumn).toBe("created_at");
+    // Un giorno esatto di distanza tra i due bordi, e il bordo inferiore a mezzanotte in punto.
+    expect(new Date(ltValue).getTime() - new Date(gteValue).getTime()).toBe(24 * 60 * 60 * 1000);
+    expect(new Date(gteValue).getHours()).toBe(0);
+    expect(new Date(gteValue).getMinutes()).toBe(0);
+  });
+
   it("mappa le righe, risolve senderName da profiles e likedByMe da liked_by", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
     mockSupabase.from.mockReturnValue(
-      makeSelectOrderLimitMock({
+      makeTodayThoughtsMock({
         data: [
           {
             id: "m1",
@@ -216,7 +241,7 @@ describe("listRecentThoughts", () => {
   it("propaga l'errore della query", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
     mockSupabase.from.mockReturnValue(
-      makeSelectOrderLimitMock({ data: null, error: { message: "Errore di rete" } }),
+      makeTodayThoughtsMock({ data: null, error: { message: "Errore di rete" } }),
     );
 
     const result = await listRecentThoughts();
@@ -225,7 +250,7 @@ describe("listRecentThoughts", () => {
 
   it("ritorna array vuoto se data è null senza errore", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
-    mockSupabase.from.mockReturnValue(makeSelectOrderLimitMock({ data: null, error: null }));
+    mockSupabase.from.mockReturnValue(makeTodayThoughtsMock({ data: null, error: null }));
 
     const result = await listRecentThoughts();
     expect(result).toEqual([]);
@@ -234,7 +259,7 @@ describe("listRecentThoughts", () => {
   it("risolve photo_url (path nel bucket) in signed URL per le righe type='photo'", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
     mockSupabase.from.mockReturnValue(
-      makeSelectOrderLimitMock({
+      makeTodayThoughtsMock({
         data: [
           {
             id: "m1",
@@ -275,7 +300,7 @@ describe("listRecentThoughts", () => {
   it("degrada a photoUrl: null se createSignedUrl fallisce, senza far fallire l'intera lista", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
     mockSupabase.from.mockReturnValue(
-      makeSelectOrderLimitMock({
+      makeTodayThoughtsMock({
         data: [
           {
             id: "m1",

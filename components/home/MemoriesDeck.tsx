@@ -111,6 +111,11 @@ function HeartButton({
  * = sfondo bianco con solo il messaggio; card foto = immagine a piena card
  * con signed URL già risolta da listRecentThoughts.
  *
+ * Mostra solo i pensieri/foto di OGGI (listRecentThoughts è scoped al
+ * giorno corrente, non "gli ultimi N di sempre") — altrimenti dopo mesi/anni
+ * di utilizzo il mazzetto crescerebbe all'infinito. Lo storico completo
+ * resta consultabile per intero dal link "tutte le foto" (/home/foto).
+ *
  * Drag orizzontale via pointer events nativi (nessuna libreria di gesture nel
  * progetto): oltre una soglia di distanza o velocità la card scivola via e
  * si passa alla successiva, altrimenti torna elasticamente al centro.

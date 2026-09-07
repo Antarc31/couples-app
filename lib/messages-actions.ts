@@ -13,7 +13,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import { sameDayLastYear } from "@/lib/calendar-dates";
+import { sameDayLastYear, startOfDay, addDays } from "@/lib/calendar-dates";
 import type { Database, MessageType } from "@/types/database";
 
 /**
@@ -116,15 +116,30 @@ function mapRowToThought(row: MessageRow, myId: string, signedUrlByPath: Map<str
   };
 }
 
-/** Ultimi messaggi della coppia, più recenti prima. Le foto arrivano già con signed URL risolta. */
+/**
+ * Messaggi di OGGI (giorno di calendario corrente) della coppia, più recenti
+ * prima — non "gli ultimi N di sempre": il mazzetto di Home (MemoriesDeck)
+ * altrimenti continuerebbe a crescere all'infinito con l'uso dell'app (dopo
+ * 1000 giorni di utilizzo sarebbe uno storico enorme da scorrere uno per
+ * uno). Lo storico completo resta comunque consultabile per intero da
+ * `/home/foto` (PhotoGallery, via listPhotoMemories, paginato) — questa
+ * funzione serve solo al mazzetto "di oggi" in Home. Le foto arrivano già
+ * con signed URL risolta. `limit` resta un tetto di sicurezza (default 20),
+ * non il filtro principale: in pratica un giorno normale ne ha molti meno.
+ */
 export async function listRecentThoughts(limit = 20, ctx?: ServerFetchContext): Promise<Thought[] | ActionError> {
   const supabase = ctx?.client ?? createClient();
   const myId = ctx?.userId ?? (await supabase.auth.getUser()).data.user?.id;
   if (!myId) return { error: "Utente non autenticato" };
 
+  const todayStart = startOfDay(new Date());
+  const todayEnd = addDays(todayStart, 1);
+
   const { data, error } = await supabase
     .from("messages")
     .select(MESSAGE_ROW_COLUMNS)
+    .gte("created_at", todayStart.toISOString())
+    .lt("created_at", todayEnd.toISOString())
     .order("created_at", { ascending: false })
     .limit(limit);
 
