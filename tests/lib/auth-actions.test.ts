@@ -68,7 +68,7 @@ type MockSupabase = {
     signOut: jest.Mock<Promise<MockSignOutResponse>, []>;
     getUser: jest.Mock<Promise<MockGetUserResponse>, []>;
     resetPasswordForEmail: jest.Mock<Promise<MockAuthErrorResponse>, [email: string, options?: unknown]>;
-    updateUser: jest.Mock<Promise<MockAuthErrorResponse>, [attrs: unknown]>;
+    updateUser: jest.Mock<Promise<MockAuthErrorResponse>, [attrs: unknown, options?: unknown]>;
   };
   from: jest.Mock<ReturnType<typeof makeQueryBuilderMock>, [table: string]>;
   rpc: jest.Mock<Promise<MockRpcResponse>, [fn: string, args?: unknown]>;
@@ -82,7 +82,7 @@ function makeMockSupabase(): MockSupabase {
       signOut: jest.fn<Promise<MockSignOutResponse>, []>(),
       getUser: jest.fn<Promise<MockGetUserResponse>, []>(),
       resetPasswordForEmail: jest.fn<Promise<MockAuthErrorResponse>, [email: string, options?: unknown]>(),
-      updateUser: jest.fn<Promise<MockAuthErrorResponse>, [attrs: unknown]>(),
+      updateUser: jest.fn<Promise<MockAuthErrorResponse>, [attrs: unknown, options?: unknown]>(),
     },
     from: jest.fn<ReturnType<typeof makeQueryBuilderMock>, [table: string]>(),
     rpc: jest.fn<Promise<MockRpcResponse>, [fn: string, args?: unknown]>(),
@@ -108,6 +108,7 @@ import {
   leaveCouple,
   requestPasswordReset,
   updatePassword,
+  updateEmail,
 } from "@/lib/auth-actions";
 
 beforeEach(() => {
@@ -459,5 +460,35 @@ describe("updatePassword", () => {
     expect(result).toEqual({
       error: "La password deve contenere lettere maiuscole, minuscole e numeri (minimo 8 caratteri).",
     });
+  });
+});
+
+describe("updateEmail", () => {
+  it("ritorna errore se l'email è vuota, senza chiamare updateUser", async () => {
+    const result = await updateEmail("   ");
+    expect(result).toEqual({ error: "L'email non può essere vuota." });
+    expect(mockSupabase.auth.updateUser).not.toHaveBeenCalled();
+  });
+
+  it("chiama updateUser({email}, {emailRedirectTo}) con l'email trimmata e ritorna successo", async () => {
+    mockSupabase.auth.updateUser.mockResolvedValue({ error: null });
+
+    const result = await updateEmail("  nuova@example.com  ");
+
+    expect(result).toEqual({ success: true });
+    expect(mockSupabase.auth.updateUser).toHaveBeenCalledWith(
+      { email: "nuova@example.com" },
+      { emailRedirectTo: expect.stringContaining("/auth/callback?next=/profilo") },
+    );
+  });
+
+  it("traduce l'errore 'email già registrata'", async () => {
+    mockSupabase.auth.updateUser.mockResolvedValue({
+      error: { message: "A user with this email address has already been registered" },
+    });
+
+    const result = await updateEmail("partner@example.com");
+
+    expect(result).toEqual({ error: "Esiste già un account con questa email." });
   });
 });

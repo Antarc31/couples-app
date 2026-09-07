@@ -50,7 +50,13 @@ jest.mock("@/lib/supabase/client", () => ({
   createClient: () => mockSupabase,
 }));
 
-import { updateBirthDate, setRelationshipStartDate, setQuizEnabled, setMoodCheckinEnabled } from "@/lib/profile-actions";
+import {
+  updateBirthDate,
+  updateDisplayName,
+  setRelationshipStartDate,
+  setQuizEnabled,
+  setMoodCheckinEnabled,
+} from "@/lib/profile-actions";
 
 beforeEach(() => {
   mockSupabase = makeMockSupabase();
@@ -94,6 +100,44 @@ describe("updateBirthDate", () => {
     mockSupabase.from.mockReturnValue({ update, eq });
 
     const result = await updateBirthDate("1998-03-14");
+
+    expect(result).toEqual({ error: "colonna inesistente" });
+  });
+});
+
+describe("updateDisplayName", () => {
+  it("ritorna errore se il nickname è vuoto (o solo spazi), senza chiamare la query", async () => {
+    const result = await updateDisplayName("   ");
+    expect(result).toEqual({ error: "Il nickname non può essere vuoto." });
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it("ritorna errore se l'utente non è autenticato", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+    const result = await updateDisplayName("Anna");
+    expect(result).toEqual({ error: "Utente non autenticato" });
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it("aggiorna profiles.display_name (trimmato) per l'utente corrente e ritorna true", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const { update, eq } = makeUpdateEqMock({ error: null });
+    mockSupabase.from.mockReturnValue({ update, eq });
+
+    const result = await updateDisplayName("  Anna Nuova  ");
+
+    expect(result).toBe(true);
+    expect(mockSupabase.from).toHaveBeenCalledWith("profiles");
+    expect(update).toHaveBeenCalledWith({ display_name: "Anna Nuova" });
+    expect(eq).toHaveBeenCalledWith("id", "u1");
+  });
+
+  it("propaga l'errore della query", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const { update, eq } = makeUpdateEqMock({ error: { message: "colonna inesistente" } });
+    mockSupabase.from.mockReturnValue({ update, eq });
+
+    const result = await updateDisplayName("Anna");
 
     expect(result).toEqual({ error: "colonna inesistente" });
   });

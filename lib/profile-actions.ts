@@ -41,6 +41,22 @@ export async function updateBirthDate(birthDate: string | null): Promise<true | 
   return true;
 }
 
+/** Aggiorna profiles.display_name (il nickname mostrato ovunque nell'app) per l'utente autenticato corrente. */
+export async function updateDisplayName(displayName: string): Promise<true | ActionError> {
+  const trimmed = displayName.trim();
+  if (!trimmed) return { error: "Il nickname non può essere vuoto." };
+
+  const supabase = createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData?.user;
+  if (!user) return { error: "Utente non autenticato" };
+
+  const { error } = await supabase.from("profiles").update({ display_name: trimmed }).eq("id", user.id);
+
+  if (error) return { error: error.message };
+  return true;
+}
+
 /**
  * Imposta couples.relationship_start_date per la coppia dell'utente
  * autenticato via la RPC `set_relationship_start_date` già esistente (vedi

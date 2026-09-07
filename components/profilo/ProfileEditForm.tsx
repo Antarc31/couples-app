@@ -1,14 +1,16 @@
 "use client";
 
 /**
- * Form di modifica del Profilo — piano approvato in
- * /Users/antonioarcucci/.claude/plans/ho-notato-delle-cose-mossy-sketch.md,
- * "Feature B — Eventi 'speciale' automatici". Sostituisce il blocco
- * read-only precedente in app/(app)/profilo/page.tsx (che mostrava solo la
- * data di inizio relazione in sola lettura).
- *
- * Due sezioni Card indipendenti, ciascuna col proprio stato di
- * salvataggio/errore:
+ * Form di modifica del Profilo. Ogni campo è una sezione Card indipendente
+ * col proprio stato di salvataggio/errore (stesso pattern ripetuto per
+ * Nickname, Email, Data di nascita, Data di inizio relazione):
+ *   - Nickname: sempre visibile, scrive su `profiles.display_name`
+ *     (lib/profile-actions.ts -> updateDisplayName).
+ *   - Email: sempre visibile, richiede conferma via link mandato al nuovo
+ *     indirizzo (lib/auth-actions.ts -> updateEmail, Supabase Auth) — non
+ *     diventa effettiva subito, quindi qui NON si aggiorna otticamente il
+ *     campo né si chiama router.refresh() dopo il submit (l'email in
+ *     getCurrentCoupleData() resta quella vecchia finché non si conferma).
  *   - Data di nascita: sempre visibile, scrive direttamente su
  *     `profiles.birth_date` (lib/profile-actions.ts -> updateBirthDate).
  *   - Data di inizio relazione: visibile SOLO se `isPaired` — la RPC
@@ -20,11 +22,11 @@
  * Impostare l'una o l'altra data fa scattare lato DB la generazione/
  * aggiornamento automatico dell'evento calendario categoria 'speciale'
  * collegato (compleanno/anniversario) — questo componente non ne sa nulla,
- * si limita a chiamare le due azioni e a fare `router.refresh()` dopo un
- * salvataggio riuscito, così Home (countdown "prossima data speciale") e
- * qualunque altro dato server-derivato si aggiornano. Niente
- * `window.confirm`/`alert` nativi, coerente con lo stile del resto dell'app
- * (vedi EventDetailSheet.tsx).
+ * si limita a chiamare le azioni e a fare `router.refresh()` dopo un
+ * salvataggio riuscito (tranne per l'email, vedi sopra), così Home
+ * (countdown "prossima data speciale") e qualunque altro dato
+ * server-derivato si aggiornano. Niente `window.confirm`/`alert` nativi,
+ * coerente con lo stile del resto dell'app (vedi EventDetailSheet.tsx).
  */
 
 import { useState, type FormEvent } from "react";
@@ -32,9 +34,14 @@ import { useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import { updateBirthDate, setRelationshipStartDate } from "@/lib/profile-actions";
+import { updateBirthDate, setRelationshipStartDate, updateDisplayName } from "@/lib/profile-actions";
+import { updateEmail } from "@/lib/auth-actions";
 
 interface ProfileEditFormProps {
+  /** profiles.display_name corrente, o null se non ancora impostato. */
+  displayName: string | null;
+  /** auth.users.email corrente. */
+  email: string;
   /** profiles.birth_date corrente (ISO 'YYYY-MM-DD'), o null se non ancora impostata. */
   birthDate: string | null;
   /** true se l'utente ha un partner accoppiato — controlla la visibilità della sezione anniversario. */
@@ -43,8 +50,24 @@ interface ProfileEditFormProps {
   relationshipStartDate: string | null;
 }
 
-export default function ProfileEditForm({ birthDate, isPaired, relationshipStartDate }: ProfileEditFormProps) {
+export default function ProfileEditForm({
+  displayName,
+  email,
+  birthDate,
+  isPaired,
+  relationshipStartDate,
+}: ProfileEditFormProps) {
   const router = useRouter();
+
+  const [displayNameValue, setDisplayNameValue] = useState(displayName ?? "");
+  const [savingDisplayName, setSavingDisplayName] = useState(false);
+  const [displayNameError, setDisplayNameError] = useState<string | null>(null);
+  const [displayNameSaved, setDisplayNameSaved] = useState(false);
+
+  const [emailValue, setEmailValue] = useState(email);
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailRequested, setEmailRequested] = useState(false);
 
   const [birthDateValue, setBirthDateValue] = useState(birthDate ?? "");
   const [savingBirthDate, setSavingBirthDate] = useState(false);
@@ -55,6 +78,39 @@ export default function ProfileEditForm({ birthDate, isPaired, relationshipStart
   const [savingRelationshipDate, setSavingRelationshipDate] = useState(false);
   const [relationshipDateError, setRelationshipDateError] = useState<string | null>(null);
   const [relationshipDateSaved, setRelationshipDateSaved] = useState(false);
+
+  async function handleDisplayNameSubmit(e: FormEvent) {
+    e.preventDefault();
+    setSavingDisplayName(true);
+    setDisplayNameError(null);
+    setDisplayNameSaved(false);
+
+    const result = await updateDisplayName(displayNameValue);
+
+    setSavingDisplayName(false);
+    if (result !== true) {
+      setDisplayNameError(result.error);
+      return;
+    }
+    setDisplayNameSaved(true);
+    router.refresh();
+  }
+
+  async function handleEmailSubmit(e: FormEvent) {
+    e.preventDefault();
+    setSavingEmail(true);
+    setEmailError(null);
+    setEmailRequested(false);
+
+    const result = await updateEmail(emailValue);
+
+    setSavingEmail(false);
+    if ("error" in result) {
+      setEmailError(result.error);
+      return;
+    }
+    setEmailRequested(true);
+  }
 
   async function handleBirthDateSubmit(e: FormEvent) {
     e.preventDefault();
@@ -96,6 +152,53 @@ export default function ProfileEditForm({ birthDate, isPaired, relationshipStart
 
   return (
     <>
+      <Card className="flex flex-col gap-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Nickname</p>
+        <form onSubmit={handleDisplayNameSubmit} className="flex flex-col gap-2">
+          <Input
+            type="text"
+            value={displayNameValue}
+            onChange={(e) => {
+              setDisplayNameValue(e.target.value);
+              setDisplayNameSaved(false);
+            }}
+            aria-label="Nickname"
+          />
+          {displayNameError && (
+            <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{displayNameError}</p>
+          )}
+          {displayNameSaved && !displayNameError && <p className="text-sm text-ink-soft">Salvato ✓</p>}
+          <Button type="submit" variant="secondary" disabled={savingDisplayName}>
+            {savingDisplayName ? "Salvo…" : "Salva"}
+          </Button>
+        </form>
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Email</p>
+        <form onSubmit={handleEmailSubmit} className="flex flex-col gap-2">
+          <Input
+            type="email"
+            value={emailValue}
+            onChange={(e) => {
+              setEmailValue(e.target.value);
+              setEmailRequested(false);
+            }}
+            aria-label="Email"
+          />
+          {emailError && <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{emailError}</p>}
+          {emailRequested && !emailError && (
+            <p className="text-sm text-ink-soft">
+              Ti abbiamo mandato un'email di conferma al nuovo indirizzo: il cambio sarà effettivo solo dopo averla
+              confermata.
+            </p>
+          )}
+          <Button type="submit" variant="secondary" disabled={savingEmail || emailValue.trim() === email}>
+            {savingEmail ? "Invio…" : "Salva"}
+          </Button>
+        </form>
+      </Card>
+
       <Card className="flex flex-col gap-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Data di nascita</p>
         <form onSubmit={handleBirthDateSubmit} className="flex flex-col gap-2">

@@ -42,6 +42,8 @@ export default async function ProfiloPage() {
       )}
 
       <ProfileEditForm
+        displayName={data.displayName}
+        email={data.email}
         birthDate={data.birthDate}
         isPaired={data.partner !== null}
         relationshipStartDate={data.couple?.relationshipStartDate ?? null}

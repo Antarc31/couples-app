@@ -59,6 +59,12 @@ function friendlyAuthErrorMessage(message: string): string {
   if (message.includes("User already registered")) {
     return "Esiste già un account con questa email.";
   }
+  if (message.includes("A user with this email address has already been registered")) {
+    return "Esiste già un account con questa email.";
+  }
+  if (message.includes("Unable to validate email address")) {
+    return "Indirizzo email non valido.";
+  }
   return message;
 }
 
@@ -137,6 +143,29 @@ export async function requestPasswordReset(email: string): Promise<{ success: tr
 export async function updatePassword(newPassword: string): Promise<{ success: true } | AuthError> {
   const supabase = createClient();
   const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { error: friendlyAuthErrorMessage(error.message) };
+  return { success: true };
+}
+
+/**
+ * Richiede il cambio email — Supabase manda un'email di conferma al NUOVO
+ * indirizzo (e a seconda della configurazione "secure email change" del
+ * progetto, anche una conferma al vecchio) prima che il cambio diventi
+ * effettivo: l'email dell'utente (auth.users.email, e quindi anche
+ * getCurrentCoupleData().email) resta quella vecchia finché non si conferma
+ * dal link ricevuto. Stesso pattern di callback di requestPasswordReset:
+ * il link punta a app/auth/callback/route.ts, che scambia il `code` per una
+ * sessione e poi torna su /profilo.
+ */
+export async function updateEmail(newEmail: string): Promise<{ success: true } | AuthError> {
+  const trimmed = newEmail.trim();
+  if (!trimmed) return { error: "L'email non può essere vuota." };
+
+  const supabase = createClient();
+  const { error } = await supabase.auth.updateUser(
+    { email: trimmed },
+    { emailRedirectTo: `${window.location.origin}/auth/callback?next=/profilo` },
+  );
   if (error) return { error: friendlyAuthErrorMessage(error.message) };
   return { success: true };
 }
