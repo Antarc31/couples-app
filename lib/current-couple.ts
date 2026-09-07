@@ -46,8 +46,13 @@ interface ProfileWithCoupleRow {
     relationship_start_date: string | null;
     quiz_enabled: boolean;
     mood_checkin_enabled: boolean;
-    partner_1: { id: string; display_name: string | null; color: string };
-    partner_2: { id: string; display_name: string | null; color: string };
+    // Tipati nullable anche se in teoria sempre presenti quando c'è una
+    // couple (ogni couple ha esattamente due partner, vincolo DB): il tipo
+    // riflette che un embed RLS/dato inconsistente potrebbe comunque
+    // restituire null qui, e il codice sotto lo gestisce esplicitamente
+    // invece di assumerlo per certo.
+    partner_1: { id: string; display_name: string | null; color: string } | null;
+    partner_2: { id: string; display_name: string | null; color: string } | null;
   } | null;
 }
 
@@ -75,7 +80,7 @@ export const getCurrentCoupleData = cache(async (): Promise<CurrentCoupleData | 
   // couples_select_members permettono già esattamente questa lettura) —
   // qui cambia solo QUANTI round-trip servono per ottenerla, non cosa si
   // può leggere.
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
       `display_name, color, couple_id, birth_date,
@@ -88,6 +93,10 @@ export const getCurrentCoupleData = cache(async (): Promise<CurrentCoupleData | 
     .eq("id", user.id)
     .maybeSingle()
     .returns<ProfileWithCoupleRow>();
+  // Un errore qui (query malformata, permessi) non deve mai far crashare la
+  // pagina intera con un 500: si logga e si degrada come "profilo non
+  // trovato", stesso comportamento del ramo `!profile` sotto.
+  if (profileError) console.error("getCurrentCoupleData: query profilo fallita", profileError);
   if (!profile) return null;
 
   let partner: CurrentCoupleData["partner"] = null;
@@ -95,14 +104,24 @@ export const getCurrentCoupleData = cache(async (): Promise<CurrentCoupleData | 
 
   if (profile.couple) {
     const c = profile.couple;
-    couple = {
-      id: c.id,
-      relationshipStartDate: c.relationship_start_date,
-      quizEnabled: c.quiz_enabled,
-      moodCheckinEnabled: c.mood_checkin_enabled,
-    };
-    const partnerRow = c.partner_1.id === user.id ? c.partner_2 : c.partner_1;
-    partner = { id: partnerRow.id, displayName: partnerRow.display_name, color: partnerRow.color };
+    const { partner_1: partnerOne, partner_2: partnerTwo } = c;
+    // partnerOne/partnerTwo dovrebbero essere sempre presenti quando c'è una
+    // couple (ogni couple ha esattamente due partner, per vincolo DB) — il
+    // controllo esplicito è solo per non far crashare l'intera Home con un
+    // errore 500 nel caso mai capitasse un embed incompleto (RLS/dato
+    // inconsistente): meglio degradare a "non accoppiato" che rompere tutto.
+    if (partnerOne && partnerTwo) {
+      couple = {
+        id: c.id,
+        relationshipStartDate: c.relationship_start_date,
+        quizEnabled: c.quiz_enabled,
+        moodCheckinEnabled: c.mood_checkin_enabled,
+      };
+      const partnerRow = partnerOne.id === user.id ? partnerTwo : partnerOne;
+      partner = { id: partnerRow.id, displayName: partnerRow.display_name, color: partnerRow.color };
+    } else {
+      console.error("getCurrentCoupleData: couple trovata ma partner_1/partner_2 mancanti nell'embed", c);
+    }
   }
 
   return {
