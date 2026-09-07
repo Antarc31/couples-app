@@ -27,7 +27,7 @@ interface QuizCardProps {
   initialScores?: QuizScores;
 }
 
-/** Quiz giornaliero "indovina il partner" (Fase B, redesign). Self-fetch client-side + realtime su quiz_answers per rivelazione/conferma senza refresh. */
+/** Quiz giornaliero di coppia "quiz del giorno" (Fase B, redesign). Self-fetch client-side + realtime su quiz_answers per rivelazione/conferma senza refresh. */
 export default function QuizCard({
   partnerName,
   partnerId,
@@ -124,7 +124,7 @@ export default function QuizCard({
     <Card className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <IconBadge icon={Brain} size={32} />
-        <h2 className="text-xl leading-none text-ink">indovina il partner</h2>
+        <h2 className="text-xl leading-none text-ink">quiz del giorno</h2>
       </div>
 
       {scores && (
