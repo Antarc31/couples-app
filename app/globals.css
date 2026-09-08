@@ -239,14 +239,18 @@ body {
 }
 .theme-neutral {
   /* Campanella + titolo "Home" in AppTopBar — su richiesta esplicita
-     dell'utente NON deve essere colorato (né viola originale né oro):
-     grigio scuro neutro su un fondo quasi bianco, "richiama lo sfondo
-     generale della pagina" (Home è bianca) invece di spiccare come un
-     tema a sé. Nessun --card-tint/gradient qui: questo tema è pensato
-     solo per l'header, non per intere pagine/card. */
-  --color-couple: #6b6b63;
-  --color-couple-soft: #ece9e2;
-  --color-base: #f6f4f0;
+     dell'utente NON deve essere colorato (né viola originale né oro).
+     Due giri: prima un grigio chiaro su un fondo quasi bianco leggermente
+     diverso da quello della Home sotto (percepito come "non ben unito
+     al resto della pagina" — un bianco quasi-ma-non-uguale è più
+     stonato di uno identico o di uno chiaramente diverso). Ora:
+     --color-base identico al bianco di .theme-home (stessa barra,
+     nessuna cucitura visibile, il bordo sotto la separa già) e testo/
+     campanella un grigio molto più scuro, neutro (non il --color-ink
+     dell'app, che ha una base violacea — qui va scuro ma senza tinta). */
+  --color-couple: #3d3a36;
+  --color-couple-soft: #e4e2dd;
+  --color-base: #ffffff;
 }
 
 /*
