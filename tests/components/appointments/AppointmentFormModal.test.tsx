@@ -32,8 +32,12 @@ jest.mock("@/lib/calendar-actions", () => ({
   updateCalendarEvent: jest.fn(),
 }));
 
+type ActionOrErrorResult = { error: string } | { id: string };
+
+const mockCreateAppointmentIdea = jest.fn<Promise<ActionOrErrorResult>, [unknown]>();
+
 jest.mock("@/lib/appointments-actions", () => ({
-  createAppointmentIdea: jest.fn(),
+  createAppointmentIdea: (...args: [unknown]) => mockCreateAppointmentIdea(...args),
   createConfirmedAppointment: jest.fn(),
   confirmAppointment: jest.fn(),
   updateAppointment: jest.fn(),
@@ -61,6 +65,106 @@ beforeEach(() => {
   mockGetUser.mockResolvedValue({ data: { user: { id: "me" } } });
   mockMaybeSingle.mockReset();
   mockMaybeSingle.mockResolvedValue({ data: { couple_id: "c1" } });
+  mockCreateAppointmentIdea.mockReset();
+  mockCreateAppointmentIdea.mockResolvedValue({ id: "idea-1" });
+});
+
+describe("AppointmentFormModal — categoria (sostituisce il vecchio tag a testo libero)", () => {
+  it("selezionare una categoria fissa e salvare invia quel valore come tag", async () => {
+    const user = userEvent.setup();
+    render(<AppointmentFormModal mode="idea" onClose={jest.fn()} onSaved={jest.fn()} />);
+
+    await user.type(screen.getByPlaceholderText("Titolo (es. Cena da Marco)"), "Weekend a Roma");
+    await user.click(screen.getByRole("button", { name: "Ristorante" }));
+    await user.click(screen.getByRole("button", { name: "Salva" }));
+
+    await waitFor(() =>
+      expect(mockCreateAppointmentIdea).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Weekend a Roma", tag: "ristorante" }),
+      ),
+    );
+  });
+
+  it("'Altro' apre un campo di testo; scrivere ed inviare manda quel testo come tag", async () => {
+    const user = userEvent.setup();
+    render(<AppointmentFormModal mode="idea" onClose={jest.fn()} onSaved={jest.fn()} />);
+
+    await user.type(screen.getByPlaceholderText("Titolo (es. Cena da Marco)"), "Giornata alle terme");
+    expect(screen.queryByPlaceholderText("Scrivi una categoria…")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Altro" }));
+    await user.type(screen.getByPlaceholderText("Scrivi una categoria…"), "Spa");
+    await user.click(screen.getByRole("button", { name: "Salva" }));
+
+    await waitFor(() =>
+      expect(mockCreateAppointmentIdea).toHaveBeenCalledWith(expect.objectContaining({ tag: "Spa" })),
+    );
+  });
+
+  it("passare da una categoria fissa ad 'Altro' svuota il tag invece di inviare il valore precedente", async () => {
+    const user = userEvent.setup();
+    render(<AppointmentFormModal mode="idea" onClose={jest.fn()} onSaved={jest.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Viaggio" }));
+    await user.click(screen.getByRole("button", { name: "Altro" }));
+
+    expect(screen.getByPlaceholderText("Scrivi una categoria…")).toHaveValue("");
+  });
+
+  it("in modifica, una categoria fissa esistente è già selezionata", () => {
+    render(
+      <AppointmentFormModal
+        mode="idea"
+        initial={{
+          id: "idea-1",
+          coupleId: "c1",
+          createdBy: "me",
+          title: "Weekend",
+          location: null,
+          cost: null,
+          notes: null,
+          photoUrl: null,
+          tag: "attivita",
+          status: "idea",
+          calendarEventId: null,
+          createdAt: "2026-09-01T00:00:00.000Z",
+          updatedAt: "2026-09-01T00:00:00.000Z",
+        }}
+        onClose={jest.fn()}
+        onSaved={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Attività" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByPlaceholderText("Scrivi una categoria…")).not.toBeInTheDocument();
+  });
+
+  it("in modifica, un tag esistente non tra le categorie fisse apre subito 'Altro' con quel testo", () => {
+    render(
+      <AppointmentFormModal
+        mode="idea"
+        initial={{
+          id: "idea-1",
+          coupleId: "c1",
+          createdBy: "me",
+          title: "Weekend",
+          location: null,
+          cost: null,
+          notes: null,
+          photoUrl: null,
+          tag: "spa",
+          status: "idea",
+          calendarEventId: null,
+          createdAt: "2026-09-01T00:00:00.000Z",
+          updatedAt: "2026-09-01T00:00:00.000Z",
+        }}
+        onClose={jest.fn()}
+        onSaved={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Altro" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByPlaceholderText("Scrivi una categoria…")).toHaveValue("spa");
+  });
 });
 
 describe("AppointmentFormModal — modalità 'idea' (senza data/ora)", () => {

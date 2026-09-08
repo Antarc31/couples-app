@@ -14,13 +14,10 @@ import { listCoupleEventsInRange, updateCalendarEvent } from "@/lib/calendar-act
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import SlotSuggestions from "@/components/calendar/SlotSuggestions";
+import { MoreHorizontal } from "@/components/ui/icons";
+import { APPOINTMENT_CATEGORIES } from "@/lib/appointment-categories";
 
 export type AppointmentFormMode = "idea" | "confirmed" | "transform" | "edit";
-
-// Testo libero, non un enum chiuso (calendar_events.tag / appointments.tag
-// sono entrambi testo libero per scelta di backend2 — vedi commento in
-// supabase/migrations/20260901010000_appointments.sql).
-const TAG_SUGGESTIONS = ["viaggio", "attivita", "ristorante"];
 
 interface AppointmentFormModalProps {
   mode: AppointmentFormMode;
@@ -63,6 +60,12 @@ export default function AppointmentFormModal({
     mode === "confirmed" || mode === "transform" || (mode === "edit" && initial?.status === "confermato");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [tag, setTag] = useState(initial?.tag ?? "");
+  // "Altro" parte già aperto se il tag esistente non è una delle categorie
+  // fisse (idea/appuntamento creato prima di questo cambio, o già scritto
+  // a mano) — così modificarlo non fa perdere il testo originale.
+  const [showCustomTag, setShowCustomTag] = useState(
+    Boolean(initial?.tag) && !APPOINTMENT_CATEGORIES.some((c) => c.value === initial?.tag),
+  );
   const [date, setDate] = useState(toDateKey(initialEvent ? new Date(initialEvent.startsAt) : new Date()));
   const [startTime, setStartTime] = useState(
     initialEvent
@@ -256,20 +259,57 @@ export default function AppointmentFormModal({
           />
 
           <div>
-            <p className="mb-1.5 text-xs font-semibold text-ink-soft">Tag (opzionale)</p>
-            <Input type="text" placeholder="es. viaggio, ristorante…" value={tag} onChange={(e) => setTag(e.target.value)} />
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {TAG_SUGGESTIONS.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTag(t)}
-                  className="rounded-full bg-partner-a-soft/50 px-2.5 py-1 text-xs font-medium capitalize text-ink-soft hover:bg-partner-a-soft"
-                >
-                  {t}
-                </button>
-              ))}
+            <p className="mb-1.5 text-xs font-semibold text-ink-soft">Categoria (opzionale)</p>
+            <div className="flex flex-wrap gap-1.5">
+              {APPOINTMENT_CATEGORIES.map(({ value, label, icon: Icon }) => {
+                const selected = tag === value && !showCustomTag;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      setTag(value);
+                      setShowCustomTag(false);
+                    }}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition active:scale-95 ${
+                      selected
+                        ? "bg-couple text-surface"
+                        : "border border-dashed border-[color:var(--color-border)] text-ink"
+                    }`}
+                  >
+                    <Icon size={14} strokeWidth={2.2} />
+                    {label}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                aria-pressed={showCustomTag}
+                onClick={() => {
+                  setShowCustomTag(true);
+                  if (APPOINTMENT_CATEGORIES.some((c) => c.value === tag)) setTag("");
+                }}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition active:scale-95 ${
+                  showCustomTag
+                    ? "bg-couple text-surface"
+                    : "border border-dashed border-[color:var(--color-border)] text-ink"
+                }`}
+              >
+                <MoreHorizontal size={14} strokeWidth={2.2} />
+                Altro
+              </button>
             </div>
+            {showCustomTag && (
+              <Input
+                type="text"
+                placeholder="Scrivi una categoria…"
+                value={tag}
+                onChange={(e) => setTag(e.target.value)}
+                className="mt-2"
+                autoFocus
+              />
+            )}
           </div>
 
           {isConfirmedForm && (

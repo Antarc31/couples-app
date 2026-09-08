@@ -42,4 +42,8 @@ export {
   Camera,
   Image as ImageIcon,
   Brain,
+  Plane,
+  UtensilsCrossed,
+  Ticket,
+  MoreHorizontal,
 } from "lucide-react";

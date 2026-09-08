@@ -245,6 +245,26 @@ describe("AppointmentsView — transizione 'Trasforma in appuntamento'", () => {
   });
 });
 
+describe("AppointmentsView — le idee sono in lista (Card), non più in una griglia 2 colonne", () => {
+  it("più idee sono ciascuna una riga con titolo, categoria e azione, non una griglia", async () => {
+    const user = userEvent.setup();
+    mockListAppointments.mockResolvedValueOnce([
+      makeAppointment({ id: "ap1", title: "Weekend a Roma", tag: "viaggio" }),
+      makeAppointment({ id: "ap2", title: "Corso di sushi", tag: "ristorante" }),
+    ]);
+
+    render(<AppointmentsView />);
+    await user.click(await screen.findByRole("button", { name: "Idee" }));
+
+    expect(await screen.findByText("Weekend a Roma")).toBeInTheDocument();
+    expect(screen.getByText("Corso di sushi")).toBeInTheDocument();
+    expect(screen.getByText("viaggio")).toBeInTheDocument();
+    expect(screen.getByText("ristorante")).toBeInTheDocument();
+    // Una card per idea, ciascuna col proprio bottone di trasformazione.
+    expect(screen.getAllByRole("button", { name: "Trasforma in appuntamento" })).toHaveLength(2);
+  });
+});
+
 describe("AppointmentsView — FAB 'Appuntamento confermato' (mode 'confirmed', gap segnalato da frontend2)", () => {
   it("dal FAB apre il form 'Nuovo appuntamento' e alla conferma chiama createConfirmedAppointment (UN SOLO insert, non idea->conferma), poi ricarica la lista", async () => {
     const user = userEvent.setup();

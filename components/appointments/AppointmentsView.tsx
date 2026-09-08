@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { daysBetween } from "@/lib/calendar-dates";
 import { listAppointments, type Appointment } from "@/lib/appointments-actions";
+import { iconForTag } from "@/lib/appointment-categories";
 import Card from "@/components/ui/Card";
 import AppointmentFormModal, { type AppointmentFormMode } from "@/components/appointments/AppointmentFormModal";
 import AppointmentDetailSheet from "@/components/appointments/AppointmentDetailSheet";
@@ -33,15 +34,6 @@ function formatEventDate(iso: string, allDay: boolean): string {
 function formatCost(cost: number | null): string | null {
   if (cost == null) return null;
   return Number.isInteger(cost) ? `~${cost}€` : `~${cost.toFixed(2)}€`;
-}
-
-function tagEmoji(tag: string | null): string {
-  if (!tag) return "📍";
-  const t = tag.toLowerCase();
-  if (t.includes("viagg")) return "✈️";
-  if (t.includes("ristor")) return "🍽️";
-  if (t.includes("attiv")) return "🎯";
-  return "📍";
 }
 
 /**
@@ -151,7 +143,9 @@ export default function AppointmentsView() {
           <EmptyState emoji="📍" text="Nessun appuntamento confermato. Trasforma un'idea o aggiungine uno nuovo!" />
         ) : (
           <div className="flex flex-col gap-3">
-            {confirmed.map(({ appointment: a, event }) => (
+            {confirmed.map(({ appointment: a, event }) => {
+              const CategoryIcon = iconForTag(a.tag);
+              return (
               <Card
                 key={a.id}
                 role="button"
@@ -162,8 +156,8 @@ export default function AppointmentsView() {
                 }}
                 className="flex cursor-pointer gap-3"
               >
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-couple-soft text-2xl">
-                  {tagEmoji(a.tag)}
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-couple-soft text-couple">
+                  <CategoryIcon size={22} strokeWidth={2} />
                 </span>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-ink">{a.title}</p>
@@ -185,48 +179,50 @@ export default function AppointmentsView() {
                   </div>
                 </div>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )
       ) : ideas.length === 0 && !loading ? (
         <EmptyState emoji="💡" text="Ancora nessuna idea. Aggiungine una con il pulsante +!" />
       ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {ideas.map((a) => (
-            <div
-              key={a.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => setSelectedAppointment(a)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") setSelectedAppointment(a);
-              }}
-              className="flex cursor-pointer flex-col overflow-hidden rounded-[var(--radius-app)] bg-surface shadow-[var(--shadow-soft)]"
-            >
-              <div className="flex h-28 items-center justify-center bg-partner-a-soft/50 text-4xl">{tagEmoji(a.tag)}</div>
-              <div className="flex flex-1 flex-col gap-2 p-3">
-                <p className="text-sm font-bold text-ink">{a.title}</p>
-                {a.tag && (
-                  <span className="w-fit rounded-full bg-partner-a-soft/50 px-2 py-0.5 text-[11px] font-semibold capitalize text-ink-soft">
-                    {a.tag}
-                  </span>
-                )}
-                <button
-                  onClick={(e) => {
-                    // Non deve far scattare ANCHE l'apertura del detail sheet dell'idea
-                    // (l'onClick del contenitore, sopra) — stessa classe di problema già
-                    // risolta per il cuore in MemoriesDeck.tsx, qui però basta stopPropagation
-                    // su un click, non c'è nessun gesture di drag da proteggere.
-                    e.stopPropagation();
-                    setFormState({ mode: "transform", initial: a });
-                  }}
-                  className="mt-auto rounded-xl bg-couple-soft px-2 py-1.5 text-xs font-bold text-couple transition active:scale-[0.98]"
-                >
-                  Trasforma in appuntamento
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="flex flex-col gap-3">
+          {ideas.map((a) => {
+            const CategoryIcon = iconForTag(a.tag);
+            return (
+              <Card
+                key={a.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedAppointment(a)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") setSelectedAppointment(a);
+                }}
+                className="flex cursor-pointer gap-3"
+              >
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-couple-soft text-couple">
+                  <CategoryIcon size={22} strokeWidth={2} />
+                </span>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-ink">{a.title}</p>
+                  {a.tag && <p className="text-xs capitalize text-ink-soft">{a.tag}</p>}
+                  <button
+                    onClick={(e) => {
+                      // Non deve far scattare ANCHE l'apertura del detail sheet dell'idea
+                      // (l'onClick del contenitore, sopra) — stessa classe di problema già
+                      // risolta per il cuore in MemoriesDeck.tsx, qui però basta stopPropagation
+                      // su un click, non c'è nessun gesture di drag da proteggere.
+                      e.stopPropagation();
+                      setFormState({ mode: "transform", initial: a });
+                    }}
+                    className="mt-1.5 rounded-full bg-couple-soft px-2.5 py-1 text-xs font-bold text-couple transition active:scale-[0.98]"
+                  >
+                    Trasforma in appuntamento
+                  </button>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 
