@@ -12,7 +12,17 @@
      giri precedenti: si torna a "carta chiara, testo scuro" di default,
      la personalità arriva dai pattern decorativi (sticker, tratteggi,
      rotazioni), non da un fondo tinto. */
-  --color-base: #edd3df; /* fallback solido sotto al gradiente pagina, vedi .bg-diary */
+  /* Fallback quando nessun .theme-X è attivo — usato da <body> stesso
+     (schermate auth, che non impostano un proprio sfondo) e dall'area
+     rivelata durante l'overscroll/"tirone" su iOS, che mostra sempre lo
+     sfondo di <body> indipendentemente da qualunque div interno tematizzato
+     (nessun modo per farlo seguire la pagina corrente senza JS a livello di
+     root layout). Prima era il rosa #edd3df della vecchia palette
+     monocromatica, mai aggiornato dal sistema a tema per-pagina — quel
+     "tirone rivela ancora il rosa" segnalato dall'utente. Bianco quasi
+     puro, stesso valore di --color-surface: un flash neutro durante il
+     bounce è accettabile, uno rosa che stona con la pagina sotto no. */
+  --color-base: #fefdfb;
   /* "paper" — bianco quasi puro (non #fbf6f9 di prima, che aveva una
      patina rosa visibile su elementi non tematizzati come AppTabBar:
      l'utente lo notava come "strisciolina rosa" in fondo a ogni pagina).

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { PAGE_THEME } from "@/lib/page-theme";
 import {
   listNotifications,
   getUnreadNotificationsCount,
@@ -52,22 +53,16 @@ const PAGE_TITLES: Record<string, string> = {
 };
 
 /**
- * Un colore diverso per schermata (vedi app/globals.css .theme-*) — bottone
- * campanella e titolo pagina lo adottano qui, coerente col resto della
- * pagina sotto. Appuntamenti condivide il tema di Calendario (stesso dato:
- * un appuntamento confermato è un evento calendario), su scelta esplicita
- * dell'utente. Home usa .theme-neutral (grigio scuro su fondo quasi
- * bianco) — non .theme-hero (oro, usato invece dal widget countdown
- * sotto): tentato prima, l'utente non voleva un titolo colorato su Home,
- * solo che "richiamasse lo sfondo generale della pagina" (bianco).
+ * Un colore diverso per schermata — bottone campanella e titolo pagina lo
+ * adottano qui, coerente col resto della pagina sotto (mappa condivisa con
+ * il guscio di sfondo, vedi components/AppShellBackground.tsx). Home usa
+ * .theme-neutral (grigio scuro su fondo quasi bianco), non presente nella
+ * mappa condivisa — non .theme-hero (oro, usato invece dal widget
+ * countdown sotto): tentato prima, l'utente non voleva un titolo colorato
+ * su Home, solo che "richiamasse lo sfondo generale della pagina" (bianco/
+ * grigio quasi bianco).
  */
-const PAGE_THEME: Record<string, string> = {
-  "/home": "theme-neutral",
-  "/calendario": "theme-calendar",
-  "/appuntamenti": "theme-calendar",
-  "/wishlist": "theme-wishlist",
-  "/profilo": "theme-profile",
-};
+const HOME_HEADER_THEME = "theme-neutral";
 
 function mapRowToNotification(row: NotificationRow): AppNotification {
   return {
@@ -107,7 +102,7 @@ export default function AppTopBar({ userId }: { userId: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const pageTitle = PAGE_TITLES[pathname];
-  const pageTheme = PAGE_THEME[pathname] ?? "";
+  const pageTheme = pathname === "/home" ? HOME_HEADER_THEME : (PAGE_THEME[pathname] ?? "");
   const [unreadCount, setUnreadCount] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);

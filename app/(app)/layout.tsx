@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentCoupleData } from "@/lib/current-couple";
 import AppTabBar from "@/components/AppTabBar";
 import AppTopBar from "@/components/AppTopBar";
+import AppShellBackground from "@/components/AppShellBackground";
 
 /**
  * Shell delle schermate autenticate: verifica sessione + pairing (stessa
@@ -21,17 +22,18 @@ export default async function AppShellLayout({ children }: { children: React.Rea
   if (!data.couple) redirect("/pairing");
 
   return (
-    <div className="flex flex-1 flex-col bg-surface">
+    <AppShellBackground>
       <AppTopBar userId={data.userId} />
-      {/* bg-surface qui (non solo sul wrapper esterno): questo div scrollabile
-          aggiunge il proprio pb-4 SOPRA il padding che ogni pagina già mette
-          in fondo al proprio contenuto (es. pb-24 di Home) — in quel margine
-          extra, essendo entrambi i div trasparenti di default, si vedeva lo
-          sfondo di <body> (--color-base di :root, mai aggiornato dal sistema
-          a tema per-pagina: la "strisciolina rosa sotto i pulsanti" che
-          restava visibile nonostante i fix precedenti). */}
-      <div className="flex flex-1 flex-col overflow-y-auto bg-surface pb-4">{children}</div>
+      {/* Il colore di questo guscio (sfondo + gradiente) segue il tema della
+          pagina corrente via AppShellBackground, non più bianco fisso: in
+          qualunque margine scoperto — es. il pb-4 qui sotto sommato al
+          pb-24 che ogni pagina già mette in fondo al proprio contenuto, o
+          durante l'overscroll su iOS — si vede il colore giusto (blu/
+          viola/verde/bianco a seconda della pagina) invece del vecchio
+          rosa fisso di --color-base a :root o di un bianco che spegneva il
+          colore delle altre pagine. */}
+      <div className="flex flex-1 flex-col overflow-y-auto pb-4">{children}</div>
       <AppTabBar />
-    </div>
+    </AppShellBackground>
   );
 }
