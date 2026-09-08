@@ -49,7 +49,15 @@ export type NotificationType =
   | "wishlist"
   | "quiz"
   | "mood_checkin";
-export type MoodType = "felice" | "sereno" | "stanco" | "stressato" | "triste" | "innamorato";
+export type MoodType =
+  | "felice"
+  | "sereno"
+  | "stanco"
+  | "stressato"
+  | "triste"
+  | "innamorato"
+  | "arrabbiato"
+  | "altro";
 
 export interface Database {
   public: {
@@ -616,6 +624,9 @@ export interface Database {
           profile_id: string;
           checkin_date: string;
           mood: MoodType;
+          // Etichetta libera, valorizzata SOLO quando mood = 'altro'. Vedi
+          // supabase/migrations/20260908010100_mood_custom_label_column.sql.
+          mood_custom_label: string | null;
           created_at: string;
         };
         Insert: {
@@ -624,6 +635,7 @@ export interface Database {
           profile_id: string;
           checkin_date: string;
           mood: MoodType;
+          mood_custom_label?: string | null;
           created_at?: string;
         };
         Update: never;

@@ -46,7 +46,9 @@ describe("MoodRevealSheet", () => {
   it("mostra entrambi i mood con i nomi corretti quando risolto", async () => {
     mockGetMoodRevealForNotification.mockResolvedValue({
       myMood: "felice",
+      myCustomLabel: null,
       partnerMood: "stanco",
+      partnerCustomLabel: null,
       partnerName: "Sam",
       revealed: true,
       checkinDate: "2026-08-20",
@@ -59,10 +61,27 @@ describe("MoodRevealSheet", () => {
     expect(screen.getByText("Tu")).toBeInTheDocument();
   });
 
+  it("mostra l'etichetta personalizzata quando il mood è 'altro'", async () => {
+    mockGetMoodRevealForNotification.mockResolvedValue({
+      myMood: "altro",
+      myCustomLabel: "Nervoso per l'esame",
+      partnerMood: "felice",
+      partnerCustomLabel: null,
+      partnerName: "Sam",
+      revealed: true,
+      checkinDate: "2026-08-20",
+    });
+    render(<MoodRevealSheet sourceId="row-1" onClose={jest.fn()} onNotReady={jest.fn()} />);
+
+    expect(await screen.findByText("Nervoso per l'esame")).toBeInTheDocument();
+  });
+
   it("tap sulla ✕ chiama onClose", async () => {
     mockGetMoodRevealForNotification.mockResolvedValue({
       myMood: "felice",
+      myCustomLabel: null,
       partnerMood: "stanco",
+      partnerCustomLabel: null,
       partnerName: "Sam",
       revealed: true,
       checkinDate: "2026-08-20",

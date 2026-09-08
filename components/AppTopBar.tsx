@@ -185,28 +185,10 @@ export default function AppTopBar({ userId }: { userId: string }) {
         className="sticky top-0 z-30 flex w-full items-center justify-between border-b border-border bg-base/95 px-4 py-2"
         style={{ paddingTop: "max(env(safe-area-inset-top), 0.5rem)" }}
       >
-        {pageTitle && (
-          <div>
-            <h1 className="text-[27px] font-bold leading-tight text-ink">{pageTitle}</h1>
-            {/* Sottolineatura "a mano": un'onda SVG invece di un tratto dritto, leggermente ruotata. */}
-            <svg
-              viewBox="0 0 70 10"
-              width="56"
-              height="8"
-              className="-mt-1 overflow-visible text-couple"
-              style={{ transform: "rotate(-1.5deg)" }}
-              aria-hidden="true"
-            >
-              <path
-                d="M2 6 C 12 1, 20 1, 28 6 S 44 11, 52 6 S 66 1, 68 5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-        )}
+        {/* Titolo colorato come la campanella (stesso --color-couple) invece
+            della sottolineatura "a mano" di prima, non gradita
+            dall'utente. */}
+        {pageTitle && <h1 className="text-[27px] font-bold leading-tight text-couple">{pageTitle}</h1>}
         <div className="relative ml-auto">
           <button
             type="button"

@@ -73,10 +73,16 @@ export default function MoodRevealSheet({ sourceId, onClose, onNotReady }: MoodR
             <div className="flex items-center justify-around py-2">
               <div className="flex flex-col items-center gap-1">
                 <span className="text-4xl">{reveal.myMood && MOOD_EMOJI[reveal.myMood]}</span>
+                {reveal.myMood === "altro" && reveal.myCustomLabel && (
+                  <span className="max-w-[9rem] text-center text-xs text-ink">{reveal.myCustomLabel}</span>
+                )}
                 <span className="text-xs font-semibold text-ink-soft">Tu</span>
               </div>
               <div className="flex flex-col items-center gap-1">
                 <span className="text-4xl">{reveal.partnerMood && MOOD_EMOJI[reveal.partnerMood]}</span>
+                {reveal.partnerMood === "altro" && reveal.partnerCustomLabel && (
+                  <span className="max-w-[9rem] text-center text-xs text-ink">{reveal.partnerCustomLabel}</span>
+                )}
                 <span className="text-xs font-semibold text-ink-soft">{reveal.partnerName}</span>
               </div>
             </div>

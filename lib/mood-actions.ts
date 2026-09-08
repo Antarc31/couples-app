@@ -31,7 +31,11 @@ export interface ActionError {
 
 export interface TodaysMood {
   myMood: MoodType | null;
+  /** Valorizzata solo se myMood === "altro". */
+  myCustomLabel: string | null;
   partnerMood: MoodType | null;
+  /** Valorizzata solo se partnerMood === "altro" ED è visibile (revealed). */
+  partnerCustomLabel: string | null;
   /** Valorizzato solo se partnerMood è visibile (revealed) — RLS lo garantisce comunque. */
   partnerName: string | null;
   revealed: boolean;
@@ -40,6 +44,7 @@ export interface TodaysMood {
 interface MoodRow {
   profile_id: string;
   mood: MoodType;
+  mood_custom_label: string | null;
   profiles: unknown;
 }
 
@@ -55,7 +60,7 @@ export async function getMoodForDate(checkinDate: string, ctx?: ServerFetchConte
 
   const { data, error } = await supabase
     .from("mood_checkins")
-    .select("profile_id, mood, profiles!mood_checkins_profile_id_fkey(display_name)")
+    .select("profile_id, mood, mood_custom_label, profiles!mood_checkins_profile_id_fkey(display_name)")
     .eq("checkin_date", checkinDate);
   if (error) return { error: error.message };
 
@@ -65,7 +70,9 @@ export async function getMoodForDate(checkinDate: string, ctx?: ServerFetchConte
 
   return {
     myMood: mineRow?.mood ?? null,
+    myCustomLabel: mineRow?.mood_custom_label ?? null,
     partnerMood: partnerRow?.mood ?? null,
+    partnerCustomLabel: partnerRow?.mood_custom_label ?? null,
     partnerName: partnerRow ? partnerDisplayName(partnerRow) : null,
     revealed: Boolean(mineRow && partnerRow),
   };
@@ -76,8 +83,18 @@ export async function getTodaysMood(ctx?: ServerFetchContext): Promise<TodaysMoo
   return getMoodForDate(toDateKey(new Date()), ctx);
 }
 
-/** Registra il mood di oggi (uno solo, immutabile) e ritorna lo stato aggiornato. */
-export async function logTodaysMood(mood: MoodType): Promise<TodaysMood | ActionError> {
+/**
+ * Registra il mood di oggi (uno solo, immutabile) e ritorna lo stato
+ * aggiornato. `customLabel` è obbligatorio (non vuoto) quando `mood ===
+ * "altro"`, ignorato per tutti gli altri valori (mai scritto a metà: o c'è
+ * un'etichetta scritta a mano valida, o "altro" non si può salvare).
+ */
+export async function logTodaysMood(mood: MoodType, customLabel?: string): Promise<TodaysMood | ActionError> {
+  const trimmedLabel = customLabel?.trim() || null;
+  if (mood === "altro" && !trimmedLabel) {
+    return { error: "Scrivi come ti senti." };
+  }
+
   const supabase = createClient();
   const { data: userData } = await supabase.auth.getUser();
   const user = userData?.user;
@@ -95,6 +112,7 @@ export async function logTodaysMood(mood: MoodType): Promise<TodaysMood | Action
     profile_id: user.id,
     checkin_date: toDateKey(new Date()),
     mood,
+    mood_custom_label: mood === "altro" ? trimmedLabel : null,
   });
   if (error) return { error: error.message };
 

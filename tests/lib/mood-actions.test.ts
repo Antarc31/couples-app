@@ -8,7 +8,14 @@
 import { makeQueryBuilderMock } from "../helpers/supabase-query-mock";
 
 type MoodResponse = {
-  data: { profile_id: string; mood: string; profiles: { display_name: string | null } | null }[] | null;
+  data:
+    | {
+        profile_id: string;
+        mood: string;
+        mood_custom_label: string | null;
+        profiles: { display_name: string | null } | null;
+      }[]
+    | null;
   error: { message: string } | null;
 };
 type InsertResponse = { error: { message: string } | null };
@@ -71,17 +78,49 @@ describe("getTodaysMood", () => {
     mockSupabase.from.mockReturnValue(makeMoodCheckinsMock({ data: [], error: null }));
 
     const result = await getTodaysMood();
-    expect(result).toEqual({ myMood: null, partnerMood: null, partnerName: null, revealed: false });
+    expect(result).toEqual({
+      myMood: null,
+      myCustomLabel: null,
+      partnerMood: null,
+      partnerCustomLabel: null,
+      partnerName: null,
+      revealed: false,
+    });
   });
 
   it("solo io ho fatto il check-in: myMood valorizzato, partner null, revealed false", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
     mockSupabase.from.mockReturnValue(
-      makeMoodCheckinsMock({ data: [{ profile_id: "me", mood: "felice", profiles: null }], error: null }),
+      makeMoodCheckinsMock({
+        data: [{ profile_id: "me", mood: "felice", mood_custom_label: null, profiles: null }],
+        error: null,
+      }),
     );
 
     const result = await getTodaysMood();
-    expect(result).toEqual({ myMood: "felice", partnerMood: null, partnerName: null, revealed: false });
+    expect(result).toEqual({
+      myMood: "felice",
+      myCustomLabel: null,
+      partnerMood: null,
+      partnerCustomLabel: null,
+      partnerName: null,
+      revealed: false,
+    });
+  });
+
+  it("mood 'altro' espone l'etichetta personalizzata", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    mockSupabase.from.mockReturnValue(
+      makeMoodCheckinsMock({
+        data: [{ profile_id: "me", mood: "altro", mood_custom_label: "Nervoso per l'esame", profiles: null }],
+        error: null,
+      }),
+    );
+
+    const result = await getTodaysMood();
+    expect(result).toEqual(
+      expect.objectContaining({ myMood: "altro", myCustomLabel: "Nervoso per l'esame" }),
+    );
   });
 
   it("entrambi hanno fatto il check-in: revealed true, partnerName risolto da profiles", async () => {
@@ -89,15 +128,22 @@ describe("getTodaysMood", () => {
     mockSupabase.from.mockReturnValue(
       makeMoodCheckinsMock({
         data: [
-          { profile_id: "me", mood: "felice", profiles: null },
-          { profile_id: "partner-1", mood: "stanco", profiles: { display_name: "Sam" } },
+          { profile_id: "me", mood: "felice", mood_custom_label: null, profiles: null },
+          { profile_id: "partner-1", mood: "stanco", mood_custom_label: null, profiles: { display_name: "Sam" } },
         ],
         error: null,
       }),
     );
 
     const result = await getTodaysMood();
-    expect(result).toEqual({ myMood: "felice", partnerMood: "stanco", partnerName: "Sam", revealed: true });
+    expect(result).toEqual({
+      myMood: "felice",
+      myCustomLabel: null,
+      partnerMood: "stanco",
+      partnerCustomLabel: null,
+      partnerName: "Sam",
+      revealed: true,
+    });
   });
 
   it("propaga l'errore della query", async () => {
@@ -124,9 +170,23 @@ describe("logTodaysMood", () => {
     expect(result).toEqual({ error: "Non sei accoppiato/a con un partner." });
   });
 
+  it("mood='altro' senza etichetta ritorna errore, senza chiamare la query", async () => {
+    const result = await logTodaysMood("altro");
+    expect(result).toEqual({ error: "Scrivi come ti senti." });
+    expect(mockSupabase.auth.getUser).not.toHaveBeenCalled();
+  });
+
+  it("mood='altro' con etichetta solo spazi ritorna lo stesso errore", async () => {
+    const result = await logTodaysMood("altro", "   ");
+    expect(result).toEqual({ error: "Scrivi come ti senti." });
+  });
+
   it("inserisce il mood e ritorna lo stato aggiornato (refetch)", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
-    const moodMock = makeMoodCheckinsMock({ data: [{ profile_id: "me", mood: "felice", profiles: null }], error: null });
+    const moodMock = makeMoodCheckinsMock({
+      data: [{ profile_id: "me", mood: "felice", mood_custom_label: null, profiles: null }],
+      error: null,
+    });
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === "profiles") return makeQueryBuilderMock({ couple_id: "c1" });
       if (table === "mood_checkins") return moodMock;
@@ -136,9 +196,29 @@ describe("logTodaysMood", () => {
     const result = await logTodaysMood("felice");
 
     expect(moodMock.insert).toHaveBeenCalledWith(
-      expect.objectContaining({ couple_id: "c1", profile_id: "me", mood: "felice" }),
+      expect.objectContaining({ couple_id: "c1", profile_id: "me", mood: "felice", mood_custom_label: null }),
     );
-    expect(result).toEqual({ myMood: "felice", partnerMood: null, partnerName: null, revealed: false });
+    expect(result).toEqual(expect.objectContaining({ myMood: "felice" }));
+  });
+
+  it("inserisce mood='altro' con l'etichetta trimmata in mood_custom_label", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    const moodMock = makeMoodCheckinsMock({
+      data: [{ profile_id: "me", mood: "altro", mood_custom_label: "Nervoso per l'esame", profiles: null }],
+      error: null,
+    });
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === "profiles") return makeQueryBuilderMock({ couple_id: "c1" });
+      if (table === "mood_checkins") return moodMock;
+      throw new Error(`tabella inattesa nel test: ${table}`);
+    });
+
+    const result = await logTodaysMood("altro", "  Nervoso per l'esame  ");
+
+    expect(moodMock.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ mood: "altro", mood_custom_label: "Nervoso per l'esame" }),
+    );
+    expect(result).toEqual(expect.objectContaining({ myMood: "altro", myCustomLabel: "Nervoso per l'esame" }));
   });
 
   it("propaga l'errore di insert (es. hai già fatto il check-in oggi)", async () => {
@@ -187,8 +267,8 @@ describe("getMoodRevealForNotification", () => {
     const sourceMock = makeSourceLookupMock({ data: { checkin_date: "2026-08-20" }, error: null });
     const listMock = makeMoodCheckinsMock({
       data: [
-        { profile_id: "me", mood: "felice", profiles: null },
-        { profile_id: "partner-1", mood: "stanco", profiles: { display_name: "Sam" } },
+        { profile_id: "me", mood: "felice", mood_custom_label: null, profiles: null },
+        { profile_id: "partner-1", mood: "stanco", mood_custom_label: null, profiles: { display_name: "Sam" } },
       ],
       error: null,
     });
@@ -202,7 +282,9 @@ describe("getMoodRevealForNotification", () => {
     const result = await getMoodRevealForNotification("row-1");
     expect(result).toEqual({
       myMood: "felice",
+      myCustomLabel: null,
       partnerMood: "stanco",
+      partnerCustomLabel: null,
       partnerName: "Sam",
       revealed: true,
       checkinDate: "2026-08-20",
@@ -213,7 +295,7 @@ describe("getMoodRevealForNotification", () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
     const sourceMock = makeSourceLookupMock({ data: { checkin_date: "2026-08-20" }, error: null });
     const listMock = makeMoodCheckinsMock({
-      data: [{ profile_id: "me", mood: "felice", profiles: null }],
+      data: [{ profile_id: "me", mood: "felice", mood_custom_label: null, profiles: null }],
       error: null,
     });
     let call = 0;

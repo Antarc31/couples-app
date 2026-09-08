@@ -54,6 +54,8 @@ export default function MoodCheckIn({ initialMood }: MoodCheckInProps) {
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customDraft, setCustomDraft] = useState("");
 
   useEffect(() => {
     if (initialMood === undefined) {
@@ -78,6 +80,18 @@ export default function MoodCheckIn({ initialMood }: MoodCheckInProps) {
     setMood(result);
   }
 
+  async function handleCustomSubmit() {
+    setSaving(true);
+    setSubmitError(null);
+    const result = await logTodaysMood("altro", customDraft);
+    setSaving(false);
+    if ("error" in result) {
+      setSubmitError(result.error);
+      return;
+    }
+    setMood(result);
+  }
+
   function handleDismiss() {
     dismissToday();
     setDismissed(true);
@@ -94,23 +108,68 @@ export default function MoodCheckIn({ initialMood }: MoodCheckInProps) {
         <h2 className="text-lg leading-none text-ink">Come va oggi?</h2>
       </div>
       {submitError && <p className="text-xs text-danger">{submitError}</p>}
-      <div className="flex flex-wrap justify-center gap-2">
-        {MOOD_VALUES.map((value) => (
+      {showCustomInput ? (
+        <div className="flex flex-col gap-2">
+          <input
+            type="text"
+            value={customDraft}
+            onChange={(e) => setCustomDraft(e.target.value)}
+            placeholder="Come ti senti?"
+            autoFocus
+            className="w-full rounded-full border border-dashed border-[color:var(--color-border)] bg-surface px-4 py-2 text-sm text-ink placeholder:text-ink-soft outline-none"
+          />
+          <div className="flex justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCustomInput(false);
+                setCustomDraft("");
+                setSubmitError(null);
+              }}
+              className="rounded-full px-4 py-2 text-sm font-semibold text-ink-soft"
+            >
+              Annulla
+            </button>
+            <button
+              type="button"
+              disabled={saving || !customDraft.trim()}
+              onClick={handleCustomSubmit}
+              className="rounded-full bg-couple px-4 py-2 text-sm font-semibold text-surface transition active:scale-90 disabled:opacity-50"
+            >
+              {saving ? "Salvo…" : "Salva"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap justify-center gap-2">
+          {MOOD_VALUES.map((value) => (
+            <button
+              key={value}
+              type="button"
+              disabled={saving}
+              onClick={() => handlePick(value)}
+              aria-label={MOOD_LABEL[value]}
+              className="rounded-full border border-dashed border-[color:var(--color-border)] bg-surface px-4 py-2 text-sm font-semibold text-ink transition active:scale-90 disabled:opacity-50"
+            >
+              {MOOD_LABEL[value]}
+            </button>
+          ))}
           <button
-            key={value}
             type="button"
             disabled={saving}
-            onClick={() => handlePick(value)}
-            aria-label={MOOD_LABEL[value]}
+            onClick={() => setShowCustomInput(true)}
+            aria-label="Altro"
             className="rounded-full border border-dashed border-[color:var(--color-border)] bg-surface px-4 py-2 text-sm font-semibold text-ink transition active:scale-90 disabled:opacity-50"
           >
-            {MOOD_LABEL[value]}
+            Altro
           </button>
-        ))}
-      </div>
-      <button type="button" onClick={handleDismiss} className="text-center text-xs text-ink-soft underline">
-        Più tardi
-      </button>
+        </div>
+      )}
+      {!showCustomInput && (
+        <button type="button" onClick={handleDismiss} className="text-center text-xs text-ink-soft underline">
+          Più tardi
+        </button>
+      )}
     </Card>
   );
 }

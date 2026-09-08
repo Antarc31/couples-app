@@ -90,6 +90,11 @@
 body {
   background: var(--color-base);
   color: var(--color-ink);
+  /* Space Grotesk ha una spaziatura tra lettere piuttosto ampia di default
+     — troppo per il gusto dell'utente, che l'ha notato una volta diventato
+     il font unico di tutta l'app (prima si vedeva solo su porzioni piccole
+     di testo). Leggera compressione globale, non solo su Home. */
+  letter-spacing: -0.02em;
 }
 
 /*
