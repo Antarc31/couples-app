@@ -284,7 +284,7 @@ export default function MemoriesDeck({ partnerName, selfId, initialThoughts }: M
 
   return (
     <>
-      <div className="theme-memories widget-inner relative">
+      <div className="relative">
       <Card className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -460,7 +460,7 @@ export default function MemoriesDeck({ partnerName, selfId, initialThoughts }: M
                   setShowMenu(false);
                   setShowCompose(true);
                 }}
-                className="flex items-center gap-3 rounded-2xl border border-dashed border-[color:var(--color-border)] px-4 py-3 text-left text-[15px] font-semibold text-ink transition active:scale-[0.98] hover:bg-couple-soft/40"
+                className="flex items-center gap-3 rounded-2xl border border-dashed border-[color:var(--color-border)] px-4 py-3 text-left text-[15px] font-semibold text-ink transition active:scale-[0.98] hover:bg-partner-a-soft/40"
               >
                 <MessageCircle size={20} strokeWidth={2} className="text-couple" /> Manda un pensiero
               </button>
@@ -470,7 +470,7 @@ export default function MemoriesDeck({ partnerName, selfId, initialThoughts }: M
                   setShowMenu(false);
                   fileInputRef.current?.click();
                 }}
-                className="flex items-center gap-3 rounded-2xl border border-dashed border-[color:var(--color-border)] px-4 py-3 text-left text-[15px] font-semibold text-ink transition active:scale-[0.98] hover:bg-couple-soft/40"
+                className="flex items-center gap-3 rounded-2xl border border-dashed border-[color:var(--color-border)] px-4 py-3 text-left text-[15px] font-semibold text-ink transition active:scale-[0.98] hover:bg-partner-a-soft/40"
               >
                 <Camera size={20} strokeWidth={2} className="text-couple" /> Manda una foto
               </button>

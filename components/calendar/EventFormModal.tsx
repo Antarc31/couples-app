@@ -326,8 +326,8 @@ export default function EventFormModal({
                   style={category === opt.value ? { backgroundColor: opt.colorVar } : undefined}
                 >
                   <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-surface"
-                    style={{ backgroundColor: opt.colorVar }}
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: opt.colorVar, opacity: category === opt.value ? 1 : 0.8 }}
                   />
                   {opt.label}
                 </button>
@@ -355,7 +355,7 @@ export default function EventFormModal({
                   key={t}
                   type="button"
                   onClick={() => setTag(t)}
-                  className="rounded-full bg-couple-soft/50 px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-couple-soft"
+                  className="rounded-full bg-partner-a-soft/50 px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-partner-a-soft"
                 >
                   {t}
                 </button>
@@ -422,7 +422,7 @@ export default function EventFormModal({
               value={recurrence}
               onChange={(e) => setRecurrence(e.target.value as EventRecurrence)}
               aria-label="Ripeti"
-              className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] text-ink outline-none focus:border-couple focus:ring-2 focus:ring-couple-soft"
+              className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] text-ink outline-none focus:border-partner-a focus:ring-2 focus:ring-partner-a-soft"
             >
               {RECURRENCE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -536,7 +536,7 @@ export default function EventFormModal({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] text-ink placeholder:text-ink-soft outline-none focus:border-couple focus:ring-2 focus:ring-couple-soft"
+            className="w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] text-ink placeholder:text-ink-soft outline-none focus:border-partner-a focus:ring-2 focus:ring-partner-a-soft"
           />
 
           {error && <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}

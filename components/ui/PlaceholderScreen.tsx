@@ -13,7 +13,7 @@ interface PlaceholderScreenProps {
 export default function PlaceholderScreen({ emoji, title, description }: PlaceholderScreenProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
-      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-couple-soft text-3xl">
+      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-partner-a-soft text-3xl">
         {emoji}
       </span>
       <h1 className="text-xl font-extrabold text-ink">{title}</h1>

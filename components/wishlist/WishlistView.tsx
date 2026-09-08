@@ -142,7 +142,7 @@ export default function WishlistView({ selfId, partnerName }: WishlistViewProps)
   }
 
   return (
-    <div className="theme-wishlist bg-diary flex flex-1 flex-col gap-4 px-4 pt-5">
+    <div className="flex flex-1 flex-col gap-4 px-4 pt-5">
       <div className="flex justify-end">
         <button
           onClick={() => setShowArchive((v) => !v)}
@@ -155,7 +155,7 @@ export default function WishlistView({ selfId, partnerName }: WishlistViewProps)
       </div>
 
       {!showArchive && (
-        <div className="flex rounded-2xl bg-couple-soft/50 p-1">
+        <div className="flex rounded-2xl bg-partner-a-soft/50 p-1">
           {(["self", "partner", "entrambi"] as const).map((f) => (
             <button
               key={f}
@@ -184,7 +184,7 @@ export default function WishlistView({ selfId, partnerName }: WishlistViewProps)
         <div className="flex flex-col gap-3">
           {filtered.map((item) => (
             <Card key={item.id} className="flex gap-3">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-couple-soft/50 text-2xl">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-partner-a-soft/50 text-2xl">
                 🎁
               </span>
               <div className="flex-1">
@@ -201,7 +201,7 @@ export default function WishlistView({ selfId, partnerName }: WishlistViewProps)
                       {formatPrice(item.price) ? ` · ${formatPrice(item.price)}` : ""}
                     </p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-couple-soft px-2 py-0.5 text-[11px] font-semibold text-ink-soft">
+                      <span className="rounded-full bg-partner-a-soft px-2 py-0.5 text-[11px] font-semibold text-ink-soft">
                         {targetLabel(item, selfId, partnerName)}
                       </span>
                       <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${PRIORITY_STYLES[item.priority]}`}>

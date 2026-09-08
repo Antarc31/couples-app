@@ -142,7 +142,7 @@ export default function WeekTimeline({ days, events, colorCtx, onEventClick, onD
             return (
               <div
                 key={toDateKey(day)}
-                className={`relative rounded-xl ${isToday ? "bg-couple/15" : "bg-base"}`}
+                className={`relative rounded-xl ${isToday ? "bg-couple-soft/25" : "bg-base"}`}
                 style={{ height: totalHeight }}
               >
                 {hours.map((hour, i) => (

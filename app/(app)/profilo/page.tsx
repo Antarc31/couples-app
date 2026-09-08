@@ -12,7 +12,7 @@ export default async function ProfiloPage() {
   if (!data) redirect("/login");
 
   return (
-    <div className="theme-profile bg-diary flex flex-1 flex-col gap-4 px-4 pt-5">
+    <div className="flex flex-1 flex-col gap-4 px-4 pt-5">
       <Card className="flex items-center gap-4">
         <span
           className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-xl font-extrabold text-white"

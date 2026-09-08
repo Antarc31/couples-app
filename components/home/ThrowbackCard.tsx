@@ -48,7 +48,7 @@ export default function ThrowbackCard({ selfId, initialThrowback }: ThrowbackCar
 
   return (
     <>
-      <Card className="theme-throwback widget-inner flex flex-col gap-3">
+      <Card className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <IconBadge icon={Clock} size={32} />
           <h2 className="text-lg leading-none text-ink">Un anno fa oggi</h2>

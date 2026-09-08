@@ -16,20 +16,12 @@ interface CountdownHeroProps {
  * dall'angolo. Se manca solo nextSpecial, l'adesivo resta da solo, non
  * sovrapposto a nulla. Stesso font base dell'app ovunque (font-hand/
  * font-hero rimossi su richiesta esplicita dell'utente).
- *
- * Tema .theme-hero (oro/ambra, vedi app/globals.css) applicato qui E su
- * AppTopBar per /home (PAGE_THEME) — bottone campanella, titolo "Home",
- * card countdown e adesivo traguardo condividono lo stesso colore,
- * distinto da .theme-throwback (giallo-limone di "Un anno fa oggi").
  */
 export default function CountdownHero({ nextSpecial, nextMilestone }: CountdownHeroProps) {
   if (!nextSpecial && !nextMilestone) return null;
 
   const sticker = nextMilestone && (
-    <Sticker
-      rotate={-6}
-      className={`${nextSpecial ? "absolute -bottom-4 right-3 z-10" : "theme-hero widget-inner"}`}
-    >
+    <Sticker rotate={-6} className={nextSpecial ? "absolute -bottom-4 right-3 z-10" : ""}>
       <IconBadge icon={Trophy} size={28} />
       <span>
         <span className="block text-sm font-bold">{nextMilestone.label}</span>
@@ -43,7 +35,7 @@ export default function CountdownHero({ nextSpecial, nextMilestone }: CountdownH
   if (!nextSpecial) return sticker;
 
   return (
-    <Card className="theme-hero widget-inner relative flex flex-col gap-0.5 pb-6">
+    <Card className="relative flex flex-col gap-0.5 pb-6">
       <div className="flex items-start justify-between">
         <p className="text-base text-couple">Prossimo traguardo</p>
         <Heart size={20} strokeWidth={2} className="text-couple" />

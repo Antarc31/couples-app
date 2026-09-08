@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { PAGE_THEME } from "@/lib/page-theme";
 import {
   listNotifications,
   getUnreadNotificationsCount,
@@ -52,18 +51,6 @@ const PAGE_TITLES: Record<string, string> = {
   "/profilo": "Profilo",
 };
 
-/**
- * Un colore diverso per schermata — bottone campanella e titolo pagina lo
- * adottano qui, coerente col resto della pagina sotto (mappa condivisa con
- * il guscio di sfondo, vedi components/AppShellBackground.tsx). Home usa
- * .theme-neutral (grigio scuro su fondo quasi bianco), non presente nella
- * mappa condivisa — non .theme-hero (oro, usato invece dal widget
- * countdown sotto): tentato prima, l'utente non voleva un titolo colorato
- * su Home, solo che "richiamasse lo sfondo generale della pagina" (bianco/
- * grigio quasi bianco).
- */
-const HOME_HEADER_THEME = "theme-neutral";
-
 function mapRowToNotification(row: NotificationRow): AppNotification {
   return {
     id: row.id,
@@ -102,7 +89,6 @@ export default function AppTopBar({ userId }: { userId: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const pageTitle = PAGE_TITLES[pathname];
-  const pageTheme = pathname === "/home" ? HOME_HEADER_THEME : (PAGE_THEME[pathname] ?? "");
   const [unreadCount, setUnreadCount] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -196,7 +182,7 @@ export default function AppTopBar({ userId }: { userId: string }) {
           oscurato dietro al pannello. bg-base/95 (colore semi-trasparente,
           non un filtro) resta invece innocuo. */}
       <div
-        className={`${pageTheme} sticky top-0 z-30 flex w-full items-center justify-between border-b border-border bg-base/95 px-4 py-2`}
+        className="sticky top-0 z-30 flex w-full items-center justify-between border-b border-border bg-base/95 px-4 py-2"
         style={{ paddingTop: "max(env(safe-area-inset-top), 0.5rem)" }}
       >
         {/* Titolo colorato come la campanella (stesso --color-couple) invece

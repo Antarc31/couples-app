@@ -102,7 +102,7 @@ export default function MoodCheckIn({ initialMood }: MoodCheckInProps) {
   if (loadError || !mood || mood.myMood !== null || dismissed) return null;
 
   return (
-    <Card className="theme-mood widget-inner flex flex-col gap-3">
+    <Card className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <IconBadge icon={Smile} size={32} />
         <h2 className="text-lg leading-none text-ink">Come va oggi?</h2>

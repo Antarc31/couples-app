@@ -182,8 +182,8 @@ export default function CalendarView({
   const createDefaultDate = pickedSlot?.date ?? agendaDate ?? selectedDate;
 
   return (
-    <div className="theme-calendar bg-diary flex flex-1 flex-col gap-4 px-4 pt-5">
-      <div className="flex w-full rounded-2xl bg-couple-soft/50 p-1">
+    <div className="flex flex-1 flex-col gap-4 px-4 pt-5">
+      <div className="flex w-full rounded-2xl bg-partner-a-soft/50 p-1">
         {(["day", "week", "month"] as const).map((v) => (
           <button
             key={v}
@@ -246,7 +246,7 @@ export default function CalendarView({
                   onClick={() => setAgendaDate(day)}
                   className={`flex aspect-square flex-col items-center justify-start gap-1 rounded-2xl pt-1.5 text-xs transition ${
                     inMonth ? "text-ink" : "text-ink-soft/40"
-                  } ${isToday ? "bg-couple-soft font-bold" : "hover:bg-couple-soft/30"}`}
+                  } ${isToday ? "bg-couple-soft font-bold" : "hover:bg-partner-a-soft/30"}`}
                 >
                   <span>{day.getDate()}</span>
                   {/* Piano UX punto 2: barre (chi ha impegni, non solo "quanti") invece
@@ -340,7 +340,7 @@ export default function CalendarView({
       <div className="fixed inset-x-5 bottom-20 z-20 flex items-center justify-between">
         <button
           onClick={() => setShowFreeSlots(true)}
-          className="flex items-center gap-2 rounded-full bg-surface px-4 py-2.5 text-sm font-semibold text-couple shadow-[var(--shadow-soft)] transition active:scale-95"
+          className="flex items-center gap-2 rounded-full bg-couple-soft px-4 py-2.5 text-sm font-semibold text-couple shadow-[var(--shadow-soft)] transition active:scale-95"
         >
           <Search size={16} strokeWidth={2.2} />
           Trova buchi liberi

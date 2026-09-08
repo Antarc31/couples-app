@@ -12,23 +12,8 @@
      giri precedenti: si torna a "carta chiara, testo scuro" di default,
      la personalità arriva dai pattern decorativi (sticker, tratteggi,
      rotazioni), non da un fondo tinto. */
-  /* Fallback quando nessun .theme-X è attivo — usato da <body> stesso
-     (schermate auth, che non impostano un proprio sfondo) e dall'area
-     rivelata durante l'overscroll/"tirone" su iOS, che mostra sempre lo
-     sfondo di <body> indipendentemente da qualunque div interno tematizzato
-     (nessun modo per farlo seguire la pagina corrente senza JS a livello di
-     root layout). Prima era il rosa #edd3df della vecchia palette
-     monocromatica, mai aggiornato dal sistema a tema per-pagina — quel
-     "tirone rivela ancora il rosa" segnalato dall'utente. Bianco quasi
-     puro, stesso valore di --color-surface: un flash neutro durante il
-     bounce è accettabile, uno rosa che stona con la pagina sotto no. */
-  --color-base: #fefdfb;
-  /* "paper" — bianco quasi puro (non #fbf6f9 di prima, che aveva una
-     patina rosa visibile su elementi non tematizzati come AppTabBar:
-     l'utente lo notava come "strisciolina rosa" in fondo a ogni pagina).
-     Coerente con la nuova filosofia "il bianco lega tutti i colori" —
-     vedi .theme-home. */
-  --color-surface: #fefdfb;
+  --color-base: #edd3df; /* fallback solido sotto al gradiente pagina, vedi .bg-diary */
+  --color-surface: #fbf6f9; /* "paper" */
   --color-ink: #3a1029;
   --color-ink-soft: #82566d; /* "text2" */
   --color-ink-soft-dark: #66435a; /* "text2Dark" — etichette uppercase, sotto-caption sticker */
@@ -66,12 +51,6 @@
 
   --radius-app: 20px;
   --shadow-soft: 0 8px 24px -8px rgb(58 44 48 / 0.12);
-
-  /* Sfondo di una Card — di norma "carta" neutra come sempre; le classi
-     .theme-* sotto lo sovrascrivono con un pastello quando una card vive
-     dentro una sezione a tema (widget Home, pagine dedicate). Vedi
-     components/ui/Card.tsx. */
-  --card-tint: var(--color-surface);
 }
 
 @theme inline {
@@ -121,11 +100,7 @@ body {
 /*
  * Sfondo "carta" di ogni pagina: gradiente diagonale tenue più una
  * texture a puntini (radial-gradient ripetuto a griglia) — sostituisce
- * bg-base semplice sui wrapper di pagina. Legge SOLO variabili CSS
- * (--color-base, --color-bg-gradient-start, --color-bg-gradient-end,
- * --color-dot-texture), mai colori fissi: le classi .theme-X/.theme-home
- * sotto la ricolorano di pagina in pagina sovrascrivendo quelle variabili,
- * senza duplicare la regola.
+ * bg-base semplice sui wrapper di pagina.
  */
 .bg-diary {
   background-color: var(--color-base);
@@ -135,155 +110,6 @@ body {
   background-size:
     16px 16px,
     100% 100%;
-}
-
-/*
- * Un colore diverso per ogni widget di Home e per ogni schermata dedicata
- * (stesso colore tra un widget e la pagina a cui rimanda — richiesta
- * esplicita dell'utente): ciascuna .theme-* sovrascrive SOLO le variabili
- * di accento (--color-couple/--color-couple-soft, quindi bottoni/FAB/
- * link/icone/titolo pagina — vedi components/AppTopBar.tsx), il tint
- * della Card (--card-tint) e il gradiente di sfondo pagina (letto da
- * .bg-diary) — non ridefinisce nient'altro, così tutto il resto del
- * design system (tipografia, ombre, bordi tratteggiati) resta identico
- * in ogni tema. Palette pastello scelta dall'utente (5 colori) + 2 nuovi
- * nella stessa famiglia per coprire tutti i widget con un colore ciascuno.
- */
-.theme-memories {
-  /* Ricordi (Home) + /home/foto — Blush Pink */
-  --color-couple: #c25c81;
-  --color-couple-soft: #f6d9e3;
-  --card-tint: #fadadd;
-  --inner-tint: #fdeef1;
-  --color-base: #fadadd;
-  --color-bg-gradient-start: #fdeef1;
-  --color-bg-gradient-end: #fadadd;
-}
-.theme-calendar {
-  /* Prossimi impegni (Home) + Calendario + Appuntamenti (stessa famiglia,
-     sono lo stesso dato: un appuntamento confermato è un evento
-     calendario) — Baby Blue */
-  --color-couple: #4f7fc2;
-  --color-couple-soft: #d7e7fb;
-  --card-tint: #ddeeff;
-  --inner-tint: #eef6ff;
-  --color-base: #ddeeff;
-  --color-bg-gradient-start: #eef6ff;
-  --color-bg-gradient-end: #ddeeff;
-}
-.theme-quiz {
-  /* Quiz del giorno (Home) — Mint Cream */
-  --color-couple: #3f9d74;
-  --color-couple-soft: #d6f0e3;
-  --card-tint: #dff5ea;
-  --inner-tint: #eefaf3;
-  --color-base: #dff5ea;
-  --color-bg-gradient-start: #eefaf3;
-  --color-bg-gradient-end: #dff5ea;
-}
-.theme-wishlist {
-  /* Wishlist (Home) + pagina Wishlist — Lavender Mist */
-  --color-couple: #8a6fc2;
-  --color-couple-soft: #ece3fb;
-  --card-tint: #e6d9ff;
-  --inner-tint: #f2ecfd;
-  --color-base: #e6d9ff;
-  --color-bg-gradient-start: #f2ecfd;
-  --color-bg-gradient-end: #e6d9ff;
-}
-.theme-throwback {
-  /* Un anno fa oggi (Home) — Butter Yellow */
-  --color-couple: #c99a3e;
-  --color-couple-soft: #faedc9;
-  --card-tint: #fff2b3;
-  --inner-tint: #fff8d9;
-  --color-base: #fff2b3;
-  --color-bg-gradient-start: #fff8d9;
-  --color-bg-gradient-end: #fff2b3;
-}
-.theme-mood {
-  /* Come va oggi? (Home) — Peach Cream */
-  --color-couple: #d97b44;
-  --color-couple-soft: #fbe4d1;
-  --card-tint: #ffe0c2;
-  --inner-tint: #fff0e1;
-  --color-base: #ffe0c2;
-  --color-bg-gradient-start: #fff0e1;
-  --color-bg-gradient-end: #ffe0c2;
-}
-.theme-profile {
-  /* Profilo (nessun widget dedicato in Home, colore a sé) — Seafoam */
-  --color-couple: #359990;
-  --color-couple-soft: #d7f0ee;
-  --card-tint: #d6f0ec;
-  --inner-tint: #e9f8f6;
-  --color-base: #d6f0ec;
-  --color-bg-gradient-start: #e9f8f6;
-  --color-bg-gradient-end: #d6f0ec;
-}
-.theme-hero {
-  /* CountdownHero + adesivo traguardo (Home) — oro/ambra, deliberatamente
-     diverso dal giallo-limone di .theme-throwback (altrimenti due sezioni
-     diverse avrebbero lo stesso colore): più caldo/ocra, imparentato con
-     --color-special (già usato per le date speciali nel Calendario)
-     invece che una tinta nuova scollegata dal resto dell'app. NON più
-     usato per campanella/titolo "Home" (vedi .theme-neutral sotto —
-     l'utente non voleva il titolo colorato lì, solo il widget). */
-  --color-couple: #c2842f;
-  --color-couple-soft: #f6dfb0;
-  --card-tint: #fbe8c4;
-  --inner-tint: #fef4e0;
-  --color-base: #fbe8c4;
-  --color-bg-gradient-start: #fef4e0;
-  --color-bg-gradient-end: #fbe8c4;
-}
-.theme-neutral {
-  /* Campanella + titolo "Home" in AppTopBar — su richiesta esplicita
-     dell'utente NON deve essere colorato (né viola originale né oro).
-     Due giri: prima un grigio chiaro su un fondo quasi bianco leggermente
-     diverso da quello della Home sotto (percepito come "non ben unito
-     al resto della pagina" — un bianco quasi-ma-non-uguale è più
-     stonato di uno identico o di uno chiaramente diverso). Ora:
-     --color-base identico al bianco di .theme-home (stessa barra,
-     nessuna cucitura visibile, il bordo sotto la separa già) e testo/
-     campanella un grigio molto più scuro, neutro (non il --color-ink
-     dell'app, che ha una base violacea — qui va scuro ma senza tinta). */
-  --color-couple: #3d3a36;
-  --color-couple-soft: #e4e2dd;
-  --color-base: #ffffff;
-}
-
-/*
- * Applicata INSIEME a un .theme-X (mai da sola) sui widget di Home — non
- * sulle pagine dedicate che condividono lo stesso .theme-X (Calendario/
- * Appuntamenti/Wishlist/Profilo): lì gli elementi bg-surface (pillola
- * attiva del segmented control, bottoni ‹/›, modal) restano bianchi
- * apposta, non c'è ambiguità col bianco di sfondo dato che quelle pagine
- * hanno comunque uno sfondo a tinta (non bianco). Sui widget invece, ora
- * che lo sfondo di Home è bianco (vedi .theme-home sotto), un bg-surface
- * bianco dentro una card già colorata sparirebbe/stonerebbe — qui si
- * sovrascrive SOLO per la sottoalbero del widget, un secondo livello più
- * chiaro dello stesso tema (mai bianco, su richiesta esplicita
- * dell'utente): --card-tint = "fuori", --inner-tint (via questo override
- * di --color-surface) = "dentro".
- */
-.widget-inner {
-  --color-surface: var(--inner-tint);
-}
-
-/*
- * Home stessa NON ha un tema unico (mostra tutti i colori insieme, un
- * widget alla volta) — sfondo BIANCO che leghi tutti i pastelli sopra,
- * su richiesta esplicita dell'utente (prima era un caldo neutro, poi
- * scartato: "voglio uno sfondo che li leghi tutti, quindi un bianco").
- * L'header (campanella + titolo "Home") e il countdown/traguardo NON
- * restano più sull'accento storico: hanno il proprio tema (.theme-hero,
- * vedi sopra e components/AppTopBar.tsx PAGE_THEME).
- */
-.theme-home {
-  --color-base: #ffffff;
-  --color-bg-gradient-start: #ffffff;
-  --color-bg-gradient-end: #fbfaf8;
 }
 
 /* utility: nasconde la scrollbar per gli strip orizzontali (foto, impegni) */
