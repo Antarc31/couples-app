@@ -13,7 +13,12 @@
      la personalità arriva dai pattern decorativi (sticker, tratteggi,
      rotazioni), non da un fondo tinto. */
   --color-base: #edd3df; /* fallback solido sotto al gradiente pagina, vedi .bg-diary */
-  --color-surface: #fbf6f9; /* "paper" */
+  /* "paper" — bianco quasi puro (non #fbf6f9 di prima, che aveva una
+     patina rosa visibile su elementi non tematizzati come AppTabBar:
+     l'utente lo notava come "strisciolina rosa" in fondo a ogni pagina).
+     Coerente con la nuova filosofia "il bianco lega tutti i colori" —
+     vedi .theme-home. */
+  --color-surface: #fefdfb;
   --color-ink: #3a1029;
   --color-ink-soft: #82566d; /* "text2" */
   --color-ink-soft-dark: #66435a; /* "text2Dark" — etichette uppercase, sotto-caption sticker */
@@ -139,6 +144,7 @@ body {
   --color-couple: #c25c81;
   --color-couple-soft: #f6d9e3;
   --card-tint: #fadadd;
+  --inner-tint: #fdeef1;
   --color-base: #fadadd;
   --color-bg-gradient-start: #fdeef1;
   --color-bg-gradient-end: #fadadd;
@@ -150,6 +156,7 @@ body {
   --color-couple: #4f7fc2;
   --color-couple-soft: #d7e7fb;
   --card-tint: #ddeeff;
+  --inner-tint: #eef6ff;
   --color-base: #ddeeff;
   --color-bg-gradient-start: #eef6ff;
   --color-bg-gradient-end: #ddeeff;
@@ -159,6 +166,7 @@ body {
   --color-couple: #3f9d74;
   --color-couple-soft: #d6f0e3;
   --card-tint: #dff5ea;
+  --inner-tint: #eefaf3;
   --color-base: #dff5ea;
   --color-bg-gradient-start: #eefaf3;
   --color-bg-gradient-end: #dff5ea;
@@ -168,6 +176,7 @@ body {
   --color-couple: #8a6fc2;
   --color-couple-soft: #ece3fb;
   --card-tint: #e6d9ff;
+  --inner-tint: #f2ecfd;
   --color-base: #e6d9ff;
   --color-bg-gradient-start: #f2ecfd;
   --color-bg-gradient-end: #e6d9ff;
@@ -177,42 +186,78 @@ body {
   --color-couple: #c99a3e;
   --color-couple-soft: #faedc9;
   --card-tint: #fff2b3;
+  --inner-tint: #fff8d9;
   --color-base: #fff2b3;
   --color-bg-gradient-start: #fff8d9;
   --color-bg-gradient-end: #fff2b3;
 }
 .theme-mood {
-  /* Come va oggi? (Home) — Peach Cream (nuovo, completa la palette) */
+  /* Come va oggi? (Home) — Peach Cream */
   --color-couple: #d97b44;
   --color-couple-soft: #fbe4d1;
   --card-tint: #ffe0c2;
+  --inner-tint: #fff0e1;
   --color-base: #ffe0c2;
   --color-bg-gradient-start: #fff0e1;
   --color-bg-gradient-end: #ffe0c2;
 }
 .theme-profile {
-  /* Profilo (nessun widget dedicato in Home, colore a sé) — Seafoam
-     (nuovo, completa la palette) */
+  /* Profilo (nessun widget dedicato in Home, colore a sé) — Seafoam */
   --color-couple: #359990;
   --color-couple-soft: #d7f0ee;
   --card-tint: #d6f0ec;
+  --inner-tint: #e9f8f6;
   --color-base: #d6f0ec;
   --color-bg-gradient-start: #e9f8f6;
   --color-bg-gradient-end: #d6f0ec;
 }
+.theme-hero {
+  /* CountdownHero + adesivo traguardo (Home) + campanella/titolo "Home" —
+     oro/ambra, deliberatamente diverso dal giallo-limone di
+     .theme-throwback (altrimenti due sezioni diverse avrebbero lo stesso
+     colore): più caldo/ocra, imparentato con --color-special (già usato
+     per le date speciali nel Calendario) invece che una tinta nuova
+     scollegata dal resto dell'app. */
+  --color-couple: #c2842f;
+  --color-couple-soft: #f6dfb0;
+  --card-tint: #fbe8c4;
+  --inner-tint: #fef4e0;
+  --color-base: #fbe8c4;
+  --color-bg-gradient-start: #fef4e0;
+  --color-bg-gradient-end: #fbe8c4;
+}
+
+/*
+ * Applicata INSIEME a un .theme-X (mai da sola) sui widget di Home — non
+ * sulle pagine dedicate che condividono lo stesso .theme-X (Calendario/
+ * Appuntamenti/Wishlist/Profilo): lì gli elementi bg-surface (pillola
+ * attiva del segmented control, bottoni ‹/›, modal) restano bianchi
+ * apposta, non c'è ambiguità col bianco di sfondo dato che quelle pagine
+ * hanno comunque uno sfondo a tinta (non bianco). Sui widget invece, ora
+ * che lo sfondo di Home è bianco (vedi .theme-home sotto), un bg-surface
+ * bianco dentro una card già colorata sparirebbe/stonerebbe — qui si
+ * sovrascrive SOLO per la sottoalbero del widget, un secondo livello più
+ * chiaro dello stesso tema (mai bianco, su richiesta esplicita
+ * dell'utente): --card-tint = "fuori", --inner-tint (via questo override
+ * di --color-surface) = "dentro".
+ */
+.widget-inner {
+  --color-surface: var(--inner-tint);
+}
 
 /*
  * Home stessa NON ha un tema unico (mostra tutti i colori insieme, un
- * widget alla volta) — sfondo neutro caldo che stia bene con tutti i
- * pastelli sopra, invece del rosa/porpora fisso di prima. L'accento resta
- * quello "storico" dell'app (--color-couple di :root, non sovrascritto
- * qui) per l'header/FAB/CountdownHero, che restano il filo conduttore
- * visivo tra i widget colorati.
+ * widget alla volta) — sfondo BIANCO che leghi tutti i pastelli sopra,
+ * su richiesta esplicita dell'utente (prima era un caldo neutro, poi
+ * scartato: "voglio uno sfondo che li leghi tutti, quindi un bianco").
+ * L'header (campanella + titolo "Home") e il countdown/traguardo NON
+ * restano più sull'accento storico: hanno il proprio tema (.theme-hero,
+ * vedi sopra e components/AppTopBar.tsx PAGE_THEME).
  */
 .theme-home {
-  --color-base: #f7f2ea;
-  --color-bg-gradient-start: #faf6ef;
-  --color-bg-gradient-end: #f2ebdd;
+  --color-base: #ffffff;
+  --color-bg-gradient-start: #ffffff;
+  --color-bg-gradient-end: #fbfaf8;
 }
 
 /* utility: nasconde la scrollbar per gli strip orizzontali (foto, impegni) */

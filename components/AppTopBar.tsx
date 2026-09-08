@@ -54,14 +54,16 @@ const PAGE_TITLES: Record<string, string> = {
 /**
  * Un colore diverso per schermata (vedi app/globals.css .theme-*) — bottone
  * campanella e titolo pagina lo adottano qui, coerente col resto della
- * pagina sotto. Home non ha una voce: nessun tema unico (mostra tutti i
- * colori insieme, un widget alla volta), resta sull'accento "storico"
- * dell'app invariato — il filo conduttore visivo tra i widget colorati.
- * Appuntamenti condivide il tema di Calendario (stesso dato: un
- * appuntamento confermato è un evento calendario), su scelta esplicita
- * dell'utente.
+ * pagina sotto. Appuntamenti condivide il tema di Calendario (stesso dato:
+ * un appuntamento confermato è un evento calendario), su scelta esplicita
+ * dell'utente. Home usa .theme-hero (oro/ambra, non un colore "storico"
+ * fisso come nel giro precedente): stesso tema del countdown/traguardo
+ * sotto (components/home/CountdownHero.tsx), su richiesta esplicita
+ * dell'utente — prima campanella/titolo di Home restavano sul viola
+ * originale, "indecente" sopra il nuovo sfondo bianco.
  */
 const PAGE_THEME: Record<string, string> = {
+  "/home": "theme-hero",
   "/calendario": "theme-calendar",
   "/appuntamenti": "theme-calendar",
   "/wishlist": "theme-wishlist",

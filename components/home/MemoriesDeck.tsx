@@ -284,7 +284,7 @@ export default function MemoriesDeck({ partnerName, selfId, initialThoughts }: M
 
   return (
     <>
-      <div className="theme-memories relative">
+      <div className="theme-memories widget-inner relative">
       <Card className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
