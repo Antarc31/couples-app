@@ -21,9 +21,16 @@ export default async function AppShellLayout({ children }: { children: React.Rea
   if (!data.couple) redirect("/pairing");
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col bg-surface">
       <AppTopBar userId={data.userId} />
-      <div className="flex flex-1 flex-col overflow-y-auto pb-4">{children}</div>
+      {/* bg-surface qui (non solo sul wrapper esterno): questo div scrollabile
+          aggiunge il proprio pb-4 SOPRA il padding che ogni pagina già mette
+          in fondo al proprio contenuto (es. pb-24 di Home) — in quel margine
+          extra, essendo entrambi i div trasparenti di default, si vedeva lo
+          sfondo di <body> (--color-base di :root, mai aggiornato dal sistema
+          a tema per-pagina: la "strisciolina rosa sotto i pulsanti" che
+          restava visibile nonostante i fix precedenti). */}
+      <div className="flex flex-1 flex-col overflow-y-auto bg-surface pb-4">{children}</div>
       <AppTabBar />
     </div>
   );
