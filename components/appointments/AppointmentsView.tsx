@@ -128,7 +128,7 @@ export default function AppointmentsView() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 px-4 pt-5">
+    <div className="theme-calendar bg-diary flex flex-1 flex-col gap-4 px-4 pt-5">
       <div className="flex w-full rounded-2xl bg-partner-a-soft/50 p-1">
         {(["confermato", "idea"] as const).map((v) => (
           <button

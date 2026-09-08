@@ -32,7 +32,7 @@ interface WishlistPreviewCardProps {
  */
 export default function WishlistPreviewCard({ items, selfId, partnerName }: WishlistPreviewCardProps) {
   return (
-    <Card className="flex flex-col gap-3">
+    <Card className="theme-wishlist flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <IconBadge icon={Gift} size={32} />

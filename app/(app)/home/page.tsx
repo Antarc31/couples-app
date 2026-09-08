@@ -80,7 +80,7 @@ export default async function HomePage() {
   };
 
   return (
-    <div className="bg-diary flex flex-1 flex-col gap-4 px-4 pt-5 pb-24">
+    <div className="theme-home bg-diary flex flex-1 flex-col gap-4 px-4 pt-5 pb-24">
       <CountdownHero nextSpecial={nextSpecial} nextMilestone={nextMilestoneDisplay} />
       <MemoriesDeck partnerName={data.partner?.displayName ?? "il tuo partner"} selfId={data.userId} />
       <ThrowbackCard selfId={data.userId} />

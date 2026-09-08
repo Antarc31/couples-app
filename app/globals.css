@@ -51,6 +51,12 @@
 
   --radius-app: 20px;
   --shadow-soft: 0 8px 24px -8px rgb(58 44 48 / 0.12);
+
+  /* Sfondo di una Card — di norma "carta" neutra come sempre; le classi
+     .theme-* sotto lo sovrascrivono con un pastello quando una card vive
+     dentro una sezione a tema (widget Home, pagine dedicate). Vedi
+     components/ui/Card.tsx. */
+  --card-tint: var(--color-surface);
 }
 
 @theme inline {
@@ -100,7 +106,11 @@ body {
 /*
  * Sfondo "carta" di ogni pagina: gradiente diagonale tenue più una
  * texture a puntini (radial-gradient ripetuto a griglia) — sostituisce
- * bg-base semplice sui wrapper di pagina.
+ * bg-base semplice sui wrapper di pagina. Legge SOLO variabili CSS
+ * (--color-base, --color-bg-gradient-start, --color-bg-gradient-end,
+ * --color-dot-texture), mai colori fissi: le classi .theme-X/.theme-home
+ * sotto la ricolorano di pagina in pagina sovrascrivendo quelle variabili,
+ * senza duplicare la regola.
  */
 .bg-diary {
   background-color: var(--color-base);
@@ -110,6 +120,99 @@ body {
   background-size:
     16px 16px,
     100% 100%;
+}
+
+/*
+ * Un colore diverso per ogni widget di Home e per ogni schermata dedicata
+ * (stesso colore tra un widget e la pagina a cui rimanda — richiesta
+ * esplicita dell'utente): ciascuna .theme-* sovrascrive SOLO le variabili
+ * di accento (--color-couple/--color-couple-soft, quindi bottoni/FAB/
+ * link/icone/titolo pagina — vedi components/AppTopBar.tsx), il tint
+ * della Card (--card-tint) e il gradiente di sfondo pagina (letto da
+ * .bg-diary) — non ridefinisce nient'altro, così tutto il resto del
+ * design system (tipografia, ombre, bordi tratteggiati) resta identico
+ * in ogni tema. Palette pastello scelta dall'utente (5 colori) + 2 nuovi
+ * nella stessa famiglia per coprire tutti i widget con un colore ciascuno.
+ */
+.theme-memories {
+  /* Ricordi (Home) + /home/foto — Blush Pink */
+  --color-couple: #c25c81;
+  --color-couple-soft: #f6d9e3;
+  --card-tint: #fadadd;
+  --color-base: #fadadd;
+  --color-bg-gradient-start: #fdeef1;
+  --color-bg-gradient-end: #fadadd;
+}
+.theme-calendar {
+  /* Prossimi impegni (Home) + Calendario + Appuntamenti (stessa famiglia,
+     sono lo stesso dato: un appuntamento confermato è un evento
+     calendario) — Baby Blue */
+  --color-couple: #4f7fc2;
+  --color-couple-soft: #d7e7fb;
+  --card-tint: #ddeeff;
+  --color-base: #ddeeff;
+  --color-bg-gradient-start: #eef6ff;
+  --color-bg-gradient-end: #ddeeff;
+}
+.theme-quiz {
+  /* Quiz del giorno (Home) — Mint Cream */
+  --color-couple: #3f9d74;
+  --color-couple-soft: #d6f0e3;
+  --card-tint: #dff5ea;
+  --color-base: #dff5ea;
+  --color-bg-gradient-start: #eefaf3;
+  --color-bg-gradient-end: #dff5ea;
+}
+.theme-wishlist {
+  /* Wishlist (Home) + pagina Wishlist — Lavender Mist */
+  --color-couple: #8a6fc2;
+  --color-couple-soft: #ece3fb;
+  --card-tint: #e6d9ff;
+  --color-base: #e6d9ff;
+  --color-bg-gradient-start: #f2ecfd;
+  --color-bg-gradient-end: #e6d9ff;
+}
+.theme-throwback {
+  /* Un anno fa oggi (Home) — Butter Yellow */
+  --color-couple: #c99a3e;
+  --color-couple-soft: #faedc9;
+  --card-tint: #fff2b3;
+  --color-base: #fff2b3;
+  --color-bg-gradient-start: #fff8d9;
+  --color-bg-gradient-end: #fff2b3;
+}
+.theme-mood {
+  /* Come va oggi? (Home) — Peach Cream (nuovo, completa la palette) */
+  --color-couple: #d97b44;
+  --color-couple-soft: #fbe4d1;
+  --card-tint: #ffe0c2;
+  --color-base: #ffe0c2;
+  --color-bg-gradient-start: #fff0e1;
+  --color-bg-gradient-end: #ffe0c2;
+}
+.theme-profile {
+  /* Profilo (nessun widget dedicato in Home, colore a sé) — Seafoam
+     (nuovo, completa la palette) */
+  --color-couple: #359990;
+  --color-couple-soft: #d7f0ee;
+  --card-tint: #d6f0ec;
+  --color-base: #d6f0ec;
+  --color-bg-gradient-start: #e9f8f6;
+  --color-bg-gradient-end: #d6f0ec;
+}
+
+/*
+ * Home stessa NON ha un tema unico (mostra tutti i colori insieme, un
+ * widget alla volta) — sfondo neutro caldo che stia bene con tutti i
+ * pastelli sopra, invece del rosa/porpora fisso di prima. L'accento resta
+ * quello "storico" dell'app (--color-couple di :root, non sovrascritto
+ * qui) per l'header/FAB/CountdownHero, che restano il filo conduttore
+ * visivo tra i widget colorati.
+ */
+.theme-home {
+  --color-base: #f7f2ea;
+  --color-bg-gradient-start: #faf6ef;
+  --color-bg-gradient-end: #f2ebdd;
 }
 
 /* utility: nasconde la scrollbar per gli strip orizzontali (foto, impegni) */

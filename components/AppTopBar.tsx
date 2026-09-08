@@ -51,6 +51,23 @@ const PAGE_TITLES: Record<string, string> = {
   "/profilo": "Profilo",
 };
 
+/**
+ * Un colore diverso per schermata (vedi app/globals.css .theme-*) — bottone
+ * campanella e titolo pagina lo adottano qui, coerente col resto della
+ * pagina sotto. Home non ha una voce: nessun tema unico (mostra tutti i
+ * colori insieme, un widget alla volta), resta sull'accento "storico"
+ * dell'app invariato — il filo conduttore visivo tra i widget colorati.
+ * Appuntamenti condivide il tema di Calendario (stesso dato: un
+ * appuntamento confermato è un evento calendario), su scelta esplicita
+ * dell'utente.
+ */
+const PAGE_THEME: Record<string, string> = {
+  "/calendario": "theme-calendar",
+  "/appuntamenti": "theme-calendar",
+  "/wishlist": "theme-wishlist",
+  "/profilo": "theme-profile",
+};
+
 function mapRowToNotification(row: NotificationRow): AppNotification {
   return {
     id: row.id,
@@ -89,6 +106,7 @@ export default function AppTopBar({ userId }: { userId: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const pageTitle = PAGE_TITLES[pathname];
+  const pageTheme = PAGE_THEME[pathname] ?? "";
   const [unreadCount, setUnreadCount] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -182,7 +200,7 @@ export default function AppTopBar({ userId }: { userId: string }) {
           oscurato dietro al pannello. bg-base/95 (colore semi-trasparente,
           non un filtro) resta invece innocuo. */}
       <div
-        className="sticky top-0 z-30 flex w-full items-center justify-between border-b border-border bg-base/95 px-4 py-2"
+        className={`${pageTheme} sticky top-0 z-30 flex w-full items-center justify-between border-b border-border bg-base/95 px-4 py-2`}
         style={{ paddingTop: "max(env(safe-area-inset-top), 0.5rem)" }}
       >
         {/* Titolo colorato come la campanella (stesso --color-couple) invece

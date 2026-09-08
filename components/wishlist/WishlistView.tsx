@@ -142,7 +142,7 @@ export default function WishlistView({ selfId, partnerName }: WishlistViewProps)
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 px-4 pt-5">
+    <div className="theme-wishlist bg-diary flex flex-1 flex-col gap-4 px-4 pt-5">
       <div className="flex justify-end">
         <button
           onClick={() => setShowArchive((v) => !v)}

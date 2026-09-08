@@ -182,7 +182,7 @@ export default function CalendarView({
   const createDefaultDate = pickedSlot?.date ?? agendaDate ?? selectedDate;
 
   return (
-    <div className="flex flex-1 flex-col gap-4 px-4 pt-5">
+    <div className="theme-calendar bg-diary flex flex-1 flex-col gap-4 px-4 pt-5">
       <div className="flex w-full rounded-2xl bg-partner-a-soft/50 p-1">
         {(["day", "week", "month"] as const).map((v) => (
           <button
