@@ -212,12 +212,13 @@ body {
   --color-bg-gradient-end: #d6f0ec;
 }
 .theme-hero {
-  /* CountdownHero + adesivo traguardo (Home) + campanella/titolo "Home" —
-     oro/ambra, deliberatamente diverso dal giallo-limone di
-     .theme-throwback (altrimenti due sezioni diverse avrebbero lo stesso
-     colore): più caldo/ocra, imparentato con --color-special (già usato
-     per le date speciali nel Calendario) invece che una tinta nuova
-     scollegata dal resto dell'app. */
+  /* CountdownHero + adesivo traguardo (Home) — oro/ambra, deliberatamente
+     diverso dal giallo-limone di .theme-throwback (altrimenti due sezioni
+     diverse avrebbero lo stesso colore): più caldo/ocra, imparentato con
+     --color-special (già usato per le date speciali nel Calendario)
+     invece che una tinta nuova scollegata dal resto dell'app. NON più
+     usato per campanella/titolo "Home" (vedi .theme-neutral sotto —
+     l'utente non voleva il titolo colorato lì, solo il widget). */
   --color-couple: #c2842f;
   --color-couple-soft: #f6dfb0;
   --card-tint: #fbe8c4;
@@ -225,6 +226,17 @@ body {
   --color-base: #fbe8c4;
   --color-bg-gradient-start: #fef4e0;
   --color-bg-gradient-end: #fbe8c4;
+}
+.theme-neutral {
+  /* Campanella + titolo "Home" in AppTopBar — su richiesta esplicita
+     dell'utente NON deve essere colorato (né viola originale né oro):
+     grigio scuro neutro su un fondo quasi bianco, "richiama lo sfondo
+     generale della pagina" (Home è bianca) invece di spiccare come un
+     tema a sé. Nessun --card-tint/gradient qui: questo tema è pensato
+     solo per l'header, non per intere pagine/card. */
+  --color-couple: #6b6b63;
+  --color-couple-soft: #ece9e2;
+  --color-base: #f6f4f0;
 }
 
 /*

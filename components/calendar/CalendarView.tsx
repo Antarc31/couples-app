@@ -340,7 +340,7 @@ export default function CalendarView({
       <div className="fixed inset-x-5 bottom-20 z-20 flex items-center justify-between">
         <button
           onClick={() => setShowFreeSlots(true)}
-          className="flex items-center gap-2 rounded-full bg-couple-soft px-4 py-2.5 text-sm font-semibold text-couple shadow-[var(--shadow-soft)] transition active:scale-95"
+          className="flex items-center gap-2 rounded-full bg-surface px-4 py-2.5 text-sm font-semibold text-couple shadow-[var(--shadow-soft)] transition active:scale-95"
         >
           <Search size={16} strokeWidth={2.2} />
           Trova buchi liberi

@@ -47,7 +47,16 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#F8ECF1",
+  // Colore di sistema per le zone che il contenuto web non copre (es. la
+  // fascia dello home indicator su iOS, da PWA installata) — statico,
+  // indipendente dalla pagina mostrata, quindi non può inseguire il tema
+  // per-pagina introdotto nel sistema colori. Prima era il rosa della
+  // vecchia palette monocromatica (#F8ECF1): non aggiornato durante il
+  // giro colori, restava visibile come una striscia rosa fissa in fondo
+  // a OGNI pagina anche dopo che tutto il resto era stato ricolorato.
+  // Bianco/quasi bianco (stesso valore di --color-surface) per restare
+  // neutro rispetto a tutti i temi.
+  themeColor: "#fefdfb",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

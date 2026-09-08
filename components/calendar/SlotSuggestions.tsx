@@ -64,7 +64,7 @@ export default function SlotSuggestions({ coupleId, from, daysAhead, excludeEven
               key={opt.minutes}
               type="button"
               onClick={() => pickDuration(opt.minutes)}
-              className="rounded-full bg-partner-a-soft/50 px-3 py-1.5 text-xs font-semibold text-ink transition hover:bg-partner-a-soft"
+              className="rounded-full bg-couple-soft/50 px-3 py-1.5 text-xs font-semibold text-ink transition hover:bg-couple-soft"
             >
               {opt.label}
             </button>
