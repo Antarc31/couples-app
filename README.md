@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Couples App
 
-## Getting Started
+PWA per coppie: due persone si autenticano separatamente e si "accoppiano" tramite un codice di invito, poi condividono calendario, appuntamenti, wishlist regali/attività e una home con rituali quotidiani pensati per la coppia.
 
-First, run the development server:
+## Funzionalità
+
+- **Calendario condiviso** — vista Giorno/Settimana/Mese, eventi personali/di coppia/speciali (compleanni, anniversario, mesiversario generati automaticamente)/ciclo (privato di default), ricorrenze, ricerca degli slot liberi comuni.
+- **Appuntamenti** — idee non ancora fissate e appuntamenti confermati (un appuntamento confermato è un evento calendario a tutti gli effetti, non un dato duplicato).
+- **Wishlist** — regali e attività, con "modalità sorpresa": i dettagli di un regalo per il partner restano nascosti finché non viene completato (RLS a due livelli).
+- **Home** — countdown alla prossima data speciale, mazzetto "Ricordi" del giorno corrente, throwback "un anno fa oggi", quiz del giorno con rivelazione reciproca via Realtime, check-in emotivo quotidiano, anteprima impegni e wishlist.
+- **Galleria foto** — storico completo delle foto condivise, a scroll infinito.
+- **Profilo** — dati account, data di inizio relazione, preferenze quiz/mood check-in per la coppia.
+
+## Stack tecnico
+
+- **Frontend**: Next.js (App Router), React, TypeScript, Tailwind CSS
+- **Backend**: [Supabase](https://supabase.com) — Postgres, Auth, Storage (foto, bucket privato con signed URL), Realtime, Row Level Security (la maggior parte della logica di autorizzazione vive nelle policy RLS)
+- **Hosting**: Vercel (frontend) + Supabase cloud (backend)
+- **Test**: Jest + Testing Library per unit/component test, Playwright per scenari end-to-end
+
+## Sviluppo locale
 
 ```bash
+npm install
+cp .env.local.example .env.local   # compila con le credenziali del tuo progetto Supabase
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Apri [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Variabili d'ambiente richieste (vedi `.env.local.example`):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-## Learn More
+### Altri comandi utili
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run lint       # ESLint
+npm run test       # Jest (client Supabase sempre mockato)
+npm run test:e2e   # Playwright (richiede un'istanza Supabase raggiungibile)
+npm run build       # build di produzione
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Note
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Questo repo contiene anche materiale di lavoro interno (`HANDOFF.md`, `docs/`) usato durante lo sviluppo assistito da AI — non fa parte della documentazione utente, ma è lasciato pubblico come log storico del progetto.
